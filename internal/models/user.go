@@ -27,10 +27,3 @@ func (u *User) CheckPassword(password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	return err == nil
 }
-
-func MigrateDB(db *gorm.DB) {
-	err := db.AutoMigrate(&User{})
-	if err != nil {
-		return
-	}
-}
