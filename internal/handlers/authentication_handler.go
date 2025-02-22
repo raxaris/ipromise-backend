@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -19,18 +20,21 @@ func SignupHandler(c *gin.Context) {
 		return
 	}
 
+	// Создаем пользователя **с паролем**
 	user := models.User{
 		ID:       uuid.New(),
 		Username: req.Username,
 		Email:    req.Email,
-		Password: req.Password,
+		Password: req.Password, // Добавляем пароль
 	}
 
+	// Теперь хешируем его внутри структуры
 	if err := user.HashPassword(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка хеширования пароля"})
 		return
 	}
 
+	// Сохраняем в БД
 	if err := config.DB.Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка создания пользователя"})
 		return
@@ -58,13 +62,34 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	accessToken, _ := services.GenerateAccessToken(user.ID.String())
-	refreshToken, _ := services.GenerateRefreshToken(user.ID.String())
+	accessToken, err := services.GenerateAccessToken(user.ID.String())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации Access-токена"})
+		return
+	}
+
+	refreshToken, err := services.GenerateRefreshToken(user.ID.String())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации Refresh-токена"})
+		return
+	}
+
+	// Сохраняем Refresh Token в БД
+	refreshTokenEntry := models.RefreshToken{
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		Token:     refreshToken,
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	}
+
+	if err := config.DB.Create(&refreshTokenEntry).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сохранения Refresh-токена"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken})
 }
 
-// RefreshTokenHandler – обновление токена
 func RefreshTokenHandler(c *gin.Context) {
 	var req dto.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -72,14 +97,19 @@ func RefreshTokenHandler(c *gin.Context) {
 		return
 	}
 
-	claims, err := services.ValidateAccessToken(req.RefreshToken)
+	// Проверяем `refresh_token` через сервис
+	refreshToken, err := services.ValidateRefreshTokenFromDB(config.DB, req.RefreshToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Недействительный Refresh-токен"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Недействительный или истёкший Refresh-токен"})
 		return
 	}
 
-	userID := claims["user_id"].(string)
-	newAccessToken, _ := services.GenerateAccessToken(userID)
+	// Генерируем новый `access_token`
+	newAccessToken, err := services.GenerateAccessToken(refreshToken.UserID.String())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации нового Access-токена"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"access_token": newAccessToken})
 }

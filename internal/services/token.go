@@ -1,13 +1,15 @@
 package services
 
 import (
-	"github.com/raxaris/ipromise-backend/config"
-	"os"
+	"github.com/raxaris/ipromise-backend/internal/models"
+	"gorm.io/gorm"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/raxaris/ipromise-backend/config"
 )
 
+// GenerateAccessToken – создает Access-токен
 func GenerateAccessToken(userID string) (string, error) {
 	expirationTime := time.Now().Add(15 * time.Minute)
 
@@ -20,6 +22,7 @@ func GenerateAccessToken(userID string) (string, error) {
 	return token.SignedString([]byte(config.JWTSecret))
 }
 
+// GenerateRefreshToken – создает Refresh-токен
 func GenerateRefreshToken(userID string) (string, error) {
 	expirationTime := time.Now().Add(7 * 24 * time.Hour)
 
@@ -32,11 +35,10 @@ func GenerateRefreshToken(userID string) (string, error) {
 	return token.SignedString([]byte(config.JWTSecret))
 }
 
+// ValidateAccessToken – проверяет Access-токен
 func ValidateAccessToken(tokenString string) (jwt.MapClaims, error) {
-	secret := os.Getenv("JWT_SECRET")
-
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
+		return []byte(config.JWTSecret), nil
 	})
 
 	if err != nil || !token.Valid {
@@ -49,4 +51,20 @@ func ValidateAccessToken(tokenString string) (jwt.MapClaims, error) {
 	}
 
 	return claims, nil
+}
+
+// ValidateRefreshTokenFromDB – проверяет `refresh_token` в БД
+func ValidateRefreshTokenFromDB(db *gorm.DB, tokenString string) (*models.RefreshToken, error) {
+	var refreshToken models.RefreshToken
+	if err := db.Where("token = ?", tokenString).First(&refreshToken).Error; err != nil {
+		return nil, err
+	}
+
+	// Проверяем, не истёк ли токен
+	if time.Now().After(refreshToken.ExpiresAt) {
+		db.Delete(&refreshToken) // Удаляем истёкший токен
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	return &refreshToken, nil
 }
