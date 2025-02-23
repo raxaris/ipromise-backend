@@ -70,6 +70,15 @@ func CreatePromise(userID uuid.UUID, req dto.CreatePromiseRequest) error {
 	return repositories.CreatePromise(&promise)
 }
 
+// GetPromiseByID – получение обещания по ID (исправленный код)
+func GetPromiseByID(promiseID uuid.UUID) (*models.Promise, error) {
+	promise, err := repositories.GetPromiseByID(promiseID)
+	if err != nil {
+		return nil, ErrPromiseNotFound
+	}
+	return promise, nil
+}
+
 // GetAllPromises – получение всех обещаний
 func GetAllPromises() ([]models.Promise, error) {
 	return repositories.GetAllPromises()

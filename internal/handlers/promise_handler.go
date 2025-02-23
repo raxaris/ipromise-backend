@@ -86,8 +86,24 @@ func GetAllPromisesHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, promises)
 }
 
-// GetUserPromisesHandler – получить обещания конкретного пользователя
-func GetUserPromisesHandler(c *gin.Context) {
+func GetPromiseByIDHandler(c *gin.Context) {
+	promiseID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID обещания"})
+		return
+	}
+
+	promise, err := services.GetPromiseByID(promiseID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Обещание не найдено"})
+		return
+	}
+
+	c.JSON(http.StatusOK, promise)
+}
+
+// GetPromisesByUserIDHandler – получить обещания конкретного пользователя
+func GetPromisesByUserIDHandler(c *gin.Context) {
 	// Получаем `user_id` из параметра запроса
 	userID, err := uuid.Parse(c.Param("user_id"))
 	if err != nil {

@@ -2,22 +2,22 @@ package main
 
 import (
 	"fmt"
-	"github.com/raxaris/ipromise-backend/internal/middleware"
 	"log"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/raxaris/ipromise-backend/config"
 	"github.com/raxaris/ipromise-backend/internal/handlers"
+	"github.com/raxaris/ipromise-backend/internal/middleware"
 )
 
 func main() {
-	config.ConnectDB() // Инициализация базы данных
-	config.LoadEnv()   // Загружаем .env переменные
+	// Инициализация БД и переменных окружения
+	config.LoadEnv()
+	config.ConnectDB()
 
 	r := gin.Default()
 
-	// Аутентификация
+	// 🔹 Аутентификация
 	auth := r.Group("/auth")
 	{
 		auth.POST("/signup", handlers.SignupHandler)
@@ -25,19 +25,44 @@ func main() {
 		auth.POST("/refresh", handlers.RefreshTokenHandler)
 	}
 
-	protected := r.Group("/protected")
-	protected.Use(middleware.AuthMiddleware()) // Подключаем middleware для проверки токена
+	// 🔹 Маршруты для авторизованных пользователей
+	protected := r.Group("/")
+	protected.Use(middleware.AuthMiddleware())
 	{
-		protected.GET("/test", func(c *gin.Context) {
-			userID, exists := c.Get("user_id") // Достаем user_id из контекста
-			if !exists {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Не удалось получить user_id"})
-				return
-			}
-			c.JSON(http.StatusOK, gin.H{"message": "Доступ разрешен", "user_id": userID})
-		})
+		// 🔹 Профиль пользователя
+		protected.GET("/user", handlers.GetCurrentUserHandler)
+		protected.PUT("/user", handlers.UpdateUserHandler)
+		protected.DELETE("/user", handlers.DeleteUserHandler)
+
+		// 🔹 Обещания (только свои)
+		protected.POST("/promises", handlers.CreatePromiseHandler)
+		protected.GET("/promises", handlers.GetPromisesByUserIDHandler)
+		protected.PUT("/promises/:id", handlers.UpdatePromiseHandler)
 	}
-	
+
+	// 🔹 Маршруты для модераторов и админов
+	moderator := r.Group("/moderation")
+	moderator.Use(middleware.ModeratorMiddleware())
+	{
+		moderator.DELETE("/promises/:id", handlers.DeletePromiseHandler)
+	}
+
+	// 🔹 Админские маршруты (полный доступ)
+	admin := r.Group("/admin")
+	admin.Use(middleware.AdminMiddleware())
+	{
+		// Управление пользователями
+		admin.GET("/users", handlers.GetAllUsersHandler)
+		admin.GET("/users/:id", handlers.GetUserByIDHandler)
+		admin.PUT("/users/:id", handlers.UpdateUserHandler)
+		admin.DELETE("/users/:id", handlers.DeleteUserHandler)
+
+		// Управление обещаниями
+		admin.GET("/promises", handlers.GetAllPromisesHandler)
+		admin.GET("/promises/:id", handlers.GetPromiseByIDHandler)
+		admin.DELETE("/promises/:id", handlers.DeletePromiseHandler)
+	}
+
 	port := "8080"
 	fmt.Println("🚀 Сервер запущен на порту " + port)
 	log.Fatal(r.Run(":" + port))

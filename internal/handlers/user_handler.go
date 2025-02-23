@@ -22,6 +22,17 @@ func GetCurrentUserHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+// GetAllUsersHandler – получение списка всех пользователей (только для админов)
+func GetAllUsersHandler(c *gin.Context) {
+	users, err := services.GetAllUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения пользователей"})
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
 // GetUserByIDHandler – получить пользователя по ID
 func GetUserByIDHandler(c *gin.Context) {
 	idStr := c.Param("id")
