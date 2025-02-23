@@ -20,6 +20,22 @@ func SignupHandler(c *gin.Context) {
 		return
 	}
 
+	// Проверяем, совпадает ли пароль и подтверждение пароля
+	if req.Password != req.ConfirmPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Пароли не совпадают"})
+		return
+	}
+
+	// Проверяем, существует ли уже email или username
+	var existingUser models.User
+	if err := config.DB.Where("email = ? OR username = ?", req.Email, req.Username).First(&existingUser).Error; err == nil {
+		if existingUser.Email == req.Email {
+			c.JSON(http.StatusConflict, gin.H{"error": "Email уже используется"})
+		} else {
+			c.JSON(http.StatusConflict, gin.H{"error": "Username уже используется"})
+		}
+		return
+	}
 	// Создаем пользователя **с паролем**
 	user := models.User{
 		ID:       uuid.New(),
