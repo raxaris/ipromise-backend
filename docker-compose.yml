@@ -1,50 +1,42 @@
 version: "3.9"
 
 services:
-  postgres:
+  db:
     image: postgres:16
-    container_name: postgres_db
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123
+      POSTGRES_PASSWORD: "123"
       POSTGRES_DB: ipromisego
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db  # Меняем localhost на db (название контейнера)
+    command: ["/bin/sh", "-c", "sleep 5 && /bin/ipromise-backend"]
 
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin
     restart: always
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin123
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
     ports:
       - "5050:80"
     depends_on:
-      - postgres
+      - db
 
-  app:
-    build: .
-    container_name: ipromise-app
-    restart: always
-    depends_on:
-      - postgres
-    environment:
-      DB_HOST: postgres
-      DB_USER: postgres
-      DB_PASSWORD: 123
-      DB_NAME: ipromisego
-      DB_PORT: 5432
-      JWT_SECRET: kA3H8zVf1aM9XYl2QPwZ+K5Yb6T!w^vB@N&D*G-J3K8L2M0P
-    ports:
-      - "8080:8080"
-    command: ["./ipromise-backend"]
 
 volumes:
   postgres_data:
-  pgadmin_data:
