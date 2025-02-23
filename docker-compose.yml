@@ -1,27 +1,41 @@
 version: "3.9"
 
 services:
-  db:
+  postgres:
     image: postgres:16
-    container_name: ipromise-db
+    container_name: postgres_db
     restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123
       POSTGRES_DB: ipromisego
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
 
   app:
     build: .
     container_name: ipromise-app
     restart: always
     depends_on:
-      - db
+      - postgres
     environment:
-      DB_HOST: db
+      DB_HOST: postgres
       DB_USER: postgres
       DB_PASSWORD: 123
       DB_NAME: ipromisego
@@ -29,7 +43,8 @@ services:
       JWT_SECRET: kA3H8zVf1aM9XYl2QPwZ+K5Yb6T!w^vB@N&D*G-J3K8L2M0P
     ports:
       - "8080:8080"
-    command: ["./main"]
+    command: ["./ipromise-backend"]
 
 volumes:
   postgres_data:
+  pgadmin_data:
