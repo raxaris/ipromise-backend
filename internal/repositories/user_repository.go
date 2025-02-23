@@ -15,7 +15,20 @@ func CreateUser(user *models.User) error {
 func GetUserByID(userID uuid.UUID) (*models.User, error) {
 	var user models.User
 	err := config.DB.First(&user, "id = ?", userID).Error
-	return &user, err
+	if err != nil {
+		return nil, err // Если пользователь не найден, возвращаем nil и ошибку
+	}
+	return &user, nil
+}
+
+// GetUserByUsername – получение пользователя по ID
+func GetUserByUsername(username string) (*models.User, error) {
+	var user models.User
+	err := config.DB.First(&user, "username = ?", username).Error
+	if err != nil {
+		return nil, err // Если пользователь не найден, возвращаем nil и ошибку
+	}
+	return &user, nil
 }
 
 // GetAllUsers – получение списка всех пользователей

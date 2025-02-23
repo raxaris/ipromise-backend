@@ -5,12 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/raxaris/ipromise-backend/config"
 	"github.com/raxaris/ipromise-backend/internal/dto"
-	"github.com/raxaris/ipromise-backend/internal/models"
+	"github.com/raxaris/ipromise-backend/internal/services"
 )
 
-// CreatePromiseHandler – создаёт новое обещание
+// CreatePromiseHandler – создать новое обещание (только юзер)
 func CreatePromiseHandler(c *gin.Context) {
 	var req dto.CreatePromiseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -18,94 +17,90 @@ func CreatePromiseHandler(c *gin.Context) {
 		return
 	}
 
-	// Получаем ID пользователя из middleware
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
-		return
-	}
+	// Получаем user_id из контекста
+	userID, _ := uuid.Parse(c.GetString("user_id"))
 
-	// Преобразуем userID в uuid.UUID
-	userUUID, err := uuid.Parse(userID.(string))
+	// Создаём обещание
+	err := services.CreatePromise(userID, req)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Ошибка обработки user_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Создаём новое обещание
-	promise := models.Promise{
-		ID:          uuid.New(),
-		UserID:      userUUID,
-		ParentID:    req.ParentID,
-		Title:       req.Title,
-		Description: req.Description,
-	}
-
-	// Если это основное обещание (ParentID == nil)
-	if req.ParentID == nil {
-		promise.Status = "pending" // Основное обещание всегда создаётся со статусом pending
-		if req.Deadline != nil {
-			promise.Deadline = *req.Deadline
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Основное обещание требует дедлайна"})
-			return
-		}
-	} else {
-		// Если это прогресс (обновление обещания)
-		var parentPromise models.Promise
-		if err := config.DB.First(&parentPromise, "id = ?", req.ParentID).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Родительское обещание не найдено"})
-			return
-		}
-
-		// Наследуем дедлайн у родителя
-		promise.Deadline = parentPromise.Deadline
-
-		// Устанавливаем статус в зависимости от запроса
-		if req.Status == "completed" {
-			promise.Status = "completed"
-		} else {
-			promise.Status = "in_progress"
-		}
-	}
-
-	// Сохраняем в БД
-	if err := config.DB.Create(&promise).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка создания обещания"})
-		return
-	}
-
-	// Возвращаем JSON-ответ
-	c.JSON(http.StatusCreated, gin.H{"message": "Обещание создано", "promise": promise})
+	c.JSON(http.StatusCreated, gin.H{"message": "Обещание успешно создано"})
 }
 
-// GetPromiseHandler – получает обещание по ID
-func GetPromiseHandler(c *gin.Context) {
+// UpdatePromiseHandler – обновить обещание (только автор или админ)
+func UpdatePromiseHandler(c *gin.Context) {
+	var req dto.UpdatePromiseRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Получаем ID пользователя
+	userID, _ := uuid.Parse(c.GetString("user_id"))
 	promiseID := c.Param("id")
+	isAdmin := c.GetString("role") == "admin"
 
-	var promise models.Promise
-	if err := config.DB.First(&promise, "id = ?", promiseID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Обещание не найдено"})
+	// Обновляем обещание через сервис
+	err := services.UpdatePromise(userID, promiseID, req, isAdmin)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, promise)
+	c.JSON(http.StatusOK, gin.H{"message": "Обещание обновлено"})
 }
 
-// DeletePromiseHandler – удаляет (soft-delete) обещание
+// DeletePromiseHandler – удалить обещание (только админ)
 func DeletePromiseHandler(c *gin.Context) {
-	promiseID := c.Param("id")
-
-	var promise models.Promise
-	if err := config.DB.First(&promise, "id = ?", promiseID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Обещание не найдено"})
+	// Проверяем, является ли пользователь админом
+	isAdmin := c.GetString("role") == "admin"
+	if !isAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав на удаление обещания"})
 		return
 	}
 
-	if err := config.DB.Delete(&promise).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка удаления обещания"})
+	// ID обещания для удаления
+	promiseID := c.Param("id")
+
+	// Вызываем сервис удаления
+	err := services.DeletePromise(promiseID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Обещание удалено"})
+}
+
+// GetAllPromisesHandler – получить все обещания
+func GetAllPromisesHandler(c *gin.Context) {
+	promises, err := services.GetAllPromises()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
+		return
+	}
+
+	c.JSON(http.StatusOK, promises)
+}
+
+// GetUserPromisesHandler – получить обещания конкретного пользователя
+func GetUserPromisesHandler(c *gin.Context) {
+	// Получаем `user_id` из параметра запроса
+	userID, err := uuid.Parse(c.Param("user_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
+		return
+	}
+
+	// Получаем обещания пользователя
+	promises, err := services.GetPromiseByUserID(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
+		return
+	}
+
+	c.JSON(http.StatusOK, promises)
 }

@@ -9,24 +9,52 @@ import (
 	"github.com/raxaris/ipromise-backend/internal/services"
 )
 
-// GetAllUsersHandler – получение всех пользователей (только для админов)
-func GetAllUsersHandler(c *gin.Context) {
-	role, _ := c.Get("role")
-	if role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав для просмотра пользователей"})
-		return
-	}
+// GetCurrentUserHandler – получить информацию о себе
+func GetCurrentUserHandler(c *gin.Context) {
+	userID, _ := uuid.Parse(c.GetString("user_id"))
 
-	users, err := services.GetAllUsers()
+	user, err := services.GetUserByID(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения пользователей"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
 		return
 	}
 
-	c.JSON(http.StatusOK, users)
+	c.JSON(http.StatusOK, user)
 }
 
-// UpdateUserHandler – обновление информации о пользователе
+// GetUserByIDHandler – получить пользователя по ID
+func GetUserByIDHandler(c *gin.Context) {
+	idStr := c.Param("id")
+
+	userID, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID"})
+		return
+	}
+
+	user, err := services.GetUserByID(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+// GetUserByUsernameHandler – получить пользователя по username
+func GetUserByUsernameHandler(c *gin.Context) {
+	username := c.Param("username")
+
+	user, err := services.GetUserByUsername(username)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+// UpdateUserHandler – обновить профиль пользователя (только username)
 func UpdateUserHandler(c *gin.Context) {
 	var req dto.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -34,25 +62,9 @@ func UpdateUserHandler(c *gin.Context) {
 		return
 	}
 
-	// Получаем ID текущего пользователя
-	requesterID, err := uuid.Parse(c.GetString("user_id"))
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Ошибка обработки user_id"})
-		return
-	}
+	userID, _ := uuid.Parse(c.GetString("user_id"))
 
-	// Получаем ID пользователя, которого обновляют
-	userIDParam := c.Param("id")
-	userID, err := uuid.Parse(userIDParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный user_id"})
-		return
-	}
-
-	isAdmin := c.GetString("role") == "admin"
-
-	// Вызываем сервис обновления пользователя
-	err = services.UpdateUser(requesterID, userID, &req, isAdmin)
+	err := services.UpdateUser(userID, userID, &req, false)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -61,20 +73,23 @@ func UpdateUserHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Данные пользователя обновлены"})
 }
 
-// DeleteUserHandler – удаление пользователя (только для админов)
+// DeleteUserHandler – удалить аккаунт
 func DeleteUserHandler(c *gin.Context) {
-	role, _ := c.Get("role")
-	if role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав для удаления пользователей"})
+	userID, _ := uuid.Parse(c.GetString("user_id"))
+
+	// Проверяем, существует ли пользователь
+	_, err := services.GetUserByID(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
 		return
 	}
 
-	userID := c.Param("id")
-	err := services.DeleteUser(userID)
+	// Удаляем пользователя
+	err = services.DeleteUser(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка удаления пользователя"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Пользователь удален"})
+	c.JSON(http.StatusOK, gin.H{"message": "Аккаунт удалён"})
 }

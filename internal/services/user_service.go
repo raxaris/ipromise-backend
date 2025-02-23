@@ -2,9 +2,10 @@ package services
 
 import (
 	"errors"
-	"github.com/raxaris/ipromise-backend/internal/dto"
+	"strings"
 
 	"github.com/google/uuid"
+	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/models"
 	"github.com/raxaris/ipromise-backend/internal/repositories"
 )
@@ -19,11 +20,21 @@ var (
 
 // CreateUser – создание пользователя
 func CreateUser(username, email, password string) (*models.User, error) {
+	// Убираем пробелы
+	username = strings.TrimSpace(username)
+	email = strings.TrimSpace(email)
+
+	// Проверяем уникальность email и username
 	if repositories.IsEmailExists(email) {
 		return nil, ErrEmailTaken
 	}
 	if repositories.IsUsernameExists(username) {
 		return nil, ErrUsernameTaken
+	}
+
+	// Проверяем длину username (не менее 3 символов)
+	if len(username) < 3 {
+		return nil, errors.New("имя пользователя должно содержать минимум 3 символа")
 	}
 
 	user := &models.User{
@@ -33,10 +44,12 @@ func CreateUser(username, email, password string) (*models.User, error) {
 		Password: password,
 	}
 
+	// Хешируем пароль
 	if err := user.HashPassword(); err != nil {
 		return nil, err
 	}
 
+	// Создаём пользователя в БД
 	err := repositories.CreateUser(user)
 	return user, err
 }
@@ -44,6 +57,24 @@ func CreateUser(username, email, password string) (*models.User, error) {
 // GetAllUsers – получение всех пользователей
 func GetAllUsers() ([]models.User, error) {
 	return repositories.GetAllUsers()
+}
+
+// GetUserByID – получение пользователя по ID
+func GetUserByID(userID uuid.UUID) (*models.User, error) {
+	user, err := repositories.GetUserByID(userID)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	return user, nil
+}
+
+// GetUserByUsername – получение пользователя по username
+func GetUserByUsername(username string) (*models.User, error) {
+	user, err := repositories.GetUserByUsername(username)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	return user, nil
 }
 
 // UpdateUser – обновление пользователя
@@ -60,11 +91,14 @@ func UpdateUser(requesterID uuid.UUID, userID uuid.UUID, req *dto.UpdateUserRequ
 	}
 
 	// Проверяем уникальность username, если его меняют
-	if req.Username != nil && *req.Username != existingUser.Username {
-		if repositories.IsUsernameExists(*req.Username) {
-			return ErrUsernameTaken
+	if req.Username != nil {
+		newUsername := strings.TrimSpace(*req.Username)
+		if newUsername != existingUser.Username {
+			if repositories.IsUsernameExists(newUsername) {
+				return ErrUsernameTaken
+			}
+			existingUser.Username = newUsername
 		}
-		existingUser.Username = *req.Username
 	}
 
 	// Админ может менять роль

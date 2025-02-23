@@ -14,6 +14,13 @@ type CreatePromiseRequest struct {
 	Status      string     `json:"status" binding:"required"`
 }
 
+type UpdatePromiseRequest struct {
+	Title       *string    `json:"title,omitempty"`
+	Description *string    `json:"description,omitempty"`
+	Status      *string    `json:"status,omitempty"`
+	Deadline    *time.Time `json:"deadline,omitempty"` // Только для основного обещания
+}
+
 type PromiseResponse struct {
 	ID          uuid.UUID  `json:"id"`
 	UserID      uuid.UUID  `json:"user_id"`

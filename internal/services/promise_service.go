@@ -2,38 +2,94 @@ package services
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
+	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/models"
 	"github.com/raxaris/ipromise-backend/internal/repositories"
 )
 
 // Ошибки
 var (
-	ErrNotAllowedToUpdate = errors.New("Вы не можете редактировать это обещание")
-	ErrInvalidStatus      = errors.New("Нельзя изменить статус на этот")
-	ErrPromiseNotFound    = errors.New("Обещание не найдено")
+	ErrNotAllowedToUpdate = errors.New("вы не можете редактировать это обещание")
+	ErrInvalidStatus      = errors.New("нельзя изменить статус на этот")
+	ErrPromiseNotFound    = errors.New("обещание не найдено")
+	ErrInvalidTitle       = errors.New("заголовок обещания не может быть пустым или короче 3 символов")
 )
 
 // CreatePromise – создание нового обещания (юзер/админ)
-func CreatePromise(userID uuid.UUID, promise *models.Promise) error {
-	// Если у обещания есть родитель, проверяем его существование
-	if promise.ParentID != nil {
-		parentPromise, err := repositories.GetPromiseByID(promise.ParentID.String())
-		if err != nil {
-			return errors.New("Родительское обещание не найдено")
+func CreatePromise(userID uuid.UUID, req dto.CreatePromiseRequest) error {
+	// Убираем пробелы в заголовке и описании
+	req.Title = strings.TrimSpace(req.Title)
+	req.Description = strings.TrimSpace(req.Description)
+
+	// Проверяем корректность заголовка
+	if len(req.Title) < 5 {
+		return ErrInvalidTitle
+	}
+
+	// Создаём новый объект обещания
+	promise := models.Promise{
+		ID:          uuid.New(),
+		UserID:      userID,
+		ParentID:    req.ParentID,
+		Title:       req.Title,
+		Description: req.Description,
+	}
+
+	// Если это основное обещание (нет ParentID)
+	if req.ParentID == nil {
+		promise.Status = "pending" // Основное обещание всегда создаётся со статусом "pending"
+
+		// Проверяем, указан ли дедлайн
+		if req.Deadline != nil {
+			promise.Deadline = *req.Deadline
+		} else {
+			return errors.New("основное обещание должно иметь дедлайн")
 		}
-		promise.Deadline = parentPromise.Deadline // Наследуем дедлайн
+	} else {
+		// Если это прогресс (обновление обещания)
+		parentPromise, err := repositories.GetPromiseByID(*req.ParentID)
+		if err != nil {
+			return errors.New("родительское обещание не найдено")
+		}
+
+		// Наследуем дедлайн у родителя
+		promise.Deadline = parentPromise.Deadline
+
+		// Прогресс может быть либо "in_progress", либо "completed"
+		if req.Status != "in_progress" && req.Status != "completed" {
+			return errors.New("прогресс должен быть 'in_progress' или 'completed'")
+		}
+
+		promise.Status = req.Status
 	}
 
 	// Создаём обещание в БД
-	return repositories.CreatePromise(promise)
+	return repositories.CreatePromise(&promise)
+}
+
+// GetAllPromises – получение всех обещаний
+func GetAllPromises() ([]models.Promise, error) {
+	return repositories.GetAllPromises()
+}
+
+// GetPromiseByUserID – получение обещаний пользователя
+func GetPromiseByUserID(userID uuid.UUID) ([]models.Promise, error) {
+	return repositories.GetPromisesByUserID(userID)
 }
 
 // UpdatePromise – обновление обещания (с учетом ролей)
-func UpdatePromise(userID uuid.UUID, promiseID string, updateData *models.Promise, isAdmin bool) error {
+func UpdatePromise(userID uuid.UUID, promiseID string, updateData dto.UpdatePromiseRequest, isAdmin bool) error {
+	// Преобразуем promiseID в UUID
+	promiseUUID, err := uuid.Parse(promiseID)
+	if err != nil {
+		return errors.New("Неверный формат ID обещания")
+	}
+
 	// Получаем текущее обещание
-	existingPromise, err := repositories.GetPromiseByID(promiseID)
+	existingPromise, err := repositories.GetPromiseByID(promiseUUID)
 	if err != nil {
 		return ErrPromiseNotFound
 	}
@@ -43,45 +99,33 @@ func UpdatePromise(userID uuid.UUID, promiseID string, updateData *models.Promis
 		return ErrNotAllowedToUpdate
 	}
 
-	// 2️⃣ Нельзя менять `ParentID`
-	if existingPromise.ParentID != nil && updateData.ParentID != nil && *existingPromise.ParentID != *updateData.ParentID {
-		return errors.New("Нельзя изменять родительское обещание")
-	}
-
 	// 3️⃣ Нельзя менять `Deadline`, если это прогресс
-	if existingPromise.ParentID != nil && !updateData.Deadline.Equal(existingPromise.Deadline) {
+	if existingPromise.ParentID != nil && updateData.Deadline != nil {
 		return errors.New("Нельзя менять дедлайн у прогресса")
 	}
 
 	// 4️⃣ Проверяем корректность изменения статуса
-	validTransitions := map[string][]string{
-		"pending":     {"in_progress", "completed"},
-		"in_progress": {"completed"},
+	validTransitions := map[string]map[string]bool{
+		"pending":     {"in_progress": true, "completed": true},
+		"in_progress": {"completed": true},
 		"completed":   {},
 	}
 
 	allowedNextStatuses, ok := validTransitions[existingPromise.Status]
-	if !ok {
-		return ErrInvalidStatus
-	}
-
-	// Проверяем, разрешено ли изменение статуса
-	statusValid := false
-	for _, allowed := range allowedNextStatuses {
-		if updateData.Status == allowed {
-			statusValid = true
-			break
-		}
-	}
-
-	if !statusValid && existingPromise.Status != updateData.Status {
+	if !ok || (updateData.Status != nil && !allowedNextStatuses[*updateData.Status]) {
 		return ErrInvalidStatus
 	}
 
 	// ✅ Всё в порядке – обновляем данные
-	existingPromise.Title = updateData.Title
-	existingPromise.Description = updateData.Description
-	existingPromise.Status = updateData.Status
+	if updateData.Title != nil {
+		existingPromise.Title = *updateData.Title
+	}
+	if updateData.Description != nil {
+		existingPromise.Description = *updateData.Description
+	}
+	if updateData.Status != nil {
+		existingPromise.Status = *updateData.Status
+	}
 
 	// Сохраняем обновления
 	return repositories.UpdatePromise(existingPromise)
@@ -89,5 +133,11 @@ func UpdatePromise(userID uuid.UUID, promiseID string, updateData *models.Promis
 
 // DeletePromise – удаление обещания (только для админа/модератора)
 func DeletePromise(promiseID string) error {
-	return repositories.DeletePromise(promiseID)
+	// Преобразуем в UUID
+	promiseUUID, err := uuid.Parse(promiseID)
+	if err != nil {
+		return errors.New("неверный формат ID обещания")
+	}
+
+	return repositories.DeletePromise(promiseUUID)
 }
