@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/config"
 	"github.com/raxaris/ipromise-backend/internal/models"
 )
@@ -11,7 +12,7 @@ func CreatePromise(promise *models.Promise) error {
 }
 
 // GetPromiseByID – получает обещание по ID
-func GetPromiseByID(id string) (*models.Promise, error) {
+func GetPromiseByID(id uuid.UUID) (*models.Promise, error) {
 	var promise models.Promise
 	if err := config.DB.First(&promise, "id = ?", id).Error; err != nil {
 		return nil, err
@@ -20,7 +21,7 @@ func GetPromiseByID(id string) (*models.Promise, error) {
 }
 
 // GetPromisesByUserID – получает все обещания конкретного пользователя
-func GetPromisesByUserID(userID string) ([]models.Promise, error) {
+func GetPromisesByUserID(userID uuid.UUID) ([]models.Promise, error) {
 	var promises []models.Promise
 	if err := config.DB.Where("user_id = ?", userID).Find(&promises).Error; err != nil {
 		return nil, err
@@ -41,6 +42,6 @@ func UpdatePromise(promise *models.Promise) error {
 }
 
 // DeletePromise – мягкое удаление обещания (soft-delete)
-func DeletePromise(id string) error {
+func DeletePromise(id uuid.UUID) error {
 	return config.DB.Delete(&models.Promise{}, "id = ?", id).Error
 }

@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"github.com/raxaris/ipromise-backend/internal/dto"
 
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/models"
@@ -10,19 +11,19 @@ import (
 
 // Ошибки
 var (
-	ErrUserNotFound   = errors.New("Пользователь не найден")
-	ErrForbidden      = errors.New("У вас нет прав для выполнения этого действия")
-	ErrEmailExists    = errors.New("Email уже используется")
-	ErrUsernameExists = errors.New("Username уже используется")
+	ErrUserNotFound     = errors.New("пользователь не найден")
+	ErrUsernameTaken    = errors.New("это имя пользователя уже занято")
+	ErrEmailTaken       = errors.New("этот email уже используется")
+	ErrNotAllowedToEdit = errors.New("у вас нет прав для редактирования этого пользователя")
 )
 
 // CreateUser – создание пользователя
 func CreateUser(username, email, password string) (*models.User, error) {
 	if repositories.IsEmailExists(email) {
-		return nil, ErrEmailExists
+		return nil, ErrEmailTaken
 	}
 	if repositories.IsUsernameExists(username) {
-		return nil, ErrUsernameExists
+		return nil, ErrUsernameTaken
 	}
 
 	user := &models.User{
@@ -46,19 +47,36 @@ func GetAllUsers() ([]models.User, error) {
 }
 
 // UpdateUser – обновление пользователя
-func UpdateUser(userID string, newUserData *models.User) error {
+func UpdateUser(requesterID uuid.UUID, userID uuid.UUID, req *dto.UpdateUserRequest, isAdmin bool) error {
+	// Получаем существующего пользователя
 	existingUser, err := repositories.GetUserByID(userID)
 	if err != nil {
 		return ErrUserNotFound
 	}
 
-	existingUser.Username = newUserData.Username
-	existingUser.Email = newUserData.Email
+	// Проверяем, имеет ли пользователь право редактировать
+	if requesterID != userID && !isAdmin {
+		return ErrNotAllowedToEdit
+	}
 
+	// Проверяем уникальность username, если его меняют
+	if req.Username != nil && *req.Username != existingUser.Username {
+		if repositories.IsUsernameExists(*req.Username) {
+			return ErrUsernameTaken
+		}
+		existingUser.Username = *req.Username
+	}
+
+	// Админ может менять роль
+	if isAdmin && req.Role != nil {
+		existingUser.Role = *req.Role
+	}
+
+	// Обновляем пользователя в БД
 	return repositories.UpdateUser(existingUser)
 }
 
 // DeleteUser – удаление пользователя
-func DeleteUser(userID string) error {
+func DeleteUser(userID uuid.UUID) error {
 	return repositories.DeleteUser(userID)
 }

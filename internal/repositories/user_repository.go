@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/config"
 	"github.com/raxaris/ipromise-backend/internal/models"
 )
@@ -11,7 +12,7 @@ func CreateUser(user *models.User) error {
 }
 
 // GetUserByID – получение пользователя по ID
-func GetUserByID(userID string) (*models.User, error) {
+func GetUserByID(userID uuid.UUID) (*models.User, error) {
 	var user models.User
 	err := config.DB.First(&user, "id = ?", userID).Error
 	return &user, err
@@ -30,7 +31,7 @@ func UpdateUser(user *models.User) error {
 }
 
 // DeleteUser – удаление пользователя
-func DeleteUser(userID string) error {
+func DeleteUser(userID uuid.UUID) error {
 	return config.DB.Delete(&models.User{}, "id = ?", userID).Error
 }
 
