@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/raxaris/ipromise-backend/internal/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -39,6 +40,111 @@ func CreatePromiseHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Обещание успешно создано"})
+}
+
+// GetAllPromisesHandler получает все обещания
+// @Summary Получение всех обещаний
+// @Description Возвращает список всех обещаний
+// @Tags promises
+// @Security BearerAuth
+// @Success 200 {array} models.Promise
+// @Router /promises [get]
+func GetAllPromisesHandler(c *gin.Context) {
+	isAdmin := c.GetString("role") == "admin"
+
+	var promises []models.Promise
+	var err error
+
+	if isAdmin {
+		promises, err = services.GetAllPromises()
+	} else {
+		promises, err = services.GetAllPublicPromises() // 🔹 Только публичные обещания
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
+		return
+	}
+
+	c.JSON(http.StatusOK, promises)
+}
+
+func GetPromiseByIDHandler(c *gin.Context) {
+	userID, _ := uuid.Parse(c.GetString("user_id"))
+	isAdmin := c.GetString("role") == "admin"
+	promiseID, err := uuid.Parse(c.Param("id"))
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID обещания"})
+		return
+	}
+
+	promise, err := services.GetPromiseByID(promiseID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Обещание не найдено"})
+		return
+	}
+
+	// ✅ Проверяем доступ: владелец или админ могут видеть обещание
+	if promise.IsPrivate && promise.UserID != userID && !isAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Это приватное обещание"})
+		return
+	}
+
+	c.JSON(http.StatusOK, promise)
+}
+
+// GetUserPromisesHandler получает список обещаний пользователя
+// @Summary Получение обещаний пользователя
+// @Description Возвращает список обещаний пользователя по его ID
+// @Tags promises
+// @Security BearerAuth
+// @Param id path string true "ID пользователя"
+// @Success 200 {array} models.Promise
+// @Failure 400 {object} map[string]string "error: Неверный формат ID пользователя"
+// @Failure 404 {object} map[string]string "error: Пользователь не найден"
+// @Failure 500 {object} map[string]string "error: Ошибка получения обещаний"
+// @Router /users/{id}/promises [get]
+func GetUserPromisesHandler(c *gin.Context) {
+	requestedUserID, err := uuid.Parse(c.Param("id")) // ID пользователя, чьи обещания запрашиваются
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
+		return
+	}
+
+	currentUserID, _ := uuid.Parse(c.GetString("user_id")) // ID текущего пользователя
+	isAdmin := c.GetString("role") == "admin"
+
+	// Получаем обещания пользователя
+	promises, err := services.GetPromiseByUserID(requestedUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
+		return
+	}
+
+	// Если запрашивает не владелец и не админ – скрываем приватные обещания
+	if requestedUserID != currentUserID && !isAdmin {
+		var filteredPromises []models.Promise
+		for _, promise := range promises {
+			if !promise.IsPrivate {
+				filteredPromises = append(filteredPromises, promise)
+			}
+		}
+		promises = filteredPromises
+	}
+
+	c.JSON(http.StatusOK, promises)
+}
+
+// GetAllPublicPromisesHandler – получение всех публичных обещаний
+func GetAllPublicPromisesHandler(c *gin.Context) {
+	promises, err := services.GetAllPublicPromises()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
+		return
+	}
+
+	c.JSON(http.StatusOK, promises)
 }
 
 // UpdatePromiseHandler обновляет обещание (автор или админ)
@@ -103,66 +209,4 @@ func DeletePromiseHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Обещание удалено"})
-}
-
-// GetAllPromisesHandler получает все обещания
-// @Summary Получение всех обещаний
-// @Description Возвращает список всех обещаний
-// @Tags promises
-// @Security BearerAuth
-// @Success 200 {array} models.Promise
-// @Router /promises [get]
-func GetAllPromisesHandler(c *gin.Context) {
-	promises, err := services.GetAllPromises()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
-		return
-	}
-
-	c.JSON(http.StatusOK, promises)
-}
-
-// GetPromisesByUserIDHandler получает обещания конкретного пользователя
-// @Summary Получение обещаний пользователя
-// @Description Возвращает список обещаний, созданных пользователем
-// @Tags promises
-// @Security BearerAuth
-// @Param user_id path string true "ID пользователя"
-// @Success 200 {array} models.Promise
-// @Failure 400 {object} map[string]string "error: Неверный формат ID пользователя"
-// @Failure 500 {object} map[string]string "error: Ошибка получения обещаний"
-// @Router /users/{user_id}/promises [get]
-func GetPromisesByIDHandler(c *gin.Context) {
-	promiseID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID обещания"})
-		return
-	}
-
-	promise, err := services.GetPromiseByID(promiseID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Обещание не найдено"})
-		return
-	}
-
-	c.JSON(http.StatusOK, promise)
-}
-
-// GetPromisesByUserIDHandler – получить обещания конкретного пользователя
-func GetPromisesByUserIDHandler(c *gin.Context) {
-	// Получаем `user_id` из параметра запроса
-	userID, err := uuid.Parse(c.Param("user_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
-		return
-	}
-
-	// Получаем обещания пользователя
-	promises, err := services.GetPromiseByUserID(userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
-		return
-	}
-
-	c.JSON(http.StatusOK, promises)
 }

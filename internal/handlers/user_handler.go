@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"github.com/raxaris/ipromise-backend/config"
+	"github.com/raxaris/ipromise-backend/internal/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -22,6 +24,20 @@ func GetCurrentUserHandler(c *gin.Context) {
 
 	user, err := services.GetUserByID(userID)
 	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+func GetPublicUserHandler(c *gin.Context) {
+	username := c.Param("username")
+
+	var user models.User
+	if err := config.DB.Select("id, username, created_at").
+		Where("username = ?", username).
+		First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
 		return
 	}

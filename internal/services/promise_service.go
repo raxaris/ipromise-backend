@@ -36,6 +36,7 @@ func CreatePromise(userID uuid.UUID, req dto.CreatePromiseRequest) error {
 		ParentID:    req.ParentID,
 		Title:       req.Title,
 		Description: req.Description,
+		IsPrivate:   req.IsPrivate,
 	}
 
 	// Если это основное обещание (нет ParentID)
@@ -70,12 +71,23 @@ func CreatePromise(userID uuid.UUID, req dto.CreatePromiseRequest) error {
 	return repositories.CreatePromise(&promise)
 }
 
-// GetPromiseByID – получение обещания по ID (исправленный код)
+// GetAllPublicPromises – получает только публичные обещания
+func GetAllPublicPromises() ([]models.Promise, error) {
+	return repositories.GetPublicPromises()
+}
+
+// GetPromiseByID – получает обещание по ID (проверка приватности)
 func GetPromiseByID(promiseID uuid.UUID) (*models.Promise, error) {
 	promise, err := repositories.GetPromiseByID(promiseID)
 	if err != nil {
-		return nil, ErrPromiseNotFound
+		return nil, errors.New("обещание не найдено")
 	}
+
+	// Если обещание приватное – вернуть ошибку
+	if promise.IsPrivate {
+		return nil, errors.New("обещание приватное")
+	}
+
 	return promise, nil
 }
 
@@ -135,7 +147,12 @@ func UpdatePromise(userID uuid.UUID, promiseID string, updateData dto.UpdateProm
 	if updateData.Status != nil {
 		existingPromise.Status = *updateData.Status
 	}
-
+	if updateData.IsPrivate != nil {
+		if existingPromise.ParentID != nil {
+			return errors.New("нельзя менять приватность у обновления прогресса")
+		}
+		existingPromise.IsPrivate = *updateData.IsPrivate
+	}
 	// Сохраняем обновления
 	return repositories.UpdatePromise(existingPromise)
 }

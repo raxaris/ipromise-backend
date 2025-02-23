@@ -16,6 +16,7 @@ type Promise struct {
 	Description string     `gorm:"type:text"`
 	Deadline    time.Time  `gorm:"not null"`
 	Status      string     `gorm:"type:varchar(20);default:pending"`
+	IsPrivate   bool       `gorm:"default:false" json:"is_private"`
 }
 
 func (p *Promise) BeforeCreate(tx *gorm.DB) (err error) {

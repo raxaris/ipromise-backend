@@ -14,7 +14,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	_ "github.com/raxaris/ipromise-backend/docs" // 🚀 Правильный импорт (после генерации)
+	_ "github.com/raxaris/ipromise-backend/docs"
 )
 
 // @title iPromise API
@@ -30,57 +30,53 @@ func main() {
 	config.ConnectDB()
 
 	r := gin.Default()
+
 	// CORS Middleware
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, // Разрешаем все домены (можно ограничить)
+		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
 	// 📌 Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// 🔹 Аутентификация
-	auth := r.Group("/auth")
-	{
-		auth.POST("/signup", handlers.SignupHandler)
-		auth.POST("/login", handlers.LoginHandler)
-		auth.POST("/refresh", handlers.RefreshTokenHandler)
-	}
+	// 🔹 Публичные маршруты
+	r.GET("/users/:id", handlers.GetPublicUserHandler)       // Публичный профиль без email
+	r.GET("/promises", handlers.GetAllPublicPromisesHandler) // Все обещания (без личных данных)
+	r.GET("/promises/:id", handlers.GetPromiseByIDHandler)   // Одно обещание
 
-	// 🔹 Маршруты для авторизованных пользователей
-	protected := r.Group("/")
-	protected.Use(middleware.AuthMiddleware())
+	// 🔹 Авторизованные пользователи
+	user := r.Group("/users")
+	user.Use(middleware.AuthMiddleware())
 	{
-		protected.GET("/user/me", handlers.GetCurrentUserHandler)
-		protected.PUT("/user/me", handlers.UpdateUserHandler)
+		user.GET("/me", handlers.GetCurrentUserHandler) // Личный профиль
+		user.PUT("/me", handlers.UpdateUserHandler)     // Обновление своего профиля
+		user.GET("/:id", handlers.GetUserByIDHandler)   // Получение пользователя (для себя)
+		user.GET("/byusername/:username", handlers.GetUserByUsernameHandler)
 
-		protected.POST("/promises", handlers.CreatePromiseHandler)
-		protected.GET("/promises", handlers.GetPromisesByUserIDHandler)
-		protected.PUT("/promises/:id", handlers.UpdatePromiseHandler)
-	}
-
-	// 🔹 Маршруты для модераторов и админов
-	moderator := r.Group("/moderation")
-	moderator.Use(middleware.ModeratorMiddleware())
-	{
-		moderator.DELETE("/promises/:id", handlers.DeletePromiseHandler)
+		// Обещания авторизованного пользователя
+		user.GET("/me/promises", handlers.GetUserPromisesHandler)      // Получить свои обещания
+		user.POST("/me/promises", handlers.CreatePromiseHandler)       // Создать обещание
+		user.PUT("/me/promises/:id", handlers.UpdatePromiseHandler)    // Обновить обещание
+		user.DELETE("/me/promises/:id", handlers.DeletePromiseHandler) // Удалить обещание
 	}
 
 	// 🔹 Админские маршруты (полный доступ)
 	admin := r.Group("/admin")
 	admin.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
+		// Полный доступ к пользователям
 		admin.GET("/users", handlers.GetAllUsersHandler)
-		admin.GET("/users/:id", handlers.GetUserByIDHandler)
-		admin.GET("/users/byusername/:username", handlers.GetUserByUsernameHandler)
 		admin.PUT("/users/:id", handlers.UpdateUserHandler)
 		admin.DELETE("/users/:id", handlers.DeleteUserHandler)
 
+		// Полный доступ к обещаниям
 		admin.GET("/promises", handlers.GetAllPromisesHandler)
-		admin.GET("/promises/:id", handlers.GetPromisesByIDHandler)
+		admin.PUT("/promises/:id", handlers.UpdatePromiseHandler)
 		admin.DELETE("/promises/:id", handlers.DeletePromiseHandler)
 	}
 

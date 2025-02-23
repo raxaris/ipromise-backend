@@ -12,13 +12,15 @@ type CreatePromiseRequest struct {
 	Description string     `json:"description"`
 	Deadline    *time.Time `json:"deadline,omitempty"` // Можно передавать только для основного промиса
 	Status      string     `json:"status" binding:"required"`
+	IsPrivate   bool       `json:"is_private"`
 }
 
 type UpdatePromiseRequest struct {
 	Title       *string    `json:"title,omitempty"`
 	Description *string    `json:"description,omitempty"`
 	Status      *string    `json:"status,omitempty"`
-	Deadline    *time.Time `json:"deadline,omitempty"` // Только для основного обещания
+	Deadline    *time.Time `json:"deadline,omitempty"`   // Только для основного обещания
+	IsPrivate   *bool      `json:"is_private,omitempty"` // 🔹 Добавлено
 }
 
 type PromiseResponse struct {

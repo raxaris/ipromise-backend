@@ -36,6 +36,13 @@ func GetAllPromises() ([]models.Promise, error) {
 	return promises, err
 }
 
+// GetPublicPromises – возвращает только публичные обещания
+func GetPublicPromises() ([]models.Promise, error) {
+	var promises []models.Promise
+	err := config.DB.Where("is_private = ?", false).Find(&promises).Error
+	return promises, err
+}
+
 // UpdatePromise – обновляет обещание (например, меняет статус)
 func UpdatePromise(promise *models.Promise) error {
 	return config.DB.Save(promise).Error
