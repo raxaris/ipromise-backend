@@ -14,15 +14,15 @@ import (
 
 // SignupHandler регистрирует нового пользователя
 // @Summary Регистрация нового пользователя
-// @Description Создаёт нового пользователя по email и паролю
-// @Tags auth
+// @Description Создаёт нового пользователя по email, имени и паролю
+// @Tags Auth
 // @Accept json
 // @Produce json
-// @Param input body dto.SignupRequest true "Данные для регистрации"
+// @Param input body dto.SignupRequest true "Данные для регистрации пользователя"
 // @Success 201 {object} map[string]string "message: Пользователь успешно зарегистрирован"
-// @Failure 400 {object} map[string]string "error: Ошибка валидации"
-// @Failure 409 {object} map[string]string "error: Email уже используется"
-// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Failure 400 {object} map[string]string "error: Неверные данные запроса"
+// @Failure 409 {object} map[string]string "error: Email или имя пользователя уже занято"
+// @Failure 500 {object} map[string]string "error: Внутренняя ошибка сервера"
 // @Router /auth/signup [post]
 func SignupHandler(c *gin.Context) {
 	var req dto.SignupRequest
@@ -100,13 +100,13 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := services.GenerateAccessToken(user.ID.String())
+	accessToken, err := services.GenerateAccessToken(user.ID.String(), user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации Access-токена"})
 		return
 	}
 
-	refreshToken, err := services.GenerateRefreshToken(user.ID.String())
+	refreshToken, err := services.GenerateRefreshToken(user.ID.String(), user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации Refresh-токена"})
 		return
@@ -154,12 +154,21 @@ func RefreshTokenHandler(c *gin.Context) {
 		return
 	}
 
-	// Генерируем новый `access_token`
-	newAccessToken, err := services.GenerateAccessToken(refreshToken.UserID.String())
+	// Находим пользователя по `UserID`
+	user, err := services.GetUserByID(refreshToken.UserID)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не найден"})
+		return
+	}
+
+	// Генерируем новый `access_token` с `role`
+	newAccessToken, err := services.GenerateAccessToken(user.ID.String(), user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации нового Access-токена"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"access_token": newAccessToken})
+	c.JSON(http.StatusOK, gin.H{
+		"access_token": newAccessToken,
+	})
 }

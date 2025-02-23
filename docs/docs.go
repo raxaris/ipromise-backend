@@ -231,7 +231,7 @@ const docTemplate = `{
         },
         "/auth/signup": {
             "post": {
-                "description": "Создаёт нового пользователя по email и паролю",
+                "description": "Создаёт нового пользователя по email, имени и паролю",
                 "consumes": [
                     "application/json"
                 ],
@@ -239,12 +239,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "Auth"
                 ],
                 "summary": "Регистрация нового пользователя",
                 "parameters": [
                     {
-                        "description": "Данные для регистрации",
+                        "description": "Данные для регистрации пользователя",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -264,7 +264,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "error: Ошибка валидации",
+                        "description": "error: Неверные данные запроса",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -273,7 +273,7 @@ const docTemplate = `{
                         }
                     },
                     "409": {
-                        "description": "error: Email уже используется",
+                        "description": "error: Email или имя пользователя уже занято",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -282,7 +282,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "error: Ошибка сервера",
+                        "description": "error: Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -766,7 +766,28 @@ const docTemplate = `{
             }
         },
         "dto.SignupRequest": {
-            "type": "object"
+            "type": "object",
+            "required": [
+                "confirm_password",
+                "email",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "confirm_password": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
         },
         "dto.UpdatePromiseRequest": {
             "type": "object",

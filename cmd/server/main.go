@@ -46,7 +46,7 @@ func main() {
 	{
 		protected.GET("/user/me", handlers.GetCurrentUserHandler)
 		protected.PUT("/user/me", handlers.UpdateUserHandler)
-		protected.DELETE("/user", handlers.DeleteUserHandler)
+
 		protected.POST("/promises", handlers.CreatePromiseHandler)
 		protected.GET("/promises", handlers.GetPromisesByUserIDHandler)
 		protected.PUT("/promises/:id", handlers.UpdatePromiseHandler)

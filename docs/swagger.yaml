@@ -36,6 +36,21 @@ definitions:
     - refresh_token
     type: object
   dto.SignupRequest:
+    properties:
+      confirm_password:
+        type: string
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      username:
+        type: string
+    required:
+    - confirm_password
+    - email
+    - password
+    - username
     type: object
   dto.UpdatePromiseRequest:
     properties:
@@ -235,9 +250,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Создаёт нового пользователя по email и паролю
+      description: Создаёт нового пользователя по email, имени и паролю
       parameters:
-      - description: Данные для регистрации
+      - description: Данные для регистрации пользователя
         in: body
         name: input
         required: true
@@ -253,26 +268,26 @@ paths:
               type: string
             type: object
         "400":
-          description: 'error: Ошибка валидации'
+          description: 'error: Неверные данные запроса'
           schema:
             additionalProperties:
               type: string
             type: object
         "409":
-          description: 'error: Email уже используется'
+          description: 'error: Email или имя пользователя уже занято'
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: 'error: Ошибка сервера'
+          description: 'error: Внутренняя ошибка сервера'
           schema:
             additionalProperties:
               type: string
             type: object
       summary: Регистрация нового пользователя
       tags:
-      - auth
+      - Auth
   /promises:
     get:
       description: Возвращает список всех обещаний
