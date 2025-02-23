@@ -44,10 +44,9 @@ func main() {
 	protected := r.Group("/")
 	protected.Use(middleware.AuthMiddleware())
 	{
-		protected.GET("/user", handlers.GetCurrentUserHandler)
-		protected.PUT("/user", handlers.UpdateUserHandler)
+		protected.GET("/user/me", handlers.GetCurrentUserHandler)
+		protected.PUT("/user/me", handlers.UpdateUserHandler)
 		protected.DELETE("/user", handlers.DeleteUserHandler)
-
 		protected.POST("/promises", handlers.CreatePromiseHandler)
 		protected.GET("/promises", handlers.GetPromisesByUserIDHandler)
 		protected.PUT("/promises/:id", handlers.UpdatePromiseHandler)
@@ -62,7 +61,7 @@ func main() {
 
 	// 🔹 Админские маршруты (полный доступ)
 	admin := r.Group("/admin")
-	//admin.Use(middleware.AdminMiddleware())
+	admin.Use(middleware.AdminMiddleware())
 	{
 		admin.GET("/users", handlers.GetAllUsersHandler)
 		admin.GET("/users/:id", handlers.GetUserByIDHandler)

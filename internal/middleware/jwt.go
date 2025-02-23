@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"github.com/raxaris/ipromise-backend/internal/services"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/raxaris/ipromise-backend/internal/services"
 )
 
 // AuthMiddleware – Middleware для проверки Access-токена
@@ -19,14 +19,22 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Проверяем, начинается ли заголовок с "Bearer "
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenString == authHeader { // Если Bearer нет → ошибка
+		// Проверяем, начинается ли заголовок с "Bearer " и содержит ли токен
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный формат токена"})
 			c.Abort()
 			return
 		}
 
+		tokenString := parts[1]
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Токен отсутствует"})
+			c.Abort()
+			return
+		}
+
+		// Валидация токена
 		claims, err := services.ValidateAccessToken(tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Недействительный токен"})
@@ -34,14 +42,25 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Передаем user_id в контекст Gin
+		// Извлекаем user_id
 		userID, ok := claims["user_id"].(string)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Ошибка авторизации"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Ошибка авторизации (user_id)"})
 			c.Abort()
 			return
 		}
+
+		// Извлекаем роль пользователя
+		role, ok := claims["role"].(string)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Ошибка авторизации (role)"})
+			c.Abort()
+			return
+		}
+
+		// Передаем user_id и role в контекст Gin
 		c.Set("user_id", userID)
+		c.Set("role", role)
 
 		c.Next() // Продолжаем выполнение запроса
 	}

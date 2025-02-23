@@ -10,11 +10,20 @@ import (
 func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("role")
-		if !exists || role != "admin" {
+		if !exists {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ запрещен"})
 			c.Abort()
 			return
 		}
+
+		// Приводим `role` к строке
+		roleStr, ok := role.(string)
+		if !ok || roleStr != "admin" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ запрещен"})
+			c.Abort()
+			return
+		}
+
 		c.Next()
 	}
 }
@@ -23,11 +32,20 @@ func AdminMiddleware() gin.HandlerFunc {
 func ModeratorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("role")
-		if !exists || (role != "moderator" && role != "admin") {
+		if !exists {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ запрещен"})
 			c.Abort()
 			return
 		}
+
+		// Приводим `role` к строке
+		roleStr, ok := role.(string)
+		if !ok || (roleStr != "moderator" && roleStr != "admin") {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ запрещен"})
+			c.Abort()
+			return
+		}
+
 		c.Next()
 	}
 }

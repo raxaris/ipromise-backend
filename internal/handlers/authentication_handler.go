@@ -24,7 +24,6 @@ import (
 // @Failure 409 {object} map[string]string "error: Email уже используется"
 // @Failure 500 {object} map[string]string "error: Ошибка сервера"
 // @Router /auth/signup [post]
-
 func SignupHandler(c *gin.Context) {
 	var req dto.SignupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

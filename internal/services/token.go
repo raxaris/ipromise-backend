@@ -10,11 +10,12 @@ import (
 )
 
 // GenerateAccessToken – создает Access-токен
-func GenerateAccessToken(userID string) (string, error) {
+func GenerateAccessToken(userID, role string) (string, error) {
 	expirationTime := time.Now().Add(15 * time.Minute)
 
 	claims := jwt.MapClaims{
 		"user_id": userID,
+		"role":    role,
 		"exp":     expirationTime.Unix(),
 	}
 
@@ -23,11 +24,12 @@ func GenerateAccessToken(userID string) (string, error) {
 }
 
 // GenerateRefreshToken – создает Refresh-токен
-func GenerateRefreshToken(userID string) (string, error) {
+func GenerateRefreshToken(userID, role string) (string, error) {
 	expirationTime := time.Now().Add(7 * 24 * time.Hour)
 
 	claims := jwt.MapClaims{
 		"user_id": userID,
+		"role":    role,
 		"exp":     expirationTime.Unix(),
 	}
 
@@ -37,16 +39,16 @@ func GenerateRefreshToken(userID string) (string, error) {
 
 // ValidateAccessToken – проверяет Access-токен
 func ValidateAccessToken(tokenString string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(config.JWTSecret), nil
 	})
 
-	if err != nil || !token.Valid {
+	if err != nil {
 		return nil, err
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
+	if !ok || !token.Valid {
 		return nil, err
 	}
 
