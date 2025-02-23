@@ -67,7 +67,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/users": {
+        "/admin/users/": {
             "get": {
                 "security": [
                     {
@@ -438,6 +438,49 @@ const docTemplate = `{
             }
         },
         "/user": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет аккаунт текущего пользователя",
+                "tags": [
+                    "users"
+                ],
+                "summary": "Удаление аккаунта",
+                "responses": {
+                    "200": {
+                        "description": "message: Аккаунт удалён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка удаления",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/user/me": {
             "get": {
                 "security": [
                     {
@@ -519,47 +562,6 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "error: Ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Удаляет аккаунт текущего пользователя",
-                "tags": [
-                    "users"
-                ],
-                "summary": "Удаление аккаунта",
-                "responses": {
-                    "200": {
-                        "description": "message: Аккаунт удалён",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "error: Пользователь не найден",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "error: Ошибка удаления",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {

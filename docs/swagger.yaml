@@ -141,7 +141,7 @@ paths:
       summary: Удаление обещания
       tags:
       - admin
-  /admin/users:
+  /admin/users/:
     get:
       description: Возвращает список всех зарегистрированных пользователей
       responses:
@@ -406,6 +406,7 @@ paths:
       summary: Удаление аккаунта
       tags:
       - users
+  /user/me:
     get:
       description: Возвращает данные текущего пользователя
       responses:

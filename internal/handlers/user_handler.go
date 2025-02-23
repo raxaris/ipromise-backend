@@ -16,7 +16,7 @@ import (
 // @Security BearerAuth
 // @Success 200 {object} models.User
 // @Failure 404 {object} map[string]string "error: Пользователь не найден"
-// @Router /user [get]
+// @Router /user/me [get]
 func GetCurrentUserHandler(c *gin.Context) {
 	userID, _ := uuid.Parse(c.GetString("user_id"))
 
@@ -36,7 +36,7 @@ func GetCurrentUserHandler(c *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {array} models.User
 // @Failure 500 {object} map[string]string "error: Ошибка сервера"
-// @Router /admin/users [get]
+// @Router /admin/users/ [get]
 func GetAllUsersHandler(c *gin.Context) {
 	users, err := services.GetAllUsers()
 	if err != nil {
@@ -106,7 +106,7 @@ func GetUserByUsernameHandler(c *gin.Context) {
 // @Failure 400 {object} map[string]string "error: Ошибка валидации"
 // @Failure 403 {object} map[string]string "error: Нет прав на редактирование"
 // @Failure 500 {object} map[string]string "error: Ошибка сервера"
-// @Router /user [put]
+// @Router /user/me [put]
 func UpdateUserHandler(c *gin.Context) {
 	var req dto.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/raxaris/ipromise-backend/config"
 	"github.com/raxaris/ipromise-backend/internal/handlers"
@@ -28,7 +30,15 @@ func main() {
 	config.ConnectDB()
 
 	r := gin.Default()
-
+	// CORS Middleware
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"}, // Разрешаем все домены (можно ограничить)
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 	// 📌 Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -61,7 +71,7 @@ func main() {
 
 	// 🔹 Админские маршруты (полный доступ)
 	admin := r.Group("/admin")
-	admin.Use(middleware.AdminMiddleware())
+	admin.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
 		admin.GET("/users", handlers.GetAllUsersHandler)
 		admin.GET("/users/:id", handlers.GetUserByIDHandler)

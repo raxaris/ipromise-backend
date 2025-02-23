@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"github.com/google/uuid"
 	"net/http"
 	"strings"
 
@@ -43,9 +44,17 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Извлекаем user_id
-		userID, ok := claims["user_id"].(string)
+		userIDStr, ok := claims["user_id"].(string)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Ошибка авторизации (user_id)"})
+			c.Abort()
+			return
+		}
+
+		// Конвертируем в uuid.UUID
+		userID, err := uuid.Parse(userIDStr)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный формат ID пользователя"})
 			c.Abort()
 			return
 		}

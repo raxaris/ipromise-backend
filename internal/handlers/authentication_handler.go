@@ -15,7 +15,7 @@ import (
 // SignupHandler регистрирует нового пользователя
 // @Summary Регистрация нового пользователя
 // @Description Создаёт нового пользователя по email, имени и паролю
-// @Tags Auth
+// @Tags auth
 // @Accept json
 // @Produce json
 // @Param input body dto.SignupRequest true "Данные для регистрации пользователя"
