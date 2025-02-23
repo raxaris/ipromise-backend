@@ -8,14 +8,14 @@ import (
 )
 
 type Promise struct {
-	gorm.Model
+	gorm.Model  `swaggerignore:"true"`
 	ID          uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	UserID      uuid.UUID  `gorm:"type:uuid;not null;index"`
 	ParentID    *uuid.UUID `gorm:"type:uuid;index"` // NULL, если это основной Promise
 	Title       string     `gorm:"type:varchar(255);not null"`
 	Description string     `gorm:"type:text"`
 	Deadline    time.Time  `gorm:"not null"`
-	Status      string     `gorm:"type:varchar(20);not null"`
+	Status      string     `gorm:"type:varchar(20);default:pending"`
 }
 
 func (p *Promise) BeforeCreate(tx *gorm.DB) (err error) {

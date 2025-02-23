@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: ipromise-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: ipromisego
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: ipromise-app
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: 123
+      DB_NAME: ipromisego
+      DB_PORT: 5432
+      JWT_SECRET: kA3H8zVf1aM9XYl2QPwZ+K5Yb6T!w^vB@N&D*G-J3K8L2M0P
+    ports:
+      - "8080:8080"
+    command: ["./main"]
+
+volumes:
+  postgres_data:

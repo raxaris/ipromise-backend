@@ -14,12 +14,12 @@ const (
 )
 
 type User struct {
-	gorm.Model
-	ID       uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	Username string    `gorm:"unique;not null"`
-	Email    string    `gorm:"unique;not null"`
-	Password string    `gorm:"not null" json:"-"`
-	Role     string    `gorm:"type:varchar(15);default:'user'" json:"role"`
+	gorm.Model `swaggerignore:"true"`
+	ID         uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	Username   string    `gorm:"unique;not null"`
+	Email      string    `gorm:"unique;not null"`
+	Password   string    `gorm:"not null" json:"-"`
+	Role       string    `gorm:"type:varchar(15);default:'user'" json:"role"`
 }
 
 func (u *User) HashPassword() error {

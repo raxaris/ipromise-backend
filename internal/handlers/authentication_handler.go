@@ -12,7 +12,19 @@ import (
 	"github.com/raxaris/ipromise-backend/internal/services"
 )
 
-// SignupHandler – регистрация пользователя
+// SignupHandler регистрирует нового пользователя
+// @Summary Регистрация нового пользователя
+// @Description Создаёт нового пользователя по email и паролю
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body dto.SignupRequest true "Данные для регистрации"
+// @Success 201 {object} map[string]string "message: Пользователь успешно зарегистрирован"
+// @Failure 400 {object} map[string]string "error: Ошибка валидации"
+// @Failure 409 {object} map[string]string "error: Email уже используется"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /auth/signup [post]
+
 func SignupHandler(c *gin.Context) {
 	var req dto.SignupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -59,7 +71,18 @@ func SignupHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Пользователь успешно зарегистрирован"})
 }
 
-// LoginHandler – вход пользователя
+// LoginHandler аутентифицирует пользователя
+// @Summary Авторизация пользователя
+// @Description Логин по email и паролю, выдаёт JWT токены
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body dto.LoginRequest true "Данные для входа"
+// @Success 200 {object} map[string]string "access_token: токен, refresh_token: токен"
+// @Failure 400 {object} map[string]string "error: Ошибка валидации"
+// @Failure 401 {object} map[string]string "error: Неверный email или пароль"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /auth/login [post]
 func LoginHandler(c *gin.Context) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -106,6 +129,18 @@ func LoginHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken})
 }
 
+// RefreshTokenHandler обновляет Access Token
+// @Summary Обновление Access Token
+// @Description Использует Refresh Token для выдачи нового Access Token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body dto.RefreshTokenRequest true "Refresh Token"
+// @Success 200 {object} map[string]string "access_token: новый access-токен"
+// @Failure 400 {object} map[string]string "error: Ошибка валидации"
+// @Failure 401 {object} map[string]string "error: Недействительный Refresh-токен"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /auth/refresh [post]
 func RefreshTokenHandler(c *gin.Context) {
 	var req dto.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
