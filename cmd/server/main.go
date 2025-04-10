@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/raxaris/ipromise-backend/internal/repositories"
+	"github.com/raxaris/ipromise-backend/internal/services"
 	"log"
 	"time"
 
@@ -27,7 +29,9 @@ import (
 // @name Authorization
 func main() {
 	config.LoadEnv()
-	config.ConnectDB()
+
+	db := config.ConnectDB()
+	config.InitGlobalDB(db)
 
 	r := gin.Default()
 
@@ -41,51 +45,51 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	// 🔹 Маршруты для аутентификации
+	userRepo := repositories.NewUserRepository(db)
+	tokenRepo := repositories.NewTokenRepository(db)
+	promiseRepo := repositories.NewPromiseRepository(db)
+	authService := services.NewAuthService(userRepo, tokenRepo)
+	authHandler := handlers.NewAuthHandler(authService)
+	promiseService := services.NewPromiseService(promiseRepo)
+	promiseHandler := handlers.NewPromiseHandler(promiseService)
+
 	// 📌 Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// 🔹 Публичные маршруты
-	r.GET("/users/:username", handlers.GetPublicUserHandler) // Публичный профиль без email
-	r.GET("/promises", handlers.GetAllPublicPromisesHandler) // Все обещания (без личных данных)
-	r.GET("/promises/:id", handlers.GetPromiseByIDHandler)   // Одно обещание
+	r.GET("/users/:id/promises", promiseHandler.GetPublicByUserID) // публичные
+	r.GET("/promises", promiseHandler.GetPublic)                   // лента
+	r.GET("/promises/:id", promiseHandler.GetByID)                 // по id
+	r.GET("/promises/:id/children", promiseHandler.GetChildren)    // прогресс
 
-	// 🔹 Маршруты для аутентификации
 	auth := r.Group("/auth")
 	{
-		auth.POST("/signup", handlers.SignupHandler)        // Регистрация
-		auth.POST("/login", handlers.LoginHandler)          // Логин
-		auth.POST("/refresh", handlers.RefreshTokenHandler) // Обновление токена
+		auth.POST("/signup", authHandler.Signup)
+		auth.POST("/login", authHandler.Login)
+		auth.POST("/refresh", authHandler.Refresh)
+		auth.POST("/logout", authHandler.Logout)
 	}
 
-	// 🔹 Авторизованные пользователи
 	user := r.Group("/profile")
 	user.Use(middleware.AuthMiddleware())
 	{
-		user.GET("/", handlers.GetCurrentUserHandler) // Личный профиль
-		user.PUT("/", handlers.UpdateUserHandler)     // Обновление своего профиля
-
-		// Обещания авторизованного пользователя
-		user.GET("/promises", handlers.GetUserPromisesHandler)      // Получить свои обещания
-		user.POST("/promises", handlers.CreatePromiseHandler)       // Создать обещание
-		user.PUT("/promises/:id", handlers.UpdatePromiseHandler)    // Обновить обещание
-		user.DELETE("/promises/:id", handlers.DeletePromiseHandler) // Удалить обещание
+		user.GET("/promises", promiseHandler.GetMy)
+		user.POST("/promises", promiseHandler.Create)
+		user.PUT("/promises/:id", promiseHandler.Update)
+		user.DELETE("/promises/:id", promiseHandler.Delete)
 	}
 
 	// 🔹 Админские маршруты (полный доступ)
 	admin := r.Group("/admin")
 	admin.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
-		// Полный доступ к пользователям
-		admin.GET("/users", handlers.GetAllUsersHandler)
-		admin.GET("/users/:id", handlers.GetUserByIDHandler)
-		admin.GET("/users/u/:username", handlers.GetUserByUsernameHandler)
-		admin.PUT("/users/:id", handlers.UpdateUserHandler)
-		admin.DELETE("/users/:id", handlers.DeleteUserHandler)
-
-		// Полный доступ к обещаниям
-		admin.GET("/promises", handlers.GetAllPromisesHandler)
-		admin.PUT("/promises/:id", handlers.UpdatePromiseHandler)
-		admin.DELETE("/promises/:id", handlers.DeletePromiseHandler)
+		// Админ видит все обещания, может редактировать и удалять
+		admin.GET("/promises", promiseHandler.GetPublic)                // вся публичная лента
+		admin.GET("/promises/:id", promiseHandler.GetByID)              // конкретное обещание
+		admin.GET("/promises/:id/children", promiseHandler.GetChildren) // прогресс
+		admin.GET("/promises", promiseHandler.GetAllForAdmin)
+		admin.PUT("/promises/:id", promiseHandler.Update)
+		admin.DELETE("/promises/:id", promiseHandler.Delete)
 	}
 
 	port := "8080"

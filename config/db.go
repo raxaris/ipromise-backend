@@ -13,7 +13,7 @@ import (
 
 var DB *gorm.DB
 
-func ConnectDB() {
+func ConnectDB() *gorm.DB {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Ошибка загрузки .env файла")
@@ -37,5 +37,9 @@ func ConnectDB() {
 
 	models.MigrateDB(database)
 
-	DB = database
+	return database
+}
+
+func InitGlobalDB(db *gorm.DB) {
+	DB = db
 }

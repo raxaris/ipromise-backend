@@ -1,161 +1,171 @@
 package handlers
 
 import (
-	"github.com/raxaris/ipromise-backend/internal/models"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/services"
+	"github.com/raxaris/ipromise-backend/internal/utils"
+	"net/http"
 )
 
-func CreatePromiseHandler(c *gin.Context) {
+type PromiseHandler struct {
+	service services.PromiseService
+}
+
+func NewPromiseHandler(service services.PromiseService) *PromiseHandler {
+	return &PromiseHandler{service: service}
+}
+
+// Создание обещания
+func (h *PromiseHandler) Create(c *gin.Context) {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		c.JSON(401, gin.H{"error": err.Error()})
+		return
+	}
+
 	var req dto.CreatePromiseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Получаем user_id из контекста
-	userID, _ := uuid.Parse(c.GetString("user_id"))
-
-	// Создаём обещание
-	err := services.CreatePromise(userID, req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := h.service.Create(userID, req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Обещание успешно создано"})
+	c.JSON(201, gin.H{"message": "Обещание создано"})
 }
 
-func GetAllPromisesHandler(c *gin.Context) {
-	isAdmin := c.GetString("role") == "admin"
-
-	var promises []models.Promise
-	var err error
-
-	if isAdmin {
-		promises, err = services.GetAllPromises()
-	} else {
-		promises, err = services.GetAllPublicPromises() // 🔹 Только публичные обещания
+// Обещания текущего пользователя (приватные + публичные)
+func (h *PromiseHandler) GetMy(c *gin.Context) {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		c.JSON(401, gin.H{"error": err.Error()})
+		return
 	}
 
+	promises, err := h.service.GetByUserID(userID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка получения обещаний"})
+		return
+	}
+
+	c.JSON(200, promises)
+}
+
+// Публичные обещания другого пользователя
+func (h *PromiseHandler) GetPublicByUserID(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Неверный формат ID"})
+		return
+	}
+
+	promises, err := h.service.GetPublicByUserID(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка получения обещаний"})
+		return
+	}
+
+	c.JSON(200, promises)
+}
+
+// Получить обещание по ID
+func (h *PromiseHandler) GetByID(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Неверный формат ID"})
+		return
+	}
+
+	promise, err := h.service.GetByID(id)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "Обещание не найдено"})
+		return
+	}
+
+	c.JSON(200, promise)
+}
+
+// Получить вложенные обещания (прогресс)
+func (h *PromiseHandler) GetChildren(c *gin.Context) {
+	parentID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Неверный формат ID"})
+		return
+	}
+
+	children, err := h.service.GetChildren(parentID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка получения вложенных обещаний"})
+		return
+	}
+
+	c.JSON(200, children)
+}
+
+// Лента всех публичных обещаний
+func (h *PromiseHandler) GetPublic(c *gin.Context) {
+	promises, err := h.service.GetPublic()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка получения обещаний"})
+		return
+	}
+
+	c.JSON(200, promises)
+}
+
+func (h *PromiseHandler) GetAllForAdmin(c *gin.Context) {
+	promises, err := h.service.GetAllPromisesForAdmin()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
 		return
 	}
-
 	c.JSON(http.StatusOK, promises)
 }
 
-func GetPromiseByIDHandler(c *gin.Context) {
-	userID, _ := uuid.Parse(c.GetString("user_id"))
-	isAdmin := c.GetString("role") == "admin"
-	promiseID, err := uuid.Parse(c.Param("id"))
-
+// Обновить обещание
+func (h *PromiseHandler) Update(c *gin.Context) {
+	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID обещания"})
+		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
 
-	promise, err := services.GetPromiseByID(promiseID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Обещание не найдено"})
-		return
-	}
-
-	// ✅ Проверяем доступ: владелец или админ могут видеть обещание
-	if promise.IsPrivate && promise.UserID != userID && !isAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Это приватное обещание"})
-		return
-	}
-
-	c.JSON(http.StatusOK, promise)
-}
-
-func GetUserPromisesHandler(c *gin.Context) {
-	requestedUserID, err := uuid.Parse(c.Param("id")) // ID пользователя, чьи обещания запрашиваются
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
-		return
-	}
-
-	currentUserID, _ := uuid.Parse(c.GetString("user_id")) // ID текущего пользователя
+	promiseID := c.Param("id")
 	isAdmin := c.GetString("role") == "admin"
 
-	// Получаем обещания пользователя
-	promises, err := services.GetPromiseByUserID(requestedUserID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
-		return
-	}
-
-	// Если запрашивает не владелец и не админ – скрываем приватные обещания
-	if requestedUserID != currentUserID && !isAdmin {
-		var filteredPromises []models.Promise
-		for _, promise := range promises {
-			if !promise.IsPrivate {
-				filteredPromises = append(filteredPromises, promise)
-			}
-		}
-		promises = filteredPromises
-	}
-
-	c.JSON(http.StatusOK, promises)
-}
-
-// GetAllPublicPromisesHandler – получение всех публичных обещаний
-func GetAllPublicPromisesHandler(c *gin.Context) {
-	promises, err := services.GetAllPublicPromises()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
-		return
-	}
-
-	c.JSON(http.StatusOK, promises)
-}
-
-func UpdatePromiseHandler(c *gin.Context) {
 	var req dto.UpdatePromiseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Получаем ID пользователя
-	userID, _ := uuid.Parse(c.GetString("user_id"))
-	promiseID := c.Param("id")
-	isAdmin := c.GetString("role") == "admin"
-
-	// Обновляем обещание через сервис
-	err := services.UpdatePromise(userID, promiseID, req, isAdmin)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := h.service.Update(userID, promiseID, req, isAdmin); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Обещание обновлено"})
+	c.JSON(200, gin.H{"message": "Обещание обновлено"})
 }
 
-func DeletePromiseHandler(c *gin.Context) {
-	// Проверяем, является ли пользователь админом
+// Удалить обещание
+func (h *PromiseHandler) Delete(c *gin.Context) {
+	id := c.Param("id")
 	isAdmin := c.GetString("role") == "admin"
+
 	if !isAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав на удаление обещания"})
+		c.JSON(403, gin.H{"error": "Только администратор может удалять обещания"})
 		return
 	}
 
-	// ID обещания для удаления
-	promiseID := c.Param("id")
-
-	// Вызываем сервис удаления
-	err := services.DeletePromise(promiseID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := h.service.Delete(id); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Обещание удалено"})
+	c.JSON(200, gin.H{"message": "Обещание удалено"})
 }
