@@ -44,16 +44,6 @@ func (r *promiseRepo) GetByID(id uuid.UUID) (*models.Promise, error) {
 	return &promise, nil
 }
 
-// Update – обновить обещание
-func (r *promiseRepo) Update(promise *models.Promise) error {
-	return r.db.Save(promise).Error
-}
-
-// Delete – удалить обещание
-func (r *promiseRepo) Delete(id uuid.UUID) error {
-	return r.db.Delete(&models.Promise{}, "id = ?", id).Error
-}
-
 // GetAll – все обещания (для админов)
 func (r *promiseRepo) GetAll() ([]models.Promise, error) {
 	var promises []models.Promise
@@ -87,4 +77,18 @@ func (r *promiseRepo) GetChildren(parentID uuid.UUID) ([]models.Promise, error) 
 	var promises []models.Promise
 	err := r.db.Where("parent_id = ?", parentID).Order("created_at ASC").Find(&promises).Error
 	return promises, err
+}
+
+// Update – обновить обещание
+func (r *promiseRepo) Update(promise *models.Promise) error {
+	return r.db.Save(promise).Error
+}
+
+// Delete – удалить обещание
+func (r *promiseRepo) Delete(id uuid.UUID) error {
+	if err := r.db.Where("parent_id = ?", id).Delete(&models.Promise{}).Error; err != nil {
+		return err
+	}
+
+	return r.db.Where("id = ?", id).Delete(&models.Promise{}).Error
 }
