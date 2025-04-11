@@ -17,7 +17,7 @@ type PromiseRepository interface {
 
 	GetByUserID(userID uuid.UUID) ([]models.Promise, error)
 	GetPublicByUserID(userID uuid.UUID) ([]models.Promise, error)
-
+	HasChild(promiseID uuid.UUID) (bool, error)
 	GetChildren(parentID uuid.UUID) ([]models.Promise, error)
 }
 
@@ -79,6 +79,28 @@ func (r *promiseRepo) GetChildren(parentID uuid.UUID) ([]models.Promise, error) 
 	return promises, err
 }
 
+func (r *promiseRepo) GetAllDescendants(parentID uuid.UUID) ([]models.Promise, error) {
+	var descendants []models.Promise
+
+	var fetchChildren func(uuid.UUID) error
+	fetchChildren = func(currentID uuid.UUID) error {
+		children, err := r.GetChildren(currentID)
+		if err != nil {
+			return err
+		}
+		for _, child := range children {
+			descendants = append(descendants, child)
+			if err := fetchChildren(child.ID); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	err := fetchChildren(parentID)
+	return descendants, err
+}
+
 // Update – обновить обещание
 func (r *promiseRepo) Update(promise *models.Promise) error {
 	return r.db.Save(promise).Error
@@ -91,4 +113,10 @@ func (r *promiseRepo) Delete(id uuid.UUID) error {
 	}
 
 	return r.db.Where("id = ?", id).Delete(&models.Promise{}).Error
+}
+
+func (r *promiseRepo) HasChild(promiseID uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.Promise{}).Where("parent_id = ?", promiseID).Count(&count).Error
+	return count > 0, err
 }

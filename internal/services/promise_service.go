@@ -47,24 +47,61 @@ func (s *promiseService) Create(userID uuid.UUID, req dto.CreatePromiseRequest) 
 	}
 
 	if req.ParentID == nil {
+		// 🔹 Основное обещание
 		promise.Status = "pending"
 		if req.Deadline == nil {
 			return errors.New("основное обещание должно иметь дедлайн")
 		}
 		promise.Deadline = *req.Deadline
 	} else {
+		// 🔹 Прогресс
 		parent, err := s.repo.GetByID(*req.ParentID)
 		if err != nil {
 			return errors.New("родительское обещание не найдено")
 		}
+
+		hasChild, err := s.repo.HasChild(parent.ID)
+		if err != nil {
+			return err
+		}
+		if hasChild {
+			return errors.New("у этого обещания уже есть прогресс")
+		}
+
 		promise.Deadline = parent.Deadline
+		if parent.IsPrivate {
+			promise.IsPrivate = true
+		}
+
 		if req.Status != "in_progress" && req.Status != "completed" {
 			return errors.New("прогресс должен быть 'in_progress' или 'completed'")
 		}
+
 		promise.Status = req.Status
 	}
 
-	return s.repo.Create(&promise)
+	// 🧱 Сохраняем обещание
+	if err := s.repo.Create(&promise); err != nil {
+		return err
+	}
+
+	// ✅ Обновляем всех родителей, если прогресс = completed
+	if req.ParentID != nil && req.Status == "completed" {
+		currentID := req.ParentID
+		for currentID != nil {
+			parent, err := s.repo.GetByID(*currentID)
+			if err != nil {
+				break
+			}
+			parent.Status = "completed"
+			if err := s.repo.Update(parent); err != nil {
+				break
+			}
+			currentID = parent.ParentID
+		}
+	}
+
+	return nil
 }
 
 func (s *promiseService) GetByUserID(userID uuid.UUID) ([]models.Promise, error) {

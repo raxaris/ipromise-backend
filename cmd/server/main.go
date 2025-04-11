@@ -84,10 +84,9 @@ func main() {
 	admin.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
 		// Админ видит все обещания, может редактировать и удалять
-		admin.GET("/promises", promiseHandler.GetPublic)                // вся публичная лента
+		admin.GET("/promises", promiseHandler.GetAllForAdmin)
 		admin.GET("/promises/:id", promiseHandler.GetByID)              // конкретное обещание
 		admin.GET("/promises/:id/children", promiseHandler.GetChildren) // прогресс
-		admin.GET("/promises", promiseHandler.GetAllForAdmin)
 		admin.PUT("/promises/:id", promiseHandler.Update)
 		admin.DELETE("/promises/:id", promiseHandler.Delete)
 	}
