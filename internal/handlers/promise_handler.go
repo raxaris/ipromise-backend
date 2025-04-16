@@ -136,7 +136,7 @@ func (h *PromiseHandler) Update(c *gin.Context) {
 	}
 
 	promiseID := c.Param("id")
-	isAdmin := c.GetString("role") == "admin"
+	isAdmin := utils.IsAdmin(c)
 
 	var req dto.UpdatePromiseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -154,18 +154,27 @@ func (h *PromiseHandler) Update(c *gin.Context) {
 
 // Удалить обещание
 func (h *PromiseHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	isAdmin := c.GetString("role") == "admin"
-
-	if !isAdmin {
-		c.JSON(403, gin.H{"error": "Только администратор может удалять обещания"})
+	// ✅ Извлекаем ID из контекста
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		c.JSON(401, gin.H{"error": "не авторизован"})
 		return
 	}
 
-	if err := h.service.Delete(id); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+	isAdmin := utils.IsAdmin(c)
+
+	// ✅ ID промиса
+	promiseID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{"error": "неверный формат ID"})
 		return
 	}
 
-	c.JSON(200, gin.H{"message": "Обещание удалено"})
+	// ✅ Удаление через сервис
+	if err := h.service.Delete(userID, promiseID, isAdmin); err != nil {
+		c.JSON(403, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "обещание и прогресс удалены"})
 }

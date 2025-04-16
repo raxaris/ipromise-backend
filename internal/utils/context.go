@@ -20,3 +20,14 @@ func GetUserIDFromContext(c *gin.Context) (uuid.UUID, error) {
 
 	return id, nil
 }
+
+// IsAdmin проверяет, есть ли у пользователя роль "admin"
+func IsAdmin(c *gin.Context) bool {
+	role, exists := c.Get("role")
+	if !exists {
+		return false
+	}
+
+	roleStr, ok := role.(string)
+	return ok && roleStr == "admin"
+}

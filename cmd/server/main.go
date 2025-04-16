@@ -51,7 +51,7 @@ func main() {
 	promiseRepo := repositories.NewPromiseRepository(db)
 	authService := services.NewAuthService(userRepo, tokenRepo)
 	authHandler := handlers.NewAuthHandler(authService)
-	promiseService := services.NewPromiseService(promiseRepo)
+	promiseService := services.NewPromiseService(promiseRepo, userRepo)
 	promiseHandler := handlers.NewPromiseHandler(promiseService)
 
 	// 📌 Swagger UI

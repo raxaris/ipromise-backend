@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"github.com/google/uuid"
+	"github.com/raxaris/ipromise-backend/internal/constants"
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/models"
 	"github.com/raxaris/ipromise-backend/internal/repositories"
@@ -18,82 +19,92 @@ type PromiseService interface {
 	GetByID(id uuid.UUID) (*models.Promise, error)
 	GetAllPromisesForAdmin() ([]models.Promise, error)
 	Update(userID uuid.UUID, id string, req dto.UpdatePromiseRequest, isAdmin bool) error
-	Delete(id string) error
+	Delete(userID uuid.UUID, promiseID uuid.UUID, isAdmin bool) error
 }
 
 type promiseService struct {
-	repo repositories.PromiseRepository
+	repo     repositories.PromiseRepository
+	userRepo repositories.UserRepository
 }
 
-func NewPromiseService(repo repositories.PromiseRepository) PromiseService {
-	return &promiseService{repo: repo}
+func NewPromiseService(repo repositories.PromiseRepository, userRepo repositories.UserRepository) PromiseService {
+	return &promiseService{
+		repo:     repo,
+		userRepo: userRepo,
+	}
 }
 
 func (s *promiseService) Create(userID uuid.UUID, req dto.CreatePromiseRequest) error {
 	req.Title = strings.TrimSpace(req.Title)
 	req.Description = strings.TrimSpace(req.Description)
 
-	if len(req.Title) < 5 {
-		return errors.New("заголовок должен содержать минимум 5 символов")
+	if req.ParentID == nil {
+		return s.createMainPromise(userID, req)
+	} else {
+		return s.createProgress(userID, req)
+	}
+}
+
+func (s *promiseService) createMainPromise(userID uuid.UUID, req dto.CreatePromiseRequest) error {
+	if req.Deadline == nil {
+		return errors.New("основное обещание должно иметь дедлайн")
 	}
 
-	promise := models.Promise{
+	promise := &models.Promise{
+		ID:          uuid.New(),
+		UserID:      userID,
+		Title:       req.Title,
+		Description: req.Description,
+		Deadline:    *req.Deadline,
+		IsPrivate:   req.IsPrivate,
+		Status:      constants.StatusPending,
+	}
+
+	return s.repo.Create(promise)
+}
+
+func (s *promiseService) createProgress(userID uuid.UUID, req dto.CreatePromiseRequest) error {
+	parent, err := s.repo.GetByID(*req.ParentID)
+	if err != nil {
+		return errors.New("родительское обещание не найдено")
+	}
+
+	hasChild, err := s.repo.HasChild(parent.ID)
+	if err != nil {
+		return err
+	}
+	if hasChild {
+		return errors.New("у этого обещания уже есть прогресс")
+	}
+
+	if req.Status != constants.StatusInProgress && req.Status != constants.StatusCompleted {
+		return errors.New("прогресс должен быть in_progress или completed")
+	}
+
+	promise := &models.Promise{
 		ID:          uuid.New(),
 		UserID:      userID,
 		ParentID:    req.ParentID,
 		Title:       req.Title,
 		Description: req.Description,
-		IsPrivate:   req.IsPrivate,
+		Deadline:    parent.Deadline,
+		IsPrivate:   parent.IsPrivate || req.IsPrivate,
+		Status:      req.Status,
 	}
 
-	if req.ParentID == nil {
-		// 🔹 Основное обещание
-		promise.Status = "pending"
-		if req.Deadline == nil {
-			return errors.New("основное обещание должно иметь дедлайн")
-		}
-		promise.Deadline = *req.Deadline
-	} else {
-		// 🔹 Прогресс
-		parent, err := s.repo.GetByID(*req.ParentID)
-		if err != nil {
-			return errors.New("родительское обещание не найдено")
-		}
-
-		hasChild, err := s.repo.HasChild(parent.ID)
-		if err != nil {
-			return err
-		}
-		if hasChild {
-			return errors.New("у этого обещания уже есть прогресс")
-		}
-
-		promise.Deadline = parent.Deadline
-		if parent.IsPrivate {
-			promise.IsPrivate = true
-		}
-
-		if req.Status != "in_progress" && req.Status != "completed" {
-			return errors.New("прогресс должен быть 'in_progress' или 'completed'")
-		}
-
-		promise.Status = req.Status
-	}
-
-	// 🧱 Сохраняем обещание
-	if err := s.repo.Create(&promise); err != nil {
+	if err := s.repo.Create(promise); err != nil {
 		return err
 	}
 
-	// ✅ Обновляем всех родителей, если прогресс = completed
-	if req.ParentID != nil && req.Status == "completed" {
+	// Автоматическое обновление родительской цепочки до completed
+	if req.Status == constants.StatusCompleted {
 		currentID := req.ParentID
 		for currentID != nil {
 			parent, err := s.repo.GetByID(*currentID)
 			if err != nil {
 				break
 			}
-			parent.Status = "completed"
+			parent.Status = constants.StatusCompleted
 			if err := s.repo.Update(parent); err != nil {
 				break
 			}
@@ -129,43 +140,61 @@ func (s *promiseService) GetChildren(parentID uuid.UUID) ([]models.Promise, erro
 }
 
 func (s *promiseService) Update(userID uuid.UUID, id string, req dto.UpdatePromiseRequest, isAdmin bool) error {
+
 	promiseID, err := uuid.Parse(id)
 	if err != nil {
 		return errors.New("неверный ID")
 	}
 
-	existing, err := s.repo.GetByID(promiseID)
+	existingPromise, err := s.repo.GetByID(promiseID)
 	if err != nil {
 		return errors.New("обещание не найдено")
 	}
 
-	if existing.UserID != userID && !isAdmin {
+	if !isAdmin && existingPromise.UserID != userID {
+		return errors.New("нельзя обновить чужое обещание")
+	}
+
+	if existingPromise.UserID != userID && !isAdmin {
 		return errors.New("нет прав на редактирование")
 	}
 
 	if req.Title != nil {
-		existing.Title = strings.TrimSpace(*req.Title)
+		existingPromise.Title = strings.TrimSpace(*req.Title)
 	}
 	if req.Description != nil {
-		existing.Description = strings.TrimSpace(*req.Description)
+		existingPromise.Description = strings.TrimSpace(*req.Description)
 	}
 	if req.Status != nil {
-		existing.Status = *req.Status
+		existingPromise.Status = *req.Status
 	}
 	if req.IsPrivate != nil {
-		existing.IsPrivate = *req.IsPrivate
+		existingPromise.IsPrivate = *req.IsPrivate
 	}
 	if req.Deadline != nil {
-		existing.Deadline = *req.Deadline
+		existingPromise.Deadline = *req.Deadline
 	}
 
-	return s.repo.Update(existing)
+	return s.repo.Update(existingPromise)
 }
 
-func (s *promiseService) Delete(id string) error {
-	promiseID, err := uuid.Parse(id)
+func (s *promiseService) Delete(userID uuid.UUID, promiseID uuid.UUID, isAdmin bool) error {
+	promise, err := s.repo.GetByID(promiseID)
 	if err != nil {
-		return errors.New("неверный ID")
+		return err
+	}
+	if !isAdmin && promise.UserID != userID {
+		return errors.New("нет прав на удаление")
+	}
+
+	children, err := s.repo.GetAllDescendants(promiseID)
+	if err != nil {
+		return err
+	}
+	for _, child := range children {
+		if err := s.repo.Delete(child.ID); err != nil {
+			return err
+		}
 	}
 	return s.repo.Delete(promiseID)
 }

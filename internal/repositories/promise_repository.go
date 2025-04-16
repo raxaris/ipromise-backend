@@ -15,6 +15,7 @@ type PromiseRepository interface {
 	GetAll() ([]models.Promise, error)
 	GetAllPublic() ([]models.Promise, error)
 
+	GetAllDescendants(parentID uuid.UUID) ([]models.Promise, error)
 	GetByUserID(userID uuid.UUID) ([]models.Promise, error)
 	GetPublicByUserID(userID uuid.UUID) ([]models.Promise, error)
 	HasChild(promiseID uuid.UUID) (bool, error)
