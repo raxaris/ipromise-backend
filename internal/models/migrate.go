@@ -6,7 +6,7 @@ func MigrateDB(db *gorm.DB) {
 	err := db.AutoMigrate(
 		&User{},
 		&RefreshToken{},
-		&Promise{},
+		&PromiseV1{},
 	)
 	if err != nil {
 		panic("❌ Ошибка миграции: " + err.Error())

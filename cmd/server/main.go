@@ -48,7 +48,7 @@ func main() {
 	// 🔹 Маршруты для аутентификации
 	userRepo := repositories.NewUserRepository(db)
 	tokenRepo := repositories.NewTokenRepository(db)
-	promiseRepo := repositories.NewPromiseRepository(db)
+	promiseRepo := repositories.NewPromiseRepositoryV1(db)
 	authService := services.NewAuthService(userRepo, tokenRepo)
 	authHandler := handlers.NewAuthHandler(authService)
 	promiseService := services.NewPromiseService(promiseRepo, userRepo)

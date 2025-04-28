@@ -12,22 +12,22 @@ import (
 
 type PromiseService interface {
 	Create(userID uuid.UUID, req dto.CreatePromiseRequest) error
-	GetByUserID(userID uuid.UUID) ([]models.Promise, error)
-	GetPublic() ([]models.Promise, error)
-	GetPublicByUserID(userID uuid.UUID) ([]models.Promise, error)
-	GetChildren(parentID uuid.UUID) ([]models.Promise, error)
-	GetByID(id uuid.UUID) (*models.Promise, error)
-	GetAllPromisesForAdmin() ([]models.Promise, error)
+	GetByUserID(userID uuid.UUID) ([]models.PromiseV1, error)
+	GetPublic() ([]models.PromiseV1, error)
+	GetPublicByUserID(userID uuid.UUID) ([]models.PromiseV1, error)
+	GetChildren(parentID uuid.UUID) ([]models.PromiseV1, error)
+	GetByID(id uuid.UUID) (*models.PromiseV1, error)
+	GetAllPromisesForAdmin() ([]models.PromiseV1, error)
 	Update(userID uuid.UUID, id string, req dto.UpdatePromiseRequest, isAdmin bool) error
 	Delete(userID uuid.UUID, promiseID uuid.UUID, isAdmin bool) error
 }
 
 type promiseService struct {
-	repo     repositories.PromiseRepository
+	repo     repositories.PromiseRepositoryV1
 	userRepo repositories.UserRepository
 }
 
-func NewPromiseService(repo repositories.PromiseRepository, userRepo repositories.UserRepository) PromiseService {
+func NewPromiseService(repo repositories.PromiseRepositoryV1, userRepo repositories.UserRepository) PromiseService {
 	return &promiseService{
 		repo:     repo,
 		userRepo: userRepo,
@@ -50,7 +50,7 @@ func (s *promiseService) createMainPromise(userID uuid.UUID, req dto.CreatePromi
 		return errors.New("основное обещание должно иметь дедлайн")
 	}
 
-	promise := &models.Promise{
+	promise := &models.PromiseV1{
 		ID:          uuid.New(),
 		UserID:      userID,
 		Title:       req.Title,
@@ -81,7 +81,7 @@ func (s *promiseService) createProgress(userID uuid.UUID, req dto.CreatePromiseR
 		return errors.New("прогресс должен быть in_progress или completed")
 	}
 
-	promise := &models.Promise{
+	promise := &models.PromiseV1{
 		ID:          uuid.New(),
 		UserID:      userID,
 		ParentID:    req.ParentID,
@@ -115,27 +115,27 @@ func (s *promiseService) createProgress(userID uuid.UUID, req dto.CreatePromiseR
 	return nil
 }
 
-func (s *promiseService) GetByUserID(userID uuid.UUID) ([]models.Promise, error) {
+func (s *promiseService) GetByUserID(userID uuid.UUID) ([]models.PromiseV1, error) {
 	return s.repo.GetByUserID(userID)
 }
 
-func (s *promiseService) GetPublic() ([]models.Promise, error) {
+func (s *promiseService) GetPublic() ([]models.PromiseV1, error) {
 	return s.repo.GetAllPublic()
 }
 
-func (s *promiseService) GetByID(id uuid.UUID) (*models.Promise, error) {
+func (s *promiseService) GetByID(id uuid.UUID) (*models.PromiseV1, error) {
 	return s.repo.GetByID(id)
 }
 
-func (s *promiseService) GetPublicByUserID(userID uuid.UUID) ([]models.Promise, error) {
+func (s *promiseService) GetPublicByUserID(userID uuid.UUID) ([]models.PromiseV1, error) {
 	return s.repo.GetPublicByUserID(userID)
 }
 
-func (s *promiseService) GetAllPromisesForAdmin() ([]models.Promise, error) {
+func (s *promiseService) GetAllPromisesForAdmin() ([]models.PromiseV1, error) {
 	return s.repo.GetAll()
 }
 
-func (s *promiseService) GetChildren(parentID uuid.UUID) ([]models.Promise, error) {
+func (s *promiseService) GetChildren(parentID uuid.UUID) ([]models.PromiseV1, error) {
 	return s.repo.GetChildren(parentID)
 }
 
