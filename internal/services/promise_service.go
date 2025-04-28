@@ -7,6 +7,7 @@ import (
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/models"
 	"github.com/raxaris/ipromise-backend/internal/repositories"
+	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 	"strings"
 )
 
@@ -24,10 +25,10 @@ type PromiseService interface {
 
 type promiseService struct {
 	repo     repositories.PromiseRepositoryV1
-	userRepo repositories.UserRepository
+	userRepo user.UserRepository
 }
 
-func NewPromiseService(repo repositories.PromiseRepositoryV1, userRepo repositories.UserRepository) PromiseService {
+func NewPromiseService(repo repositories.PromiseRepositoryV1, userRepo user.UserRepository) PromiseService {
 	return &promiseService{
 		repo:     repo,
 		userRepo: userRepo,

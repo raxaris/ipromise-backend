@@ -2,12 +2,13 @@ package services
 
 import (
 	"errors"
+	"github.com/raxaris/ipromise-backend/internal/repositories/token"
+	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/models"
-	"github.com/raxaris/ipromise-backend/internal/repositories"
 )
 
 type AuthService interface {
@@ -18,11 +19,11 @@ type AuthService interface {
 }
 
 type authService struct {
-	userRepo  repositories.UserRepository
-	tokenRepo repositories.TokenRepository
+	userRepo  user.UserRepository
+	tokenRepo token.TokenRepository
 }
 
-func NewAuthService(userRepo repositories.UserRepository, tokenRepo repositories.TokenRepository) AuthService {
+func NewAuthService(userRepo user.UserRepository, tokenRepo token.TokenRepository) AuthService {
 	return &authService{
 		userRepo:  userRepo,
 		tokenRepo: tokenRepo,
@@ -34,47 +35,57 @@ func (s *authService) Signup(req dto.SignupRequest) error {
 		return errors.New("пароли не совпадают")
 	}
 
-	if s.userRepo.IsEmailExists(req.Email) {
+	// Проверка email
+	emailExists, err := s.userRepo.IsEmailExists(req.Email)
+	if err != nil {
+		return errors.New("ошибка проверки email: " + err.Error())
+	}
+	if emailExists {
 		return errors.New("email уже используется")
 	}
 
-	if s.userRepo.IsUsernameExists(req.Username) {
+	// Проверка username
+	usernameExists, err := s.userRepo.IsUsernameExists(req.Username)
+	if err != nil {
+		return errors.New("ошибка проверки username: " + err.Error())
+	}
+	if usernameExists {
 		return errors.New("username уже используется")
 	}
 
-	user := &models.User{
+	newUser := &models.User{
 		ID:       uuid.New(),
 		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
 	}
 
-	if err := user.HashPassword(); err != nil {
+	if err := newUser.HashPassword(); err != nil {
 		return errors.New("ошибка хеширования пароля")
 	}
 
-	return s.userRepo.CreateUser(user)
+	return s.userRepo.CreateUser(newUser)
 }
 
 func (s *authService) Login(req dto.LoginRequest) (string, string, error) {
-	user, err := s.userRepo.GetUserByEmail(req.Email)
-	if err != nil || !user.CheckPassword(req.Password) {
+	existingUser, err := s.userRepo.GetUserByEmail(req.Email)
+	if err != nil || !existingUser.CheckPassword(req.Password) {
 		return "", "", errors.New("неверный email или пароль")
 	}
 
-	accessToken, err := GenerateAccessToken(user.ID.String(), user.Role)
+	accessToken, err := GenerateAccessToken(existingUser.ID.String(), existingUser.Role)
 	if err != nil {
 		return "", "", err
 	}
 
-	refreshToken, err := GenerateRefreshToken(user.ID.String(), user.Role)
+	refreshToken, err := GenerateRefreshToken(existingUser.ID.String(), existingUser.Role)
 	if err != nil {
 		return "", "", err
 	}
 
 	token := &models.RefreshToken{
 		ID:        uuid.New(),
-		UserID:    user.ID,
+		UserID:    existingUser.ID,
 		Token:     refreshToken,
 		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
 	}
@@ -92,12 +103,12 @@ func (s *authService) Refresh(token string) (string, error) {
 		return "", errors.New("refresh-токен недействителен или истёк")
 	}
 
-	user, err := s.userRepo.GetUserByID(rt.UserID)
+	existingUser, err := s.userRepo.GetUserByID(rt.UserID)
 	if err != nil {
 		return "", errors.New("пользователь не найден")
 	}
 
-	return GenerateAccessToken(user.ID.String(), user.Role)
+	return GenerateAccessToken(existingUser.ID.String(), existingUser.Role)
 }
 
 func (s *authService) Logout(refreshToken string) error {

@@ -1,22 +1,10 @@
-package repositories
+package user
 
 import (
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/models"
 	"gorm.io/gorm"
 )
-
-type UserRepository interface {
-	CreateUser(user *models.User) error
-	GetUserByID(userID uuid.UUID) (*models.User, error)
-	GetUserByEmail(email string) (*models.User, error)
-	GetUserByUsername(username string) (*models.User, error)
-	GetAllUsers() ([]models.User, error)
-	UpdateUser(user *models.User) error
-	DeleteUser(userID uuid.UUID) error
-	IsEmailExists(email string) bool
-	IsUsernameExists(username string) bool
-}
 
 type userRepo struct {
 	db *gorm.DB
@@ -71,14 +59,14 @@ func (r *userRepo) DeleteUser(userID uuid.UUID) error {
 	return r.db.Delete(&models.User{}, "id = ?", userID).Error
 }
 
-func (r *userRepo) IsEmailExists(email string) bool {
+func (r *userRepo) IsEmailExists(email string) (bool, error) {
 	var count int64
-	r.db.Model(&models.User{}).Where("email = ?", email).Count(&count)
-	return count > 0
+	err := r.db.Model(&models.User{}).Where("email = ?", email).Count(&count).Error
+	return count > 0, err
 }
 
-func (r *userRepo) IsUsernameExists(username string) bool {
+func (r *userRepo) IsUsernameExists(username string) (bool, error) {
 	var count int64
-	r.db.Model(&models.User{}).Where("username = ?", username).Count(&count)
-	return count > 0
+	err := r.db.Model(&models.User{}).Where("username = ?", username).Count(&count).Error
+	return count > 0, err
 }

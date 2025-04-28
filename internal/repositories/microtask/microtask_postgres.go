@@ -1,8 +1,7 @@
-package repositories
+package microtask
 
 import (
 	"context"
-
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/models"
 	"gorm.io/gorm"

@@ -1,4 +1,4 @@
-package repositories
+package token
 
 import (
 	"time"
@@ -33,7 +33,10 @@ func (r *tokenRepo) FindValid(tokenStr string) (*models.RefreshToken, error) {
 	}
 
 	if time.Now().After(token.ExpiresAt) {
-		r.Delete(&token)
+		err := r.Delete(&token)
+		if err != nil {
+			return nil, err
+		}
 		return nil, gorm.ErrRecordNotFound
 	}
 

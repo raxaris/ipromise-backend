@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/raxaris/ipromise-backend/internal/repositories"
+	"github.com/raxaris/ipromise-backend/internal/repositories/token"
+	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 	"github.com/raxaris/ipromise-backend/internal/services"
 	"log"
 	"time"
@@ -46,8 +48,8 @@ func main() {
 	}))
 
 	// 🔹 Маршруты для аутентификации
-	userRepo := repositories.NewUserRepository(db)
-	tokenRepo := repositories.NewTokenRepository(db)
+	userRepo := user.NewUserRepository(db)
+	tokenRepo := token.NewTokenRepository(db)
 	promiseRepo := repositories.NewPromiseRepositoryV1(db)
 	authService := services.NewAuthService(userRepo, tokenRepo)
 	authHandler := handlers.NewAuthHandler(authService)
