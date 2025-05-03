@@ -10,171 +10,183 @@ import (
 )
 
 type PromiseHandler struct {
-	service services.PromiseService
+	promiseService services.PromiseService
+	userService    services.UserService
 }
 
-func NewPromiseHandler(service services.PromiseService) *PromiseHandler {
-	return &PromiseHandler{service: service}
-}
-
-// Создание обещания
-func (h *PromiseHandler) Create(c *gin.Context) {
-	userID, err := utils.GetUserIDFromContext(c)
-	if err != nil {
-		c.JSON(401, gin.H{"error": err.Error()})
-		return
+func NewPromiseHandler(promiseService services.PromiseService, userService services.UserService) *PromiseHandler {
+	return &PromiseHandler{
+		promiseService: promiseService,
+		userService:    userService,
 	}
+}
 
+// ✅ POST /promises
+func (h *PromiseHandler) CreatePromise(c *gin.Context) {
 	var req dto.CreatePromiseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusBadRequest, "Неверный формат данных")
 		return
 	}
 
-	if err := h.service.Create(userID, req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(201, gin.H{"message": "Обещание создано"})
-}
-
-// Обещания текущего пользователя (приватные + публичные)
-func (h *PromiseHandler) GetMy(c *gin.Context) {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
-		c.JSON(401, gin.H{"error": err.Error()})
+		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	promises, err := h.service.GetByUserID(userID)
+	err = h.promiseService.CreatePromise(c.Request.Context(), userID, req.Title, req.Description, req.Deadline, req.IsPrivate)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Ошибка получения обещаний"})
+		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	c.JSON(200, promises)
+	utils.RespondWithSuccess(c, http.StatusCreated, gin.H{"message": "Обещание создано"})
 }
 
-// Публичные обещания другого пользователя
-func (h *PromiseHandler) GetPublicByUserID(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// ✅ GET /promises/:id
+func (h *PromiseHandler) GetPromiseByID(c *gin.Context) {
+	promiseIDStr := c.Param("id")
+	promiseID, err := uuid.Parse(promiseIDStr)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Неверный формат ID"})
+		utils.RespondWithError(c, http.StatusBadRequest, "Некорректный ID")
 		return
 	}
 
-	promises, err := h.service.GetPublicByUserID(id)
+	viewerID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Ошибка получения обещаний"})
+		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	c.JSON(200, promises)
+	promise, err := h.promiseService.GetPromiseByID(c.Request.Context(), viewerID, promiseID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	// Преобразуем в DTO
+	resp := dto.PromiseResponse{
+		ID:          promise.ID.String(),
+		Title:       promise.Title,
+		Description: promise.Description,
+		Deadline:    promise.Deadline,
+		IsPrivate:   promise.IsPrivate,
+		Status:      promise.Status,
+		CreatedAt:   promise.CreatedAt,
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, resp)
 }
 
-// Получить обещание по ID
-func (h *PromiseHandler) GetByID(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(400, gin.H{"error": "Неверный формат ID"})
-		return
-	}
-
-	promise, err := h.service.GetByID(id)
-	if err != nil {
-		c.JSON(404, gin.H{"error": "Обещание не найдено"})
-		return
-	}
-
-	c.JSON(200, promise)
-}
-
-// Получить вложенные обещания (прогресс)
-func (h *PromiseHandler) GetChildren(c *gin.Context) {
-	parentID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(400, gin.H{"error": "Неверный формат ID"})
-		return
-	}
-
-	children, err := h.service.GetChildren(parentID)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Ошибка получения вложенных обещаний"})
-		return
-	}
-
-	c.JSON(200, children)
-}
-
-// Лента всех публичных обещаний
-func (h *PromiseHandler) GetPublic(c *gin.Context) {
-	promises, err := h.service.GetPublic()
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Ошибка получения обещаний"})
-		return
-	}
-
-	c.JSON(200, promises)
-}
-
-func (h *PromiseHandler) GetAllForAdmin(c *gin.Context) {
-	promises, err := h.service.GetAllPromisesForAdmin()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
-		return
-	}
-	c.JSON(http.StatusOK, promises)
-}
-
-// Обновить обещание
-func (h *PromiseHandler) Update(c *gin.Context) {
+// ✅ Обновить обещание
+func (h *PromiseHandler) UpdatePromise(c *gin.Context) {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
-		c.JSON(401, gin.H{"error": err.Error()})
+		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	promiseID := c.Param("id")
-	isAdmin := utils.IsAdmin(c)
+	promiseIDStr := c.Param("id")
+	promiseID, err := uuid.Parse(promiseIDStr)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Неверный формат ID")
+		return
+	}
 
 	var req dto.UpdatePromiseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusBadRequest, "Неверный формат тела запроса")
 		return
 	}
 
-	if err := h.service.Update(userID, promiseID, req, isAdmin); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+	err = h.promiseService.UpdatePromise(c, userID, promiseID, req.Title, req.Description, req.Deadline)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	c.JSON(200, gin.H{"message": "Обещание обновлено"})
+	utils.RespondWithSuccess(c, http.StatusOK, "Обещание обновлено")
 }
 
-// Удалить обещание
-func (h *PromiseHandler) Delete(c *gin.Context) {
-	// ✅ Извлекаем ID из контекста
+// ✅ Удалить обещание
+func (h *PromiseHandler) DeletePromise(c *gin.Context) {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
-		c.JSON(401, gin.H{"error": "не авторизован"})
+		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	isAdmin := utils.IsAdmin(c)
-
-	// ✅ ID промиса
-	promiseID, err := uuid.Parse(c.Param("id"))
+	promiseIDStr := c.Param("id")
+	promiseID, err := uuid.Parse(promiseIDStr)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "неверный формат ID"})
+		utils.RespondWithError(c, http.StatusBadRequest, "Неверный формат ID")
 		return
 	}
 
-	// ✅ Удаление через сервис
-	if err := h.service.Delete(userID, promiseID, isAdmin); err != nil {
-		c.JSON(403, gin.H{"error": err.Error()})
+	err = h.promiseService.DeletePromise(c, userID, promiseID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	c.JSON(200, gin.H{"message": "обещание и прогресс удалены"})
+	utils.RespondWithSuccess(c, http.StatusOK, "Обещание удалено")
+}
+
+// ✅ Получить список обещаний профиля
+func (h *PromiseHandler) ListProfilePromises(c *gin.Context) {
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	username := c.Param("username")
+	profileUser, err := h.userService.GetUserByUsername(username)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	limit, after := utils.ParsePaginationParams(c)
+
+	promises, err := h.promiseService.ListProfilePromises(c, viewerID, profileUser.ID, limit, after)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, promises)
+}
+
+// ✅ Лента (обещания фолловеров)
+func (h *PromiseHandler) ListFeedPromises(c *gin.Context) {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	limit, after := utils.ParsePaginationParams(c)
+
+	promises, err := h.promiseService.ListFeedPromises(c, userID, limit, after)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, promises)
+}
+
+// ✅ Публичные обещания (все)
+func (h *PromiseHandler) ListPublicPromises(c *gin.Context) {
+	limit, after := utils.ParsePaginationParams(c)
+
+	promises, err := h.promiseService.ListPublicPromises(c, limit, after)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, promises)
 }

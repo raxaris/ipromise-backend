@@ -94,8 +94,8 @@ func (r *promiseRepository) ListPublicPromisesByUserID(
 func (r *promiseRepository) ListFeedPromises(
 	ctx context.Context,
 	userIDs []uuid.UUID,
-	afterCreatedAt *time.Time,
 	limit int,
+	afterCreatedAt *time.Time,
 ) ([]models.Promise, error) {
 	var promises []models.Promise
 

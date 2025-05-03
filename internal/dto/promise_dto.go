@@ -2,34 +2,31 @@ package dto
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
+// ✅ DTO для создания Promise
 type CreatePromiseRequest struct {
-	ParentID    *uuid.UUID `json:"parent_id,omitempty"`
-	Title       string     `json:"title" binding:"required,min=5"`
-	Description string     `json:"description"`
-	Deadline    *time.Time `json:"deadline,omitempty"`
-	Status      string     `json:"status" binding:"omitempty,oneof=in_progress completed"` // проверка внутри только если есть
-	IsPrivate   bool       `json:"is_private"`
+	Title       string    `json:"title" binding:"required,min=1,max=100"`
+	Description string    `json:"description" binding:"max=2000"`
+	Deadline    time.Time `json:"deadline" binding:"required"`
+	IsPrivate   bool      `json:"is_private"`
 }
 
+// ✅ DTO для обновления Promise
 type UpdatePromiseRequest struct {
-	Title       *string    `json:"title" binding:"omitempty,min=5"`
-	Description *string    `json:"description,omitempty"`
-	Status      *string    `json:"status" binding:"omitempty,oneof=pending in_progress completed"`
-	Deadline    *time.Time `json:"deadline,omitempty"`   // Только для основного обещания
-	IsPrivate   *bool      `json:"is_private,omitempty"` // 🔹 Добавлено
+	Title       *string    `json:"title" binding:"omitempty,min=1,max=100"`
+	Description *string    `json:"description" binding:"omitempty,max=2000"`
+	Deadline    *time.Time `json:"deadline" binding:"omitempty"`
 }
 
+// ✅ Ответ клиенту
 type PromiseResponse struct {
-	ID          uuid.UUID  `json:"id"`
-	UserID      uuid.UUID  `json:"user_id"`
-	ParentID    *uuid.UUID `json:"parent_id,omitempty"`
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	Deadline    time.Time  `json:"deadline"`
-	Status      string     `json:"status"`
-	CreatedAt   time.Time  `json:"created_at"`
+	ID          string    `json:"id"`
+	Username    string    `json:"username"` // можно добавить позже
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Deadline    time.Time `json:"deadline"`
+	IsPrivate   bool      `json:"is_private"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
 }

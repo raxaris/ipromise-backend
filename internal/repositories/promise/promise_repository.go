@@ -31,8 +31,8 @@ type PromiseRepository interface {
 	ListFeedPromises(
 		ctx context.Context,
 		userIDs []uuid.UUID, // подписки
-		afterCreatedAt *time.Time, // пагинация
 		limit int,
+		afterCreatedAt *time.Time, // пагинация
 	) ([]models.Promise, error)
 
 	ListPublicPromises(
