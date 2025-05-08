@@ -17,7 +17,21 @@ func NewPostHandler(service services.PostService) *PostHandler {
 	return &PostHandler{service: service}
 }
 
-// ✅ POST /microtasks/:microtask_id/posts
+// CreatePost godoc
+// @Summary Создать пост или комментарий
+// @Description Создаёт корневой пост или комментарий (если указан parent_id)
+// @Tags posts
+// @Security BearerAuth
+// @Param microtask_id path string true "ID микротаска"
+// @Accept json
+// @Produce json
+// @Param input body dto.CreatePostRequest true "Данные поста"
+// @Success 201 {object} map[string]string "message: Пост создан"
+// @Failure 400 {object} map[string]string "error: Неверный формат"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 403 {object} map[string]string "error: Нет прав доступа"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /microtasks/{microtask_id}/posts [post]
 func (h *PostHandler) CreatePost(c *gin.Context) {
 	var req dto.CreatePostRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -47,7 +61,21 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusCreated, gin.H{"message": "Пост создан"})
 }
 
-// ✅ PATCH /posts/:id
+// UpdatePost godoc
+// @Summary Обновить пост
+// @Description Обновляет содержимое поста
+// @Tags posts
+// @Security BearerAuth
+// @Param id path string true "ID поста"
+// @Accept json
+// @Produce json
+// @Param input body dto.UpdatePostRequest true "Новое содержимое"
+// @Success 200 {object} map[string]string "message: Пост обновлён"
+// @Failure 400 {object} map[string]string "error: Неверный формат"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 403 {object} map[string]string "error: Нет прав"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /posts/{id} [patch]
 func (h *PostHandler) UpdatePost(c *gin.Context) {
 	var req dto.UpdatePostRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -75,7 +103,19 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"message": "Пост обновлён"})
 }
 
-// ✅ DELETE /posts/:id
+// DeletePost godoc
+// @Summary Удалить пост
+// @Description Удаляет пост по ID (soft delete)
+// @Tags posts
+// @Security BearerAuth
+// @Param id path string true "ID поста"
+// @Produce json
+// @Success 200 {object} map[string]string "message: Пост удалён"
+// @Failure 400 {object} map[string]string "error: Неверный ID"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 403 {object} map[string]string "error: Нет прав"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /posts/{id} [delete]
 func (h *PostHandler) DeletePost(c *gin.Context) {
 	postID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -97,7 +137,21 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"message": "Пост удалён"})
 }
 
-// ✅ GET /microtasks/:microtask_id/posts
+// ListRootPosts godoc
+// @Summary Получить посты по микротаску
+// @Description Возвращает все корневые посты, связанные с микротаском
+// @Tags posts
+// @Security BearerAuth
+// @Param microtask_id path string true "ID микротаска"
+// @Param limit query int false "Максимальное количество"
+// @Param after query string false "Дата (RFC3339) для пагинации"
+// @Param after_id query string false "ID поста для пагинации"
+// @Produce json
+// @Success 200 {array} dto.PostResponse
+// @Failure 400 {object} map[string]string "error: Неверный ID"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /microtasks/{microtask_id}/posts [get]
 func (h *PostHandler) ListRootPosts(c *gin.Context) {
 	microtaskID, err := uuid.Parse(c.Param("microtask_id"))
 	if err != nil {
@@ -116,7 +170,21 @@ func (h *PostHandler) ListRootPosts(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusOK, posts)
 }
 
-// ✅ GET /posts/:id/replies
+// ListReplies godoc
+// @Summary Получить комментарии к посту
+// @Description Возвращает список дочерних постов (реплаев)
+// @Tags posts
+// @Security BearerAuth
+// @Param id path string true "ID родительского поста"
+// @Param limit query int false "Максимальное количество"
+// @Param after query string false "Дата (RFC3339) для пагинации"
+// @Param after_id query string false "ID поста для пагинации"
+// @Produce json
+// @Success 200 {array} dto.PostResponse
+// @Failure 400 {object} map[string]string "error: Неверный ID"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /posts/{id}/replies [get]
 func (h *PostHandler) ListReplies(c *gin.Context) {
 	parentID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

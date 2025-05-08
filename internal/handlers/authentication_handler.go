@@ -16,6 +16,17 @@ func NewAuthHandler(authService services.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
 }
 
+// Signup godoc
+// @Summary Регистрация нового пользователя
+// @Description Создаёт нового пользователя по email, имени и паролю
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body dto.SignupRequest true "Данные для регистрации пользователя"
+// @Success 201 {object} map[string]string "message: Пользователь зарегистрирован"
+// @Failure 400 {object} map[string]string "error: Неверные данные"
+// @Failure 409 {object} map[string]string "error: Email или имя пользователя уже занято"
+// @Router /auth/signup [post]
 func (h *AuthHandler) Signup(c *gin.Context) {
 	var req dto.SignupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -31,6 +42,17 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Пользователь зарегистрирован"})
 }
 
+// Login godoc
+// @Summary Авторизация пользователя
+// @Description Логин по email и паролю, выдаёт JWT токены
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body dto.LoginRequest true "Данные для входа"
+// @Success 200 {object} map[string]string "access_token: токен, refresh_token: токен"
+// @Failure 400 {object} map[string]string "error: Ошибка валидации"
+// @Failure 401 {object} map[string]string "error: Неверный email или пароль"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -50,6 +72,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
+// Refresh godoc
+// @Summary Обновление Access Token
+// @Description Использует Refresh Token для выдачи нового Access Token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body dto.RefreshTokenRequest true "Refresh Token"
+// @Success 200 {object} map[string]string "access_token: новый access-токен"
+// @Failure 400 {object} map[string]string "error: Ошибка валидации"
+// @Failure 401 {object} map[string]string "error: Недействительный Refresh-токен"
+// @Router /auth/refresh [post]
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	var req dto.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -66,6 +99,17 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"access_token": newAccess})
 }
 
+// Logout godoc
+// @Summary Выход из системы
+// @Description Удаляет Refresh Token из хранилища
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body dto.RefreshTokenRequest true "Refresh Token"
+// @Success 200 {object} map[string]string "message: Вы успешно вышли из системы"
+// @Failure 400 {object} map[string]string "error: Ошибка валидации"
+// @Failure 401 {object} map[string]string "error: Недействительный Refresh-токен"
+// @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var req dto.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

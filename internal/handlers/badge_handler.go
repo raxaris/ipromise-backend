@@ -15,7 +15,14 @@ func NewBadgeHandler(badgeService services.BadgeService) *BadgeHandler {
 	return &BadgeHandler{badgeService: badgeService}
 }
 
-// GET /badges
+// ListAllBadges godoc
+// @Summary Получить все бейджи
+// @Description Возвращает список всех доступных бейджей системы
+// @Tags badges
+// @Produce json
+// @Success 200 {array} dto.BadgeResponse
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /badges [get]
 func (h *BadgeHandler) ListAllBadges(c *gin.Context) {
 	badges, err := h.badgeService.ListAllBadges(c)
 	if err != nil {
@@ -25,7 +32,16 @@ func (h *BadgeHandler) ListAllBadges(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusOK, badges)
 }
 
-// GET /me/badges
+// ListUserBadges godoc
+// @Summary Получить бейджи текущего пользователя
+// @Description Возвращает список бейджей, полученных текущим авторизованным пользователем
+// @Tags badges
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {array} dto.BadgeResponse
+// @Failure 401 {object} map[string]string "error: Требуется авторизация"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /badges/me [get]
 func (h *BadgeHandler) ListUserBadges(c *gin.Context) {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {

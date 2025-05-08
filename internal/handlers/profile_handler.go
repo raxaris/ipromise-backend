@@ -17,7 +17,16 @@ func NewProfileHandler(profileService services.ProfileService) *ProfileHandler {
 	return &ProfileHandler{profileService: profileService}
 }
 
-// GET /profile/me
+// GetMyProfile godoc
+// @Summary Получить свой профиль
+// @Description Возвращает расширенный профиль текущего пользователя
+// @Tags profile
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} dto.ExtendedProfileResponse
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /profile/me [get]
 func (h *ProfileHandler) GetMyProfile(c *gin.Context) {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -34,7 +43,16 @@ func (h *ProfileHandler) GetMyProfile(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusOK, profile)
 }
 
-// GET /profile/:username
+// GetPublicProfile godoc
+// @Summary Получить публичный профиль пользователя
+// @Description Возвращает публичный профиль по username (с расширенной статистикой, если взаимная подписка)
+// @Tags profile
+// @Produce json
+// @Param username path string true "Имя пользователя"
+// @Success 200 {object} dto.PublicProfileResponse
+// @Failure 404 {object} map[string]string "error: Пользователь не найден"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /profile/{username} [get]
 func (h *ProfileHandler) GetPublicProfile(c *gin.Context) {
 	username := c.Param("username")
 	viewerID, _ := utils.GetUserIDFromContext(c) // допускаем ноль UUID если неавторизован
@@ -48,7 +66,19 @@ func (h *ProfileHandler) GetPublicProfile(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusOK, profile)
 }
 
-// PATCH /profile
+// UpdateProfile godoc
+// @Summary Обновить профиль
+// @Description Обновляет имя пользователя, аватар или статус
+// @Tags profile
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param input body dto.UpdateProfileRequest true "Новые данные профиля"
+// @Success 200 {object} map[string]string "message: Профиль обновлён"
+// @Failure 400 {object} map[string]string "error: Некорректные данные профиля"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /profile [patch]
 func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 	var req dto.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

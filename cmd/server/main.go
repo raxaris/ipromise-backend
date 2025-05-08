@@ -123,7 +123,8 @@ func main() {
 	microtasks := r.Group("/microtasks")
 	{
 		microtasks.PATCH("/:id", microtaskHandler.UpdateMicrotask)
-		// TODO: добавить GET /:id/posts при необходимости
+		microtasks.GET("/:id/posts", postHandler.ListRootPosts)
+		microtasks.POST("/:id/posts", postHandler.CreatePost)
 	}
 
 	posts := r.Group("/posts")
