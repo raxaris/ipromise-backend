@@ -83,3 +83,23 @@ func (r *followerRepository) ListPendingFollowRequests(ctx context.Context, user
 		Find(&requests).Error
 	return requests, err
 }
+
+// CountFollowers — количество фолловеров (тех, кто подписан на userID)
+func (r *followerRepository) CountFollowers(ctx context.Context, userID uuid.UUID) (int, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.Follower{}).
+		Where("following_id = ?", userID).
+		Count(&count).Error
+	return int(count), err
+}
+
+// CountFollowing — количество подписок (на кого подписан userID)
+func (r *followerRepository) CountFollowing(ctx context.Context, userID uuid.UUID) (int, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.Follower{}).
+		Where("follower_id = ?", userID).
+		Count(&count).Error
+	return int(count), err
+}

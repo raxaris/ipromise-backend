@@ -1,116 +1,66 @@
 package handlers
 
-//import (
-//	"github.com/raxaris/ipromise-backend/config"
-//	"github.com/raxaris/ipromise-backend/internal/models"
-//	"net/http"
-//
-//	"github.com/gin-gonic/gin"
-//	"github.com/google/uuid"
-//	"github.com/raxaris/ipromise-backend/internal/dto"
-//	"github.com/raxaris/ipromise-backend/internal/services"
-//)
-//
-//func GetCurrentUserHandler(c *gin.Context) {
-//	userID, _ := uuid.Parse(c.GetString("user_id"))
-//
-//	user, err := services.GetUserByID(userID)
-//	if err != nil {
-//		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
-//		return
-//	}
-//
-//	c.JSON(http.StatusOK, user)
-//}
-//
-//func GetPublicUserHandler(c *gin.Context) {
-//	username := c.Param("username")
-//
-//	var user models.User
-//	if err := config.DB.Select("id, username, created_at").
-//		Where("username = ?", username).
-//		First(&user).Error; err != nil {
-//		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
-//		return
-//	}
-//
-//	c.JSON(http.StatusOK, user)
-//}
-//
-//func GetAllUsersHandler(c *gin.Context) {
-//	users, err := services.GetAllUsers()
-//	if err != nil {
-//		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения пользователей"})
-//		return
-//	}
-//
-//	c.JSON(http.StatusOK, users)
-//}
-//
-//func GetUserByIDHandler(c *gin.Context) {
-//	idStr := c.Param("id")
-//
-//	userID, err := uuid.Parse(idStr)
-//	if err != nil {
-//		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID"})
-//		return
-//	}
-//
-//	user, err := services.GetUserByID(userID)
-//	if err != nil {
-//		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
-//		return
-//	}
-//
-//	c.JSON(http.StatusOK, user)
-//}
-//
-//func GetUserByUsernameHandler(c *gin.Context) {
-//	username := c.Param("username")
-//
-//	user, err := services.GetUserByUsername(username)
-//	if err != nil {
-//		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
-//		return
-//	}
-//
-//	c.JSON(http.StatusOK, user)
-//}
-//
-//func UpdateUserHandler(c *gin.Context) {
-//	var req dto.UpdateUserRequest
-//	if err := c.ShouldBindJSON(&req); err != nil {
-//		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-//		return
-//	}
-//
-//	userID, _ := uuid.Parse(c.GetString("user_id"))
-//
-//	err := services.UpdateUser(userID, userID, &req, false)
-//	if err != nil {
-//		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-//		return
-//	}
-//
-//	c.JSON(http.StatusOK, gin.H{"message": "Данные пользователя обновлены"})
-//}
-//
-//func DeleteUserHandler(c *gin.Context) {
-//	userID, _ := uuid.Parse(c.GetString("user_id"))
-//
-//	// Проверяем, существует ли пользователь
-//	_, err := services.GetUserByID(userID)
-//	if err != nil {
-//		c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
-//		return
-//	}
-//
-//	// Удаляем пользователя
-//	err = services.DeleteUser(userID)
-//	if err != nil {
-//		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка удаления пользователя"})
-//		return
-//	}
-//
-//	c.JSON(http.StatusOK, gin.H{"message": "Аккаунт удалён"})
-//}
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/raxaris/ipromise-backend/internal/dto"
+	"github.com/raxaris/ipromise-backend/internal/services"
+	"github.com/raxaris/ipromise-backend/internal/utils"
+)
+
+type UserHandler struct {
+	userService services.UserService
+}
+
+func NewUserHandler(userService services.UserService) *UserHandler {
+	return &UserHandler{userService: userService}
+}
+
+// ✅ GET /users/:username
+func (h *UserHandler) GetUserByUsername(c *gin.Context) {
+	username := c.Param("username")
+
+	user, err := h.userService.GetUserByUsername(c, username)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{
+		"id":       user.ID,
+		"username": user.Username,
+		"role":     user.Role,
+	})
+}
+
+// ✅ PATCH /users/:id
+func (h *UserHandler) UpdateUser(c *gin.Context) {
+	requesterID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+	isAdmin := utils.IsAdmin(c)
+
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Неверный формат ID")
+		return
+	}
+
+	var req dto.UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Неверные данные")
+		return
+	}
+
+	if err := h.userService.UpdateUser(c, requesterID, userID, req, isAdmin); err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, "Профиль обновлен")
+}

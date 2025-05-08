@@ -14,6 +14,8 @@ func MigrateDB(db *gorm.DB) {
 		&Attachment{},
 		&Follower{},
 		&Like{},
+		&Badge{},
+		&UserBadge{},
 	)
 	if err != nil {
 		panic("❌ Ошибка миграции: " + err.Error())

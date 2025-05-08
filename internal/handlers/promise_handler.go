@@ -142,7 +142,7 @@ func (h *PromiseHandler) ListProfilePromises(c *gin.Context) {
 	}
 
 	username := c.Param("username")
-	profileUser, err := h.userService.GetUserByUsername(username)
+	profileUser, err := h.userService.GetUserByUsername(c, username)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return

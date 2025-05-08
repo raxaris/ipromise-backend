@@ -1,1 +1,32 @@
 package dto
+
+type MyProfileResponse struct {
+	ID          string `json:"id"` // UUID юзера
+	Username    string `json:"username"`
+	Email       string `json:"email"`
+	AvatarURL   string `json:"avatar_url"`
+	Role        string `json:"role"`
+	Followers   int    `json:"followers_count"`
+	Following   int    `json:"following_count"`
+	Promises    int    `json:"promises_count"`
+	BadgesCount int    `json:"badges_count"`
+	Bio         string `gorm:"size:160" json:"bio"`
+}
+
+type PublicProfileResponse struct {
+	ID          string `json:"id"`
+	Username    string `json:"username"`
+	AvatarURL   string `json:"avatar_url"`
+	Followers   int    `json:"followers_count"`
+	Following   int    `json:"following_count"`
+	Promises    int    `json:"promises_count"`
+	BadgesCount int    `json:"badges_count"`
+	Bio         string `gorm:"size:160" json:"bio"`
+	IsFollowing bool   `json:"is_following"` // для отображения кнопки "Подписаться"
+}
+
+type UpdateProfileRequest struct {
+	Username  *string `json:"username,omitempty" binding:"omitempty,min=3,max=30"`
+	AvatarURL *string `json:"avatar_url,omitempty" binding:"omitempty,url"`
+	Bio       *string `json:"bio,omitempty" binding:"omitempty,max=160"` // необязательное описание
+}

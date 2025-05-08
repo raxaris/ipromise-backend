@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/raxaris/ipromise-backend/internal/repositories"
+	"github.com/raxaris/ipromise-backend/internal/middleware"
+	"github.com/raxaris/ipromise-backend/internal/repositories/badge"
+	"github.com/raxaris/ipromise-backend/internal/repositories/follower"
+	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
+	"github.com/raxaris/ipromise-backend/internal/repositories/promise"
 	"github.com/raxaris/ipromise-backend/internal/repositories/token"
 	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 	"github.com/raxaris/ipromise-backend/internal/services"
@@ -45,14 +49,41 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// 🔹 Маршруты для аутентификации
+	// 🔹 Репозитории
 	userRepo := user.NewUserRepository(db)
 	tokenRepo := token.NewTokenRepository(db)
-	promiseRepo := repositories.NewPromiseRepositoryV1(db)
+	promiseRepo := promise.NewPromiseRepository(db)
+	badgeRepo := badge.NewBadgeRepository(db)
+	followerRepo := follower.NewFollowerRepository(db)
+	microtaskRepo := microtask.NewMicrotaskRepository(db)
+	// TODO: добавить когда будете реализовывать
+	// microtaskRepo := microtask.NewMicrotaskRepository(db)
+	// postRepo := post.NewPostRepository(db)
+	// likeRepo := like.NewLikeRepository(db)
+	// commentRepo := comment.NewCommentRepository(db)
+
+	// 🔹 Сервисы
 	authService := services.NewAuthService(userRepo, tokenRepo)
+	promiseService := services.NewPromiseService(promiseRepo, followerRepo)
+	badgeService := services.NewBadgeService(badgeRepo)
+	profileService := services.NewProfileService(userRepo, badgeRepo, promiseRepo, followerRepo)
+	userService := services.NewUserService(userRepo)
+	microtaskService := services.NewMicrotaskService(microtaskRepo, promiseRepo)
+	// TODO: добавить позже
+	// microtaskService := services.NewMicrotaskService(microtaskRepo)
+	// postService := services.NewPostService(postRepo)
+	// followerService := services.NewFollowerService(followerRepo)
+
+	// 🔹 Хендлеры
 	authHandler := handlers.NewAuthHandler(authService)
-	promiseService := services.NewPromiseServiceV1(promiseRepo, userRepo)
-	promiseHandler := handlers.NewPromiseHandler(promiseService)
+	promiseHandler := handlers.NewPromiseHandler(promiseService, userService)
+	badgeHandler := handlers.NewBadgeHandler(badgeService)
+	profileHandler := handlers.NewProfileHandler(profileService)
+	microtaskHandler := handlers.NewMicrotaskHandler(microtaskService)
+	// TODO: добавить позже
+	// microtaskHandler := handlers.NewMicrotaskHandler(microtaskService)
+	// postHandler := handlers.NewPostHandler(postService)
+	// followerHandler := handlers.NewFollowerHandler(followerService)
 
 	// 📌 Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -63,6 +94,26 @@ func main() {
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/refresh", authHandler.Refresh)
 		auth.POST("/logout", authHandler.Logout)
+	}
+
+	profile := r.Group("/profile")
+	profile.Use(middleware.AuthMiddleware())
+	{
+		profile.GET("/me", profileHandler.GetMyProfile)
+		profile.PATCH("", profileHandler.UpdateProfile)
+		profile.GET("/:username", profileHandler.GetPublicProfile)
+	}
+
+	promiseGroup := r.Group("/promises")
+	{
+		promiseGroup.POST("/", promiseHandler.CreatePromise)
+		promiseGroup.GET("/profile/:username", promiseHandler.ListPublicPromises)
+	}
+
+	badgeGroup := r.Group("/badges")
+	{
+		badgeGroup.GET("/", badgeHandler.ListAllBadges)
+		badgeGroup.GET("/me", badgeHandler.ListUserBadges)
 	}
 
 	port := "8080"
