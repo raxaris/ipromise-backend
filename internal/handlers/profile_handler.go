@@ -23,7 +23,7 @@ func NewProfileHandler(profileService services.ProfileService) *ProfileHandler {
 // @Tags profile
 // @Security BearerAuth
 // @Produce json
-// @Success 200 {object} dto.ExtendedProfileResponse
+// @Success 200 {object} dto.MyProfileResponse
 // @Failure 401 {object} map[string]string "error: Неавторизован"
 // @Failure 500 {object} map[string]string "error: Ошибка сервера"
 // @Router /profile/me [get]

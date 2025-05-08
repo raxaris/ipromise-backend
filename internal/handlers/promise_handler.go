@@ -229,7 +229,7 @@ func (h *PromiseHandler) ListProfilePromises(c *gin.Context) {
 // @Security BearerAuth
 // @Produce json
 // @Param limit query int false "Лимит"
-// @Param after query string false "Дата (RFC3339) для пагина
+// @Param after query string false "Дата и время, начиная с которого загружать обещания (формат RFC3339)"
 func (h *PromiseHandler) ListFeedPromises(c *gin.Context) {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
