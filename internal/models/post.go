@@ -8,12 +8,13 @@ import (
 )
 
 type Post struct {
-	ID          uuid.UUID      `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
-	MicrotaskID uuid.UUID      `gorm:"type:uuid;not null"` // FK → microtasks
-	UserID      uuid.UUID      `gorm:"type:uuid;not null"` // FK → users
-	ParentID    *uuid.UUID     `gorm:"type:uuid"`          // nullable для replies
-	Content     string         `gorm:"type:text;not null"`
-	CreatedAt   time.Time      `gorm:"autoCreateTime"`
-	UpdatedAt   time.Time      `gorm:"autoUpdateTime"`
+	ID          uuid.UUID  `gorm:"type:uuid;primaryKey"`
+	UserID      uuid.UUID  `gorm:"type:uuid;not null;index"` // индекс для поиска постов пользователя
+	PromiseID   uuid.UUID  `gorm:"type:uuid;not null;index"` // индекс, если будем фильтровать по Promise
+	MicrotaskID uuid.UUID  `gorm:"type:uuid;not null;index"` // основной индекс для фильтрации
+	ParentID    *uuid.UUID `gorm:"type:uuid;index"`          // для дерева комментариев
+	Content     string     `gorm:"type:text"`
+	CreatedAt   time.Time  `gorm:"index"` // пагинация и сортировка
+	UpdatedAt   time.Time
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
 }
