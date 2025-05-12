@@ -1,21 +1,22 @@
 package services
 
 import (
+	"context"
 	"errors"
-	"github.com/raxaris/ipromise-backend/internal/repositories/token"
-	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/models"
+	"github.com/raxaris/ipromise-backend/internal/repositories/token"
+	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 )
 
 type AuthService interface {
-	Signup(req dto.SignupRequest) error
-	Login(req dto.LoginRequest) (string, string, error)
-	Refresh(refreshToken string) (string, error)
-	Logout(refreshToken string) error
+	Signup(ctx context.Context, req dto.SignupRequest) error
+	Login(ctx context.Context, req dto.LoginRequest) (string, string, error)
+	Refresh(ctx context.Context, refreshToken string) (string, error)
+	Logout(ctx context.Context, refreshToken string) error
 }
 
 type authService struct {
@@ -30,13 +31,12 @@ func NewAuthService(userRepo user.UserRepository, tokenRepo token.TokenRepositor
 	}
 }
 
-func (s *authService) Signup(req dto.SignupRequest) error {
+func (s *authService) Signup(ctx context.Context, req dto.SignupRequest) error {
 	if req.Password != req.ConfirmPassword {
 		return errors.New("пароли не совпадают")
 	}
 
-	// Проверка email
-	emailExists, err := s.userRepo.IsEmailExists(req.Email)
+	emailExists, err := s.userRepo.IsEmailExists(ctx, req.Email)
 	if err != nil {
 		return errors.New("ошибка проверки email: " + err.Error())
 	}
@@ -44,8 +44,7 @@ func (s *authService) Signup(req dto.SignupRequest) error {
 		return errors.New("email уже используется")
 	}
 
-	// Проверка username
-	usernameExists, err := s.userRepo.IsUsernameExists(req.Username)
+	usernameExists, err := s.userRepo.IsUsernameExists(ctx, req.Username)
 	if err != nil {
 		return errors.New("ошибка проверки username: " + err.Error())
 	}
@@ -64,11 +63,11 @@ func (s *authService) Signup(req dto.SignupRequest) error {
 		return errors.New("ошибка хеширования пароля")
 	}
 
-	return s.userRepo.CreateUser(newUser)
+	return s.userRepo.CreateUser(ctx, newUser)
 }
 
-func (s *authService) Login(req dto.LoginRequest) (string, string, error) {
-	existingUser, err := s.userRepo.GetUserByEmail(req.Email)
+func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (string, string, error) {
+	existingUser, err := s.userRepo.GetUserByEmail(ctx, req.Email)
 	if err != nil || !existingUser.CheckPassword(req.Password) {
 		return "", "", errors.New("неверный email или пароль")
 	}
@@ -90,20 +89,20 @@ func (s *authService) Login(req dto.LoginRequest) (string, string, error) {
 		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
 	}
 
-	if err := s.tokenRepo.Save(token); err != nil {
+	if err := s.tokenRepo.Save(ctx, token); err != nil {
 		return "", "", err
 	}
 
 	return accessToken, refreshToken, nil
 }
 
-func (s *authService) Refresh(token string) (string, error) {
-	rt, err := s.tokenRepo.FindValid(token)
+func (s *authService) Refresh(ctx context.Context, token string) (string, error) {
+	rt, err := s.tokenRepo.FindValid(ctx, token)
 	if err != nil {
 		return "", errors.New("refresh-токен недействителен или истёк")
 	}
 
-	existingUser, err := s.userRepo.GetUserByID(rt.UserID)
+	existingUser, err := s.userRepo.GetUserByID(ctx, rt.UserID)
 	if err != nil {
 		return "", errors.New("пользователь не найден")
 	}
@@ -111,10 +110,10 @@ func (s *authService) Refresh(token string) (string, error) {
 	return GenerateAccessToken(existingUser.ID.String(), existingUser.Role)
 }
 
-func (s *authService) Logout(refreshToken string) error {
-	rt, err := s.tokenRepo.FindValid(refreshToken)
+func (s *authService) Logout(ctx context.Context, refreshToken string) error {
+	rt, err := s.tokenRepo.FindValid(ctx, refreshToken)
 	if err != nil {
 		return errors.New("refresh-токен не найден или истёк")
 	}
-	return s.tokenRepo.Delete(rt)
+	return s.tokenRepo.Delete(ctx, rt)
 }

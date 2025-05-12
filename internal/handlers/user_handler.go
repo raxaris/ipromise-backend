@@ -32,7 +32,7 @@ func NewUserHandler(userService services.UserService) *UserHandler {
 func (h *UserHandler) GetUserByUsername(c *gin.Context) {
 	username := c.Param("username")
 
-	user, err := h.userService.GetUserByUsername(c, username)
+	user, err := h.userService.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
@@ -80,7 +80,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	if err := h.userService.UpdateUser(c, requesterID, userID, req, isAdmin); err != nil {
+	if err := h.userService.UpdateUser(c.Request.Context(), requesterID, userID, req, isAdmin); err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
 	}

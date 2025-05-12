@@ -35,24 +35,24 @@ func (s *userService) CreateUser(ctx context.Context, user *models.User) error {
 
 	// Валидация
 	if len(user.Username) < 3 {
-		return errors.New("имя пользователя должно быть не короче 3 символов")
+		return errors.New("Username must be at least 3 characters long")
 	}
 
 	// Проверка на уникальность
-	emailExists, err := s.userRepo.IsEmailExists(user.Email)
+	emailExists, err := s.userRepo.IsEmailExists(ctx, user.Email)
 	if err != nil {
 		return err
 	}
 	if emailExists {
-		return errors.New("email уже используется")
+		return errors.New("Email already taken")
 	}
 
-	usernameExists, err := s.userRepo.IsUsernameExists(user.Username)
+	usernameExists, err := s.userRepo.IsUsernameExists(ctx, user.Username)
 	if err != nil {
 		return err
 	}
 	if usernameExists {
-		return errors.New("имя пользователя уже занято")
+		return errors.New("Username already taken")
 	}
 
 	// Хеширование пароля
@@ -63,36 +63,36 @@ func (s *userService) CreateUser(ctx context.Context, user *models.User) error {
 	// Присваиваем ID
 	user.ID = uuid.New()
 
-	return s.userRepo.CreateUser(user)
+	return s.userRepo.CreateUser(ctx, user)
 }
 
 func (s *userService) GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
-	return s.userRepo.GetUserByID(id)
+	return s.userRepo.GetUserByID(ctx, id)
 }
 
 func (s *userService) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
-	return s.userRepo.GetUserByUsername(username)
+	return s.userRepo.GetUserByUsername(ctx, username)
 }
 
 func (s *userService) UpdateUser(ctx context.Context, requesterID, userID uuid.UUID, req dto.UpdateUserRequest, isAdmin bool) error {
-	existingUser, err := s.userRepo.GetUserByID(userID)
+	existingUser, err := s.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
 		return err
 	}
 
 	if requesterID != userID && !isAdmin {
-		return errors.New("нет прав на редактирование")
+		return errors.New("Not enough permission")
 	}
 
 	if req.Username != nil {
 		newName := strings.TrimSpace(*req.Username)
 		if newName != existingUser.Username {
-			exists, err := s.userRepo.IsUsernameExists(newName)
+			exists, err := s.userRepo.IsUsernameExists(ctx, newName)
 			if err != nil {
 				return err
 			}
 			if exists {
-				return errors.New("имя уже занято")
+				return errors.New("Username already taken")
 			}
 			existingUser.Username = newName
 		}
@@ -109,13 +109,13 @@ func (s *userService) UpdateUser(ctx context.Context, requesterID, userID uuid.U
 		existingUser.Role = *req.Role
 	}
 
-	return s.userRepo.UpdateUser(existingUser)
+	return s.userRepo.UpdateUser(ctx, existingUser)
 }
 
 func (s *userService) DeleteUser(ctx context.Context, userID uuid.UUID) error {
-	return s.userRepo.DeleteUser(userID)
+	return s.userRepo.DeleteUser(ctx, userID)
 }
 
 func (s *userService) ListAllUsers(ctx context.Context) ([]models.User, error) {
-	return s.userRepo.GetAllUsers()
+	return s.userRepo.GetAllUsers(ctx)
 }

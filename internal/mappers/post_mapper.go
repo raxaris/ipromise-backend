@@ -1,65 +1,172 @@
-package mapper
+package mappers
 
 import (
+	"context"
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/models"
+	"github.com/raxaris/ipromise-backend/internal/repositories/attachment"
+	"github.com/raxaris/ipromise-backend/internal/repositories/like"
+	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
+	"github.com/raxaris/ipromise-backend/internal/repositories/post"
+	"github.com/raxaris/ipromise-backend/internal/repositories/promise"
+	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 )
 
-func MapPostToTreeResponse(
-	post *models.Post,
-	replies []*models.Post,
-	attachments []dto.AttachmentResponse,
-	likesCount int64,
-	commentsCount int64,
-	isLikedByMe bool,
-	username string,
-	avatarURL *string,
-	promiseTitle string,
-	microtaskTitle string,
-) dto.PostWithRepliesTreeResponse {
-	children := make([]dto.PostWithRepliesTreeResponse, 0)
+type PostMapper struct {
+	userRepository       user.UserRepository
+	likeRepository       like.LikeRepository
+	attachmentRepository attachment.AttachmentRepository
+	microtaskRepository  microtask.MicrotaskRepository
+	promiseRepository    promise.PromiseRepository
+	postRepository       post.PostRepository
+}
 
-	// Рекурсивно ищем дочерние элементы
-	for _, reply := range replies {
-		if reply.ParentID != nil && *reply.ParentID == post.ID {
-			// Собираем "внуков"
-			children = append(children, MapPostToTreeResponse(
-				reply,
-				replies,
-				nil, // вложения для реплаев пока не передаём
-				0,   // лайки для реплаев — можно оптимизировать потом
-				0,
-				false,
-				"", nil, "", "",
-			))
-		}
-	}
-
-	return dto.PostWithRepliesTreeResponse{
-		ID:             post.ID.String(),
-		Content:        post.Content,
-		AuthorID:       post.UserID.String(),
-		Username:       username,
-		AvatarURL:      avatarURL,
-		PromiseID:      post.PromiseID.String(),
-		PromiseTitle:   promiseTitle,
-		MicrotaskID:    post.MicrotaskID.String(),
-		MicrotaskTitle: microtaskTitle,
-		LikesCount:     likesCount,
-		CommentsCount:  commentsCount,
-		Attachments:    attachments,
-		Replies:        children,
-		CreatedAt:      post.CreatedAt,
+func NewPostMapper(
+	userRepository user.UserRepository,
+	likeRepository like.LikeRepository,
+	attachmentRepository attachment.AttachmentRepository,
+	microtaskRepository microtask.MicrotaskRepository,
+	promiseRepository promise.PromiseRepository,
+	postRepository post.PostRepository,
+) *PostMapper {
+	return &PostMapper{
+		userRepository:       userRepository,
+		likeRepository:       likeRepository,
+		attachmentRepository: attachmentRepository,
+		microtaskRepository:  microtaskRepository,
+		promiseRepository:    promiseRepository,
+		postRepository:       postRepository,
 	}
 }
 
-func filterRepliesByParentID(replies []*models.Post, parentID uuid.UUID) []*models.Post {
-	var filtered []*models.Post
-	for _, r := range replies {
-		if r.ParentID != nil && *r.ParentID == parentID {
-			filtered = append(filtered, r)
+func (pm *PostMapper) BuildPostLite(
+	ctx context.Context,
+	post *models.Post,
+	viewerID uuid.UUID,
+) (*dto.PostLiteResponse, error) {
+	userModel, err := pm.userRepository.GetUserByID(ctx, post.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	likesCount, err := pm.likeRepository.CountLikesByPostID(ctx, post.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	commentsCount, err := pm.postRepository.CountRepliesByPostID(ctx, post.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	attachments, err := pm.attachmentRepository.ListAttachmentsByPostID(ctx, post.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	attachmentDTOs := make([]dto.AttachmentResponse, 0, len(attachments))
+	for _, a := range attachments {
+		attachmentDTOs = append(attachmentDTOs, dto.AttachmentResponse{
+			URL:      a.FileURL,
+			FileType: a.FileType,
+		})
+	}
+
+	microtaskModel, err := pm.microtaskRepository.GetMicrotaskByID(ctx, post.MicrotaskID)
+	if err != nil {
+		return nil, err
+	}
+
+	promiseModel, err := pm.promiseRepository.GetPromiseByID(ctx, post.PromiseID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.PostLiteResponse{
+		ID:             post.ID.String(),
+		Content:        post.Content,
+		AuthorID:       userModel.ID.String(),
+		Username:       userModel.Username,
+		AvatarURL:      userModel.AvatarURL,
+		PromiseID:      promiseModel.ID.String(),
+		PromiseTitle:   promiseModel.Title,
+		MicrotaskID:    microtaskModel.ID.String(),
+		MicrotaskTitle: microtaskModel.Title,
+		LikesCount:     likesCount,
+		CommentsCount:  commentsCount,
+		Attachments:    attachmentDTOs,
+		CreatedAt:      post.CreatedAt,
+	}, nil
+}
+
+func (pm *PostMapper) BuildPostTree(
+	ctx context.Context,
+	root *models.Post,
+	replies []*models.Post,
+	viewerID uuid.UUID,
+) (*dto.PostWithRepliesTreeResponse, error) {
+	// Кешируем все replies по parentID
+	childrenMap := make(map[uuid.UUID][]*models.Post)
+	for _, reply := range replies {
+		if reply.ParentID != nil {
+			childrenMap[*reply.ParentID] = append(childrenMap[*reply.ParentID], reply)
 		}
 	}
-	return filtered
+
+	// Вложенная рекурсивная функция
+	var build func(*models.Post) (*dto.PostWithRepliesTreeResponse, error)
+	build = func(post *models.Post) (*dto.PostWithRepliesTreeResponse, error) {
+		dtoLite, err := pm.BuildPostLite(ctx, post, viewerID)
+		if err != nil {
+			return nil, err
+		}
+
+		result := &dto.PostWithRepliesTreeResponse{
+			ID:             dtoLite.ID,
+			Content:        dtoLite.Content,
+			AuthorID:       dtoLite.AuthorID,
+			Username:       dtoLite.Username,
+			AvatarURL:      dtoLite.AvatarURL,
+			PromiseID:      dtoLite.PromiseID,
+			PromiseTitle:   dtoLite.PromiseTitle,
+			MicrotaskID:    dtoLite.MicrotaskID,
+			MicrotaskTitle: dtoLite.MicrotaskTitle,
+			LikesCount:     dtoLite.LikesCount,
+			CommentsCount:  dtoLite.CommentsCount,
+			Attachments:    dtoLite.Attachments,
+			CreatedAt:      dtoLite.CreatedAt,
+		}
+
+		for _, child := range childrenMap[post.ID] {
+			childDTO, err := build(child)
+			if err != nil {
+				return nil, err
+			}
+			result.Replies = append(result.Replies, *childDTO)
+		}
+
+		return result, nil
+	}
+
+	return build(root)
+}
+
+func (pm *PostMapper) BuildPostTrees(
+	ctx context.Context,
+	rootPosts []*models.Post,
+	allReplies []*models.Post,
+	viewerID uuid.UUID,
+) ([]dto.PostWithRepliesTreeResponse, error) {
+	var trees []dto.PostWithRepliesTreeResponse
+
+	for _, root := range rootPosts {
+		tree, err := pm.BuildPostTree(ctx, root, allReplies, viewerID)
+		if err != nil {
+			return nil, err
+		}
+		trees = append(trees, *tree)
+	}
+
+	return trees, nil
 }

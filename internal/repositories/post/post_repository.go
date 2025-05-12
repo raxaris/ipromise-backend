@@ -8,14 +8,12 @@ import (
 )
 
 type PostRepository interface {
-	// CRUD
 	CreatePost(ctx context.Context, post *models.Post) error
 	GetPostByID(ctx context.Context, id uuid.UUID) (*models.Post, error)
 	UpdatePost(ctx context.Context, post *models.Post) error
 	DeletePost(ctx context.Context, id uuid.UUID) error
 
-	// Получить root посты для microtask (parent_id IS NULL)
-	ListRootPostsByMicrotaskID(
+	ListPostsByMicrotaskID(
 		ctx context.Context,
 		microtaskID uuid.UUID,
 		limit int,
@@ -23,7 +21,14 @@ type PostRepository interface {
 		afterID *uuid.UUID,
 	) ([]models.Post, error)
 
-	// Получить replies (child posts) для конкретного поста
+	ListPostsByPromiseID(
+		ctx context.Context,
+		promiseID uuid.UUID,
+		limit int,
+		afterCreatedAt *time.Time,
+		afterID *uuid.UUID,
+	) ([]models.Post, error)
+
 	ListRepliesByPostID(
 		ctx context.Context,
 		parentID uuid.UUID,
@@ -32,17 +37,40 @@ type PostRepository interface {
 		afterID *uuid.UUID,
 	) ([]models.Post, error)
 
-	// 🔥 Новое: дерево комментариев (вся глубина)
-	GetPostWithRepliesTree(ctx context.Context, postID uuid.UUID) (*models.Post, []*models.Post, error)
+	GetPostWithRepliesTree(
+		ctx context.Context,
+		postID uuid.UUID,
+	) (*models.Post, []*models.Post, error)
 
-	// 🔥 Новое: публичная лента
-	ListPublicPosts(ctx context.Context, limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) ([]models.Post, error)
+	ListPublicPosts(
+		ctx context.Context,
+		limit int,
+		afterCreatedAt *time.Time,
+		afterID *uuid.UUID,
+	) ([]models.Post, error)
 
-	// 🔥 Новое: лента от подписок
-	ListFeedPosts(ctx context.Context, userID uuid.UUID, limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) ([]models.Post, error)
+	ListFeedPosts(
+		ctx context.Context,
+		userID uuid.UUID,
+		limit int,
+		afterCreatedAt *time.Time,
+		afterID *uuid.UUID,
+	) ([]models.Post, error)
 
-	// 🔥 Новое: все посты по PromiseID (для статистики/ленты)
-	ListPostsByPromiseID(ctx context.Context, promiseID uuid.UUID) ([]models.Post, error)
+	ListPublicPostsWithReplies(
+		ctx context.Context,
+		limit int,
+		afterCreatedAt *time.Time,
+		afterID *uuid.UUID,
+	) ([]*models.Post, []*models.Post, error)
+
+	ListFeedPostsWithReplies(
+		ctx context.Context,
+		viewerID uuid.UUID,
+		limit int,
+		afterCreatedAt *time.Time,
+		afterID *uuid.UUID,
+	) ([]*models.Post, []*models.Post, error)
 
 	CountRepliesByPostID(ctx context.Context, postID uuid.UUID) (int64, error)
 }

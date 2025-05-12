@@ -41,7 +41,7 @@ func NewProfileService(
 }
 
 func (s *profileService) GetMyProfile(ctx context.Context, userID uuid.UUID) (*dto.MyProfileResponse, error) {
-	user, err := s.userRepo.GetUserByID(userID)
+	user, err := s.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (s *profileService) GetMyProfile(ctx context.Context, userID uuid.UUID) (*d
 }
 
 func (s *profileService) GetPublicProfile(ctx context.Context, viewerID uuid.UUID, username string) (*dto.PublicProfileResponse, error) {
-	user, err := s.userRepo.GetUserByUsername(username)
+	user, err := s.userRepo.GetUserByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (s *profileService) GetPublicProfile(ctx context.Context, viewerID uuid.UUI
 }
 
 func (s *profileService) UpdateProfile(ctx context.Context, userID uuid.UUID, req dto.UpdateProfileRequest) error {
-	user, err := s.userRepo.GetUserByID(userID)
+	user, err := s.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (s *profileService) UpdateProfile(ctx context.Context, userID uuid.UUID, re
 	if req.Username != nil {
 		username := strings.TrimSpace(*req.Username)
 		if username != "" && username != user.Username {
-			exists, err := s.userRepo.IsUsernameExists(username)
+			exists, err := s.userRepo.IsUsernameExists(ctx, username)
 			if err != nil {
 				return err
 			}
@@ -163,5 +163,5 @@ func (s *profileService) UpdateProfile(ctx context.Context, userID uuid.UUID, re
 		}
 	}
 
-	return s.userRepo.UpdateUser(user)
+	return s.userRepo.UpdateUser(ctx, user)
 }

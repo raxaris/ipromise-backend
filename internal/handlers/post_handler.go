@@ -150,6 +150,7 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 // @Success 200 {array} dto.PostResponse
 // @Failure 400 {object} map[string]string "error: Неверный ID"
 // @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 403 {object} map[string]string "error: Нет доступа"
 // @Failure 500 {object} map[string]string "error: Ошибка сервера"
 // @Router /microtasks/{microtask_id}/posts [get]
 func (h *PostHandler) ListRootPosts(c *gin.Context) {
@@ -159,9 +160,55 @@ func (h *PostHandler) ListRootPosts(c *gin.Context) {
 		return
 	}
 
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
 	limit, afterCreatedAt, afterID := utils.ParseCursorPaginationParams(c)
 
-	posts, err := h.postService.ListRootPosts(c.Request.Context(), microtaskID, limit, afterCreatedAt, afterID)
+	posts, err := h.postService.ListPostsByMicrotaskID(c.Request.Context(), microtaskID, viewerID, limit, afterCreatedAt, afterID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, posts)
+}
+
+// ListPostsByPromiseID godoc
+// @Summary Получить посты по промису
+// @Description Возвращает все посты, относящиеся к данному промису
+// @Tags posts
+// @Security BearerAuth
+// @Param promise_id path string true "ID промиса"
+// @Param limit query int false "Максимум постов"
+// @Param after query string false "Дата (RFC3339) пагинации"
+// @Param after_id query string false "ID последнего поста"
+// @Produce json
+// @Success 200 {array} dto.PostResponse
+// @Failure 400 {object} map[string]string "error: Неверный ID"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 403 {object} map[string]string "error: Нет доступа"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /promises/{promise_id}/posts [get]
+func (h *PostHandler) ListPostsByPromiseID(c *gin.Context) {
+	promiseID, err := uuid.Parse(c.Param("promise_id"))
+	if err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Некорректный ID промиса")
+		return
+	}
+
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	limit, afterCreatedAt, afterID := utils.ParseCursorPaginationParams(c)
+
+	posts, err := h.postService.ListPostsByPromiseID(c.Request.Context(), promiseID, viewerID, limit, afterCreatedAt, afterID)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
@@ -192,9 +239,15 @@ func (h *PostHandler) ListReplies(c *gin.Context) {
 		return
 	}
 
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
 	limit, afterCreatedAt, afterID := utils.ParseCursorPaginationParams(c)
 
-	posts, err := h.postService.ListReplies(c.Request.Context(), parentID, limit, afterCreatedAt, afterID)
+	posts, err := h.postService.ListReplies(c.Request.Context(), parentID, viewerID, limit, afterCreatedAt, afterID)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
@@ -221,12 +274,132 @@ func (h *PostHandler) GetFullPost(c *gin.Context) {
 		utils.RespondWithError(c, http.StatusBadRequest, "Invalid post ID format")
 		return
 	}
-
-	tree, err := h.postService.GetPostWithRepliesTree(c.Request.Context(), postID)
+	viewerID, err := utils.GetUserIDFromContext(c)
+	tree, err := h.postService.GetPostByID(c.Request.Context(), postID, viewerID)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
 	}
 
 	utils.RespondWithSuccess(c, http.StatusOK, tree)
+}
+
+// ListPublicPostsLite godoc
+// @Summary Публичные посты (лайт)
+// @Description Публичная лента постов без дерева комментариев
+// @Tags posts
+// @Security BearerAuth
+// @Param limit query int false "Максимум постов"
+// @Param after query string false "Дата (RFC3339) для пагинации"
+// @Param after_id query string false "ID последнего поста"
+// @Produce json
+// @Success 200 {array} dto.PostLiteResponse
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /posts/public [get]
+func (h *PostHandler) ListPublicPostsLite(c *gin.Context) {
+	limit, after, afterID := utils.ParseCursorPaginationParams(c)
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	posts, err := h.postService.ListPublicPostsLite(c.Request.Context(), limit, after, afterID, viewerID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, posts)
+}
+
+// ListFeedPostsLite godoc
+// @Summary Лента подписок (лайт)
+// @Description Посты от тех, на кого подписан пользователь
+// @Tags posts
+// @Security BearerAuth
+// @Param limit query int false "Максимум постов"
+// @Param after query string false "Дата (RFC3339)"
+// @Param after_id query string false "ID последнего поста"
+// @Produce json
+// @Success 200 {array} dto.PostLiteResponse
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /posts/feed [get]
+func (h *PostHandler) ListFeedPostsLite(c *gin.Context) {
+	limit, after, afterID := utils.ParseCursorPaginationParams(c)
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	posts, err := h.postService.ListFeedPostsLite(c.Request.Context(), viewerID, limit, after, afterID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, posts)
+}
+
+// ListPublicPostsTree godoc
+// @Summary Публичные посты (с деревом)
+// @Description Публичная лента постов с комментариями
+// @Tags posts
+// @Security BearerAuth
+// @Param limit query int false "Максимум постов"
+// @Param after query string false "Дата (RFC3339)"
+// @Param after_id query string false "ID последнего поста"
+// @Produce json
+// @Success 200 {array} dto.PostWithRepliesTreeResponse
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /posts/public/tree [get]
+func (h *PostHandler) ListPublicPostsTree(c *gin.Context) {
+	limit, after, afterID := utils.ParseCursorPaginationParams(c)
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	posts, err := h.postService.ListPublicPostsTree(c.Request.Context(), limit, after, afterID, viewerID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, posts)
+}
+
+// ListFeedPostsTree godoc
+// @Summary Лента подписок (с деревом)
+// @Description Посты с реплаями от пользователей, на которых подписан текущий
+// @Tags posts
+// @Security BearerAuth
+// @Param limit query int false "Максимум постов"
+// @Param after query string false "Дата (RFC3339)"
+// @Param after_id query string false "ID последнего поста"
+// @Produce json
+// @Success 200 {array} dto.PostWithRepliesTreeResponse
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /posts/feed/tree [get]
+func (h *PostHandler) ListFeedPostsTree(c *gin.Context) {
+	limit, after, afterID := utils.ParseCursorPaginationParams(c)
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	posts, err := h.postService.ListFeedPostsTree(c.Request.Context(), viewerID, limit, after, afterID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, posts)
 }

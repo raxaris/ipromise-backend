@@ -1,9 +1,12 @@
 package token
 
-import "github.com/raxaris/ipromise-backend/internal/models"
+import (
+	"context"
+	"github.com/raxaris/ipromise-backend/internal/models"
+)
 
 type TokenRepository interface {
-	Save(token *models.RefreshToken) error
-	FindValid(token string) (*models.RefreshToken, error)
-	Delete(token *models.RefreshToken) error
+	Save(ctx context.Context, token *models.RefreshToken) error
+	FindValid(ctx context.Context, token string) (*models.RefreshToken, error)
+	Delete(ctx context.Context, token *models.RefreshToken) error
 }

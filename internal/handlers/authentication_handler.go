@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/raxaris/ipromise-backend/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -30,16 +31,16 @@ func NewAuthHandler(authService services.AuthService) *AuthHandler {
 func (h *AuthHandler) Signup(c *gin.Context) {
 	var req dto.SignupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := h.authService.Signup(req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := h.authService.Signup(c.Request.Context(), req); err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Пользователь зарегистрирован"})
+	utils.RespondWithSuccess(c, http.StatusCreated, "User signed up successfully")
 }
 
 // Login godoc
@@ -56,17 +57,17 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	access, refresh, err := h.authService.Login(req)
+	access, refresh, err := h.authService.Login(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{
 		"access_token":  access,
 		"refresh_token": refresh,
 	})
@@ -86,17 +87,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	var req dto.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	newAccess, err := h.authService.Refresh(req.RefreshToken)
+	newAccess, err := h.authService.Refresh(c.Request.Context(), req.RefreshToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"access_token": newAccess})
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"access_token": newAccess})
 }
 
 // Logout godoc
@@ -113,14 +114,14 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var req dto.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := h.authService.Logout(req.RefreshToken); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+	if err := h.authService.Logout(c.Request.Context(), req.RefreshToken); err != nil {
+		utils.RespondWithError(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Вы успешно вышли из системы"})
+	utils.RespondWithSuccess(c, http.StatusOK, "You successfully logged out")
 }

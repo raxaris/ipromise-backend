@@ -19,7 +19,7 @@ type PostWithRepliesTreeResponse struct {
 	Content        string                        `json:"content"`
 	AuthorID       string                        `json:"author_id"`
 	Username       string                        `json:"username"`
-	AvatarURL      *string                       `json:"avatar_url,omitempty"`
+	AvatarURL      string                        `json:"avatar_url,omitempty"`
 	PromiseID      string                        `json:"promise_id"`
 	PromiseTitle   string                        `json:"promise_title"`
 	MicrotaskID    string                        `json:"microtask_id"`
@@ -31,12 +31,12 @@ type PostWithRepliesTreeResponse struct {
 	CreatedAt      time.Time                     `json:"created_at"`
 }
 
-type PostResponse struct {
+type PostLiteResponse struct {
 	ID             string               `json:"id"`
 	Content        string               `json:"content"`
 	AuthorID       string               `json:"author_id"`
 	Username       string               `json:"username"`
-	AvatarURL      *string              `json:"avatar_url,omitempty"`
+	AvatarURL      string               `json:"avatar_url,omitempty"`
 	PromiseID      string               `json:"promise_id"`
 	PromiseTitle   string               `json:"promise_title"`
 	MicrotaskID    string               `json:"microtask_id"`
@@ -45,15 +45,6 @@ type PostResponse struct {
 	CommentsCount  int64                `json:"comments"`
 	Attachments    []AttachmentResponse `json:"attachments,omitempty"`
 	CreatedAt      time.Time            `json:"created_at"`
-}
-
-type PostLiteResponse struct {
-	ID          string    `json:"id"`
-	Content     string    `json:"content"`
-	AuthorID    string    `json:"author_id"`
-	PromiseID   string    `json:"promise_id"`
-	MicrotaskID string    `json:"microtask_id"`
-	CreatedAt   time.Time `json:"created_at"`
 }
 
 type AttachmentResponse struct {

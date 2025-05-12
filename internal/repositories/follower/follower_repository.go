@@ -11,12 +11,11 @@ type FollowerRepository interface {
 	AcceptFollowRequest(ctx context.Context, followerID, followingID uuid.UUID) error
 	DeclineFollowRequest(ctx context.Context, followerID, followingID uuid.UUID) error
 	Unfollow(ctx context.Context, followerID, followingID uuid.UUID) error
-
 	IsFollowing(ctx context.Context, followerID, followingID uuid.UUID) (bool, error)
-
 	ListFollowers(ctx context.Context, userID uuid.UUID) ([]models.Follower, error)
 	ListFollowing(ctx context.Context, userID uuid.UUID) ([]models.Follower, error)
 	ListPendingFollowRequests(ctx context.Context, userID uuid.UUID) ([]models.Follower, error)
 	CountFollowing(ctx context.Context, userID uuid.UUID) (int, error)
 	CountFollowers(ctx context.Context, userID uuid.UUID) (int, error)
+	IsMutualFollower(ctx context.Context, user1, user2 uuid.UUID) (bool, error)
 }

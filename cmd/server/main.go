@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/raxaris/ipromise-backend/internal/mappers"
 	"github.com/raxaris/ipromise-backend/internal/middleware"
+	"github.com/raxaris/ipromise-backend/internal/repositories/attachment"
 	"github.com/raxaris/ipromise-backend/internal/repositories/badge"
 	"github.com/raxaris/ipromise-backend/internal/repositories/follower"
+	"github.com/raxaris/ipromise-backend/internal/repositories/like"
 	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
 	"github.com/raxaris/ipromise-backend/internal/repositories/post"
 	"github.com/raxaris/ipromise-backend/internal/repositories/promise"
@@ -59,6 +62,18 @@ func main() {
 	microtaskRepo := microtask.NewMicrotaskRepository(db)
 	postRepo := post.NewPostRepository(db)
 	badgeRepo := badge.NewBadgeRepository(db)
+	likeRepo := like.NewLikeRepository(db)
+	attachmentRepo := attachment.NewAttachmentRepository(db)
+
+	// Маппер
+	postMapper := mappers.NewPostMapper(
+		userRepo,
+		likeRepo,
+		attachmentRepo,
+		microtaskRepo,
+		promiseRepo,
+		postRepo,
+	)
 
 	// 🧠 Сервисы
 	authService := services.NewAuthService(userRepo, tokenRepo)
@@ -66,7 +81,7 @@ func main() {
 	profileService := services.NewProfileService(userRepo, badgeRepo, promiseRepo, followerRepo)
 	promiseService := services.NewPromiseService(promiseRepo, followerRepo)
 	microtaskService := services.NewMicrotaskService(microtaskRepo, promiseRepo)
-	postService := services.NewPostService(postRepo)
+	postService := services.NewPostService(postRepo, microtaskRepo, postMapper, followerRepo, promiseRepo)
 	badgeService := services.NewBadgeService(badgeRepo)
 
 	// 🤝 Хендлеры
@@ -137,10 +152,14 @@ func main() {
 	posts := r.Group("/posts")
 	posts.Use(middleware.AuthMiddleware())
 	{
-		posts.POST("/:microtask_id/posts", postHandler.CreatePost) // или перенести внутрь microtasks
-		posts.PATCH("/:id", postHandler.UpdatePost)
-		posts.DELETE("/:id", postHandler.DeletePost)
-		posts.GET("/:id/replies", postHandler.ListReplies)
+		posts.PATCH("/:id", postHandler.UpdatePost)                // Обновить пост
+		posts.DELETE("/:id", postHandler.DeletePost)               // Удалить пост
+		posts.GET("/:id/replies", postHandler.ListReplies)         // Получить комментарии
+		posts.GET("/:id/full", postHandler.GetFullPost)            // Получить дерево поста
+		posts.GET("/public", postHandler.ListPublicPostsLite)      // Публичные посты (лайт)
+		posts.GET("/feed", postHandler.ListFeedPostsLite)          // Лента подписок (лайт)
+		posts.GET("/public/tree", postHandler.ListPublicPostsTree) // Публичные посты (дерево)
+		posts.GET("/feed/tree", postHandler.ListFeedPostsTree)     // Лента подписок (дерево)
 	}
 
 	port := "8080"

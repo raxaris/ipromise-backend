@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/google/uuid"
+	"github.com/raxaris/ipromise-backend/internal/utils"
 	"net/http"
 	"strings"
 
@@ -15,7 +16,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Извлекаем токен из заголовка Authorization: Bearer <token>
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Токен не найден"})
+			utils.RespondWithError(c, http.StatusUnauthorized, "Token not found")
 			c.Abort()
 			return
 		}
@@ -23,14 +24,14 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Проверяем, начинается ли заголовок с "Bearer " и содержит ли токен
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный формат токена"})
+			utils.RespondWithError(c, http.StatusUnauthorized, "Invalid token format")
 			c.Abort()
 			return
 		}
 
 		tokenString := parts[1]
 		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Токен отсутствует"})
+			utils.RespondWithError(c, http.StatusUnauthorized, "No token")
 			c.Abort()
 			return
 		}
@@ -38,7 +39,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Валидация токена
 		claims, err := services.ValidateAccessToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Недействительный токен"})
+			utils.RespondWithError(c, http.StatusUnauthorized, "Invalid token")
 			c.Abort()
 			return
 		}
@@ -46,7 +47,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Извлекаем user_id
 		userIDStr, ok := claims["user_id"].(string)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Ошибка авторизации (user_id)"})
+			utils.RespondWithError(c, http.StatusUnauthorized, "Authorization error (user_id)")
 			c.Abort()
 			return
 		}
@@ -54,7 +55,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Конвертируем в uuid.UUID
 		userID, err := uuid.Parse(userIDStr)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный формат ID пользователя"})
+			utils.RespondWithError(c, http.StatusUnauthorized, "Invalid user ID")
 			c.Abort()
 			return
 		}
@@ -62,7 +63,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Извлекаем роль пользователя
 		role, ok := claims["role"].(string)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Ошибка авторизации (role)"})
+			utils.RespondWithError(c, http.StatusUnauthorized, "Authorization error (role)")
 			c.Abort()
 			return
 		}

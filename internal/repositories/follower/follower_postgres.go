@@ -103,3 +103,14 @@ func (r *followerRepository) CountFollowing(ctx context.Context, userID uuid.UUI
 		Count(&count).Error
 	return int(count), err
 }
+
+func (r *followerRepository) IsMutualFollower(ctx context.Context, user1, user2 uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT COUNT(*) FROM followers f1
+		JOIN followers f2 ON f1.follower_id = f2.following_id AND f1.following_id = f2.follower_id
+		WHERE f1.follower_id = ? AND f1.following_id = ?
+	`, user1, user2).Scan(&count).Error
+
+	return count > 0, err
+}
