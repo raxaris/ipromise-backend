@@ -145,7 +145,7 @@ func main() {
 	microtasks.Use(middleware.AuthMiddleware())
 	{
 		microtasks.PATCH("/:id", microtaskHandler.UpdateMicrotask)
-		microtasks.GET("/:id/posts", postHandler.ListRootPosts)
+		microtasks.GET("/:id/posts", postHandler.ListPostsByMicrotaskID)
 		microtasks.POST("/:id/posts", postHandler.CreatePost)
 	}
 

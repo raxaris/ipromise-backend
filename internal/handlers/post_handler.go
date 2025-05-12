@@ -137,7 +137,7 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"message": "Пост удалён"})
 }
 
-// ListRootPosts godoc
+// ListPostsByMicrotaskID godoc
 // @Summary Получить посты по микротаску
 // @Description Возвращает все корневые посты, связанные с микротаском
 // @Tags posts
@@ -153,7 +153,7 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 // @Failure 403 {object} map[string]string "error: Нет доступа"
 // @Failure 500 {object} map[string]string "error: Ошибка сервера"
 // @Router /microtasks/{microtask_id}/posts [get]
-func (h *PostHandler) ListRootPosts(c *gin.Context) {
+func (h *PostHandler) ListPostsByMicrotaskID(c *gin.Context) {
 	microtaskID, err := uuid.Parse(c.Param("microtask_id"))
 	if err != nil {
 		utils.RespondWithError(c, http.StatusBadRequest, "Некорректный ID микротаска")
@@ -174,7 +174,7 @@ func (h *PostHandler) ListRootPosts(c *gin.Context) {
 		return
 	}
 
-	utils.RespondWithSuccess(c, http.StatusOK, posts)
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"posts": posts})
 }
 
 // ListPostsByPromiseID godoc
@@ -214,7 +214,7 @@ func (h *PostHandler) ListPostsByPromiseID(c *gin.Context) {
 		return
 	}
 
-	utils.RespondWithSuccess(c, http.StatusOK, posts)
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"posts": posts})
 }
 
 // ListReplies godoc
@@ -247,13 +247,13 @@ func (h *PostHandler) ListReplies(c *gin.Context) {
 
 	limit, afterCreatedAt, afterID := utils.ParseCursorPaginationParams(c)
 
-	posts, err := h.postService.ListReplies(c.Request.Context(), parentID, viewerID, limit, afterCreatedAt, afterID)
+	replies, err := h.postService.ListReplies(c.Request.Context(), parentID, viewerID, limit, afterCreatedAt, afterID)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	utils.RespondWithSuccess(c, http.StatusOK, posts)
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"replies": replies})
 }
 
 // GetFullPost godoc
@@ -311,7 +311,7 @@ func (h *PostHandler) ListPublicPostsLite(c *gin.Context) {
 		return
 	}
 
-	utils.RespondWithSuccess(c, http.StatusOK, posts)
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"posts": posts})
 }
 
 // ListFeedPostsLite godoc
@@ -341,7 +341,7 @@ func (h *PostHandler) ListFeedPostsLite(c *gin.Context) {
 		return
 	}
 
-	utils.RespondWithSuccess(c, http.StatusOK, posts)
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"posts": posts})
 }
 
 // ListPublicPostsTree godoc
@@ -371,7 +371,7 @@ func (h *PostHandler) ListPublicPostsTree(c *gin.Context) {
 		return
 	}
 
-	utils.RespondWithSuccess(c, http.StatusOK, posts)
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"posts": posts})
 }
 
 // ListFeedPostsTree godoc
@@ -401,5 +401,5 @@ func (h *PostHandler) ListFeedPostsTree(c *gin.Context) {
 		return
 	}
 
-	utils.RespondWithSuccess(c, http.StatusOK, posts)
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"posts": posts})
 }
