@@ -40,7 +40,7 @@ func (h *MicrotaskHandler) CreateMicrotask(c *gin.Context) {
 		return
 	}
 
-	promiseID, err := uuid.Parse(c.Param("promise_id"))
+	promiseID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		utils.RespondWithError(c, http.StatusBadRequest, "Некорректный ID промиса")
 		return
@@ -201,7 +201,7 @@ func (h *MicrotaskHandler) ReorderMicrotasks(c *gin.Context) {
 		return
 	}
 
-	promiseID, err := uuid.Parse(c.Param("promise_id"))
+	promiseID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		utils.RespondWithError(c, http.StatusBadRequest, "Некорректный ID промиса")
 		return

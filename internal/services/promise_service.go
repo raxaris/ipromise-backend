@@ -15,7 +15,7 @@ import (
 type PromiseService interface {
 	CreatePromise(ctx context.Context, userID uuid.UUID, title, description string, deadline time.Time, isPrivate bool) error
 	GetPromiseByID(ctx context.Context, viewerID uuid.UUID, promiseID uuid.UUID) (*models.Promise, error)
-	UpdatePromise(ctx context.Context, userID uuid.UUID, promiseID uuid.UUID, title, description *string, deadline *time.Time) error
+	UpdatePromise(ctx context.Context, userID uuid.UUID, promiseID uuid.UUID, title, description *string, deadline *time.Time, isPrivate *bool) error
 	DeletePromise(ctx context.Context, userID uuid.UUID, promiseID uuid.UUID) error
 
 	ListProfilePromises(ctx context.Context, viewerID uuid.UUID, profileUserID uuid.UUID, limit int, afterCreatedAt *time.Time) ([]models.Promise, error)
@@ -72,7 +72,7 @@ func (s *promiseService) GetPromiseByID(ctx context.Context, viewerID, promiseID
 	return nil, errors.New("обещание недоступно")
 }
 
-func (s *promiseService) UpdatePromise(ctx context.Context, userID, promiseID uuid.UUID, title, description *string, deadline *time.Time) error {
+func (s *promiseService) UpdatePromise(ctx context.Context, userID, promiseID uuid.UUID, title, description *string, deadline *time.Time, isPrivate *bool) error {
 	existing, err := s.promiseRepo.GetPromiseByID(ctx, promiseID)
 	if err != nil {
 		return err
@@ -94,6 +94,9 @@ func (s *promiseService) UpdatePromise(ctx context.Context, userID, promiseID uu
 	}
 	if deadline != nil {
 		existing.Deadline = *deadline
+	}
+	if isPrivate != nil {
+		existing.IsPrivate = *isPrivate
 	}
 
 	return s.promiseRepo.UpdatePromise(ctx, existing)

@@ -37,7 +37,7 @@ func NewPromiseHandler(promiseService services.PromiseService, userService servi
 func (h *PromiseHandler) CreatePromise(c *gin.Context) {
 	var req dto.CreatePromiseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.RespondWithError(c, http.StatusBadRequest, "Неверный формат данных")
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 
@@ -53,7 +53,7 @@ func (h *PromiseHandler) CreatePromise(c *gin.Context) {
 		return
 	}
 
-	utils.RespondWithSuccess(c, http.StatusCreated, gin.H{"message": "Обещание создано"})
+	utils.RespondWithSuccess(c, http.StatusCreated, "Promise created")
 }
 
 // GetPromiseByID godoc
@@ -73,7 +73,7 @@ func (h *PromiseHandler) GetPromiseByID(c *gin.Context) {
 	promiseIDStr := c.Param("id")
 	promiseID, err := uuid.Parse(promiseIDStr)
 	if err != nil {
-		utils.RespondWithError(c, http.StatusBadRequest, "Некорректный ID")
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid ID format")
 		return
 	}
 
@@ -90,7 +90,7 @@ func (h *PromiseHandler) GetPromiseByID(c *gin.Context) {
 	}
 
 	// Преобразуем в DTO
-	resp := dto.PromiseResponse{
+	res := dto.PromiseResponse{
 		ID:          promise.ID.String(),
 		Title:       promise.Title,
 		Description: promise.Description,
@@ -100,7 +100,7 @@ func (h *PromiseHandler) GetPromiseByID(c *gin.Context) {
 		CreatedAt:   promise.CreatedAt,
 	}
 
-	utils.RespondWithSuccess(c, http.StatusOK, resp)
+	utils.RespondWithSuccess(c, http.StatusOK, res)
 }
 
 // UpdatePromise godoc
@@ -128,23 +128,23 @@ func (h *PromiseHandler) UpdatePromise(c *gin.Context) {
 	promiseIDStr := c.Param("id")
 	promiseID, err := uuid.Parse(promiseIDStr)
 	if err != nil {
-		utils.RespondWithError(c, http.StatusBadRequest, "Неверный формат ID")
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid ID format")
 		return
 	}
 
 	var req dto.UpdatePromiseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.RespondWithError(c, http.StatusBadRequest, "Неверный формат тела запроса")
+		utils.RespondWithError(c, http.StatusBadRequest, "Malformed request body")
 		return
 	}
 
-	err = h.promiseService.UpdatePromise(c, userID, promiseID, req.Title, req.Description, req.Deadline)
+	err = h.promiseService.UpdatePromise(c.Request.Context(), userID, promiseID, req.Title, req.Description, req.Deadline, req.IsPrivate)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	utils.RespondWithSuccess(c, http.StatusOK, "Обещание обновлено")
+	utils.RespondWithSuccess(c, http.StatusOK, "Promise updated")
 }
 
 // DeletePromise godoc
@@ -170,17 +170,17 @@ func (h *PromiseHandler) DeletePromise(c *gin.Context) {
 	promiseIDStr := c.Param("id")
 	promiseID, err := uuid.Parse(promiseIDStr)
 	if err != nil {
-		utils.RespondWithError(c, http.StatusBadRequest, "Неверный формат ID")
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid ID format")
 		return
 	}
 
-	err = h.promiseService.DeletePromise(c, userID, promiseID)
+	err = h.promiseService.DeletePromise(c.Request.Context(), userID, promiseID)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	utils.RespondWithSuccess(c, http.StatusOK, "Обещание удалено")
+	utils.RespondWithSuccess(c, http.StatusOK, "Promise deleted")
 }
 
 // ListProfilePromises godoc
@@ -205,7 +205,7 @@ func (h *PromiseHandler) ListProfilePromises(c *gin.Context) {
 	}
 
 	username := c.Param("username")
-	profileUser, err := h.userService.GetUserByUsername(c, username)
+	profileUser, err := h.userService.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
@@ -213,7 +213,7 @@ func (h *PromiseHandler) ListProfilePromises(c *gin.Context) {
 
 	limit, after := utils.ParsePaginationParams(c)
 
-	promises, err := h.promiseService.ListProfilePromises(c, viewerID, profileUser.ID, limit, after)
+	promises, err := h.promiseService.ListProfilePromises(c.Request.Context(), viewerID, profileUser.ID, limit, after)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
@@ -239,7 +239,7 @@ func (h *PromiseHandler) ListFeedPromises(c *gin.Context) {
 
 	limit, after := utils.ParsePaginationParams(c)
 
-	promises, err := h.promiseService.ListFeedPromises(c, userID, limit, after)
+	promises, err := h.promiseService.ListFeedPromises(c.Request.Context(), userID, limit, after)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
@@ -252,7 +252,7 @@ func (h *PromiseHandler) ListFeedPromises(c *gin.Context) {
 func (h *PromiseHandler) ListPublicPromises(c *gin.Context) {
 	limit, after := utils.ParsePaginationParams(c)
 
-	promises, err := h.promiseService.ListPublicPromises(c, limit, after)
+	promises, err := h.promiseService.ListPublicPromises(c.Request.Context(), limit, after)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return

@@ -79,7 +79,7 @@ func (s *microtaskService) UpdateMicrotask(ctx context.Context, userID, microtas
 
 	if status != nil {
 		switch *status {
-		case "todo", "in_progress", "done":
+		case "todo", "in_progress", "completed":
 			mt.Status = *status
 		default:
 			return errors.New("некорректный статус")

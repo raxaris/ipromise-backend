@@ -10,11 +10,11 @@ import (
 )
 
 type PostHandler struct {
-	service services.PostService
+	postService services.PostService
 }
 
-func NewPostHandler(service services.PostService) *PostHandler {
-	return &PostHandler{service: service}
+func NewPostHandler(postService services.PostService) *PostHandler {
+	return &PostHandler{postService: postService}
 }
 
 // CreatePost godoc
@@ -52,7 +52,7 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 	}
 
 	// ⚠️ пока передаём пустой PromiseID — на будущее
-	err = h.service.CreatePost(c.Request.Context(), userID, uuid.Nil, microtaskID, req.Content, req.ParentID)
+	err = h.postService.CreatePost(c.Request.Context(), userID, uuid.Nil, microtaskID, req.Content, req.ParentID)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
@@ -95,7 +95,7 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.UpdatePost(c.Request.Context(), userID, postID, req.Content); err != nil {
+	if err := h.postService.UpdatePost(c.Request.Context(), userID, postID, req.Content); err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
 	}
@@ -129,7 +129,7 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.DeletePost(c.Request.Context(), userID, postID); err != nil {
+	if err := h.postService.DeletePost(c.Request.Context(), userID, postID); err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
 	}
@@ -161,7 +161,7 @@ func (h *PostHandler) ListRootPosts(c *gin.Context) {
 
 	limit, afterCreatedAt, afterID := utils.ParseCursorPaginationParams(c)
 
-	posts, err := h.service.ListRootPosts(c.Request.Context(), microtaskID, limit, afterCreatedAt, afterID)
+	posts, err := h.postService.ListRootPosts(c.Request.Context(), microtaskID, limit, afterCreatedAt, afterID)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
@@ -194,11 +194,39 @@ func (h *PostHandler) ListReplies(c *gin.Context) {
 
 	limit, afterCreatedAt, afterID := utils.ParseCursorPaginationParams(c)
 
-	posts, err := h.service.ListReplies(c.Request.Context(), parentID, limit, afterCreatedAt, afterID)
+	posts, err := h.postService.ListReplies(c.Request.Context(), parentID, limit, afterCreatedAt, afterID)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
 	}
 
 	utils.RespondWithSuccess(c, http.StatusOK, posts)
+}
+
+// GetFullPost godoc
+// @Summary Получить пост с деревом комментариев
+// @Description Возвращает пост, все его реплаи, автора, вложения и лайки
+// @Tags posts
+// @Security BearerAuth
+// @Param id path string true "ID поста"
+// @Produce json
+// @Success 200 {object} dto.PostWithRepliesTreeResponse
+// @Failure 400 {object} map[string]string "error: Неверный ID"
+// @Failure 404 {object} map[string]string "error: Пост не найден"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /posts/{id}/full [get]
+func (h *PostHandler) GetFullPost(c *gin.Context) {
+	postID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid post ID format")
+		return
+	}
+
+	tree, err := h.postService.GetPostWithRepliesTree(c.Request.Context(), postID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, tree)
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/raxaris/ipromise-backend/internal/middleware"
 	"github.com/raxaris/ipromise-backend/internal/repositories/badge"
 	"github.com/raxaris/ipromise-backend/internal/repositories/follower"
 	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
@@ -36,13 +37,14 @@ func main() {
 
 	db := config.ConnectDB()
 	config.InitGlobalDB(db)
+	config.InitMinIO()
 
 	r := gin.Default()
 	r.Use(gin.Recovery())
 	// CORS Middleware
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
@@ -88,39 +90,44 @@ func main() {
 	}
 
 	badgeGroup := r.Group("/badges")
+	badgeGroup.Use(middleware.AuthMiddleware())
 	{
 		badgeGroup.GET("/", badgeHandler.ListAllBadges)
 		badgeGroup.GET("/me", badgeHandler.ListUserBadges)
 	}
 
 	users := r.Group("/users")
+	users.Use(middleware.AuthMiddleware())
 	{
 		users.GET("/:username", userHandler.GetUserByUsername)
 		users.PATCH("/:id", userHandler.UpdateUser)
 	}
 
 	profile := r.Group("/profile")
+	profile.Use(middleware.AuthMiddleware())
 	{
 		profile.GET("/me", profileHandler.GetMyProfile)
 		profile.GET("/:username", profileHandler.GetPublicProfile)
 		profile.PATCH("/me", profileHandler.UpdateProfile)
 	}
 
+	r.GET("/promises/public", promiseHandler.ListPublicPromises)
+
 	promises := r.Group("/promises")
+	promises.Use(middleware.AuthMiddleware())
 	{
 		promises.POST("", promiseHandler.CreatePromise)
 		promises.GET("/:id", promiseHandler.GetPromiseByID)
 		promises.PATCH("/:id", promiseHandler.UpdatePromise)
 		promises.DELETE("/:id", promiseHandler.DeletePromise)
 		promises.GET("/feed", promiseHandler.ListFeedPromises)
-		promises.GET("/public", promiseHandler.ListPublicPromises)
+		promises.POST("/:id/microtasks", microtaskHandler.CreateMicrotask)
+		promises.PATCH("/:id/microtasks/reorder", microtaskHandler.ReorderMicrotasks)
 		promises.GET("/user/:username", promiseHandler.ListProfilePromises)
-
-		promises.POST("/:promise_id/microtasks", microtaskHandler.CreateMicrotask)
-		promises.PATCH("/:promise_id/microtasks/reorder", microtaskHandler.ReorderMicrotasks)
 	}
 
 	microtasks := r.Group("/microtasks")
+	microtasks.Use(middleware.AuthMiddleware())
 	{
 		microtasks.PATCH("/:id", microtaskHandler.UpdateMicrotask)
 		microtasks.GET("/:id/posts", postHandler.ListRootPosts)
@@ -128,6 +135,7 @@ func main() {
 	}
 
 	posts := r.Group("/posts")
+	posts.Use(middleware.AuthMiddleware())
 	{
 		posts.POST("/:microtask_id/posts", postHandler.CreatePost) // или перенести внутрь microtasks
 		posts.PATCH("/:id", postHandler.UpdatePost)
@@ -135,11 +143,6 @@ func main() {
 		posts.GET("/:id/replies", postHandler.ListReplies)
 	}
 
-	badges := r.Group("/badges")
-	{
-		badges.GET("", badgeHandler.ListAllBadges)
-		badges.GET("/me", badgeHandler.ListUserBadges)
-	}
 	port := "8080"
 	fmt.Println("🚀 Сервер запущен на порту " + port)
 	log.Fatal(r.Run(":" + port))

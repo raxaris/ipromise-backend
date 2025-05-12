@@ -15,10 +15,19 @@ func RespondWithError(c *gin.Context, code int, message string) {
 
 // Унифицированный успешный ответ
 func RespondWithSuccess(c *gin.Context, code int, data interface{}) {
+	var wrapped interface{}
+
+	// Если просто строка — оборачиваем в {"message": "..."}
+	if msg, ok := data.(string); ok {
+		wrapped = gin.H{"message": msg}
+	} else {
+		wrapped = data
+	}
+
 	c.JSON(code, gin.H{
 		"status": "success",
-		"data":   data,
 		"code":   code,
+		"data":   wrapped,
 	})
 }
 

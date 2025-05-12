@@ -32,6 +32,17 @@ type PostRepository interface {
 		afterID *uuid.UUID,
 	) ([]models.Post, error)
 
-	// Проверить, есть ли replies у поста
-	HasReplies(ctx context.Context, postID uuid.UUID) (bool, error)
+	// 🔥 Новое: дерево комментариев (вся глубина)
+	GetPostWithRepliesTree(ctx context.Context, postID uuid.UUID) (*models.Post, []*models.Post, error)
+
+	// 🔥 Новое: публичная лента
+	ListPublicPosts(ctx context.Context, limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) ([]models.Post, error)
+
+	// 🔥 Новое: лента от подписок
+	ListFeedPosts(ctx context.Context, userID uuid.UUID, limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) ([]models.Post, error)
+
+	// 🔥 Новое: все посты по PromiseID (для статистики/ленты)
+	ListPostsByPromiseID(ctx context.Context, promiseID uuid.UUID) ([]models.Post, error)
+
+	CountRepliesByPostID(ctx context.Context, postID uuid.UUID) (int64, error)
 }
