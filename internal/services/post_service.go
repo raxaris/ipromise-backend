@@ -115,6 +115,11 @@ func (s *postService) GetPostWithRepliesTree(ctx context.Context, postID uuid.UU
 	return result, nil
 }
 
+func (s *postService) GetPostByID(ctx context.Context, postID, viewerID uuid.UUID) (*dto.PostWithRepliesTreeResponse, error) {
+	// TODO: implement real logic
+	return nil, nil
+}
+
 func (s *postService) ListPublicPosts(ctx context.Context, limit int, after *time.Time, afterID *uuid.UUID) ([]models.Post, error) {
 	return s.postRepo.ListPublicPosts(ctx, limit, after, afterID)
 }
@@ -129,4 +134,24 @@ func (s *postService) ListPostsByPromiseID(ctx context.Context, promiseID uuid.U
 
 func (s *postService) CountReplies(ctx context.Context, postID uuid.UUID) (int64, error) {
 	return s.postRepo.CountRepliesByPostID(ctx, postID)
+}
+
+func (s *postService) ListPublicPostsLite(ctx context.Context, limit int, after *time.Time, afterID *uuid.UUID, viewerID uuid.UUID) ([]dto.PostLiteResponse, error) {
+	// TODO: implement real logic
+	return []dto.PostLiteResponse{}, nil
+}
+
+func (s *postService) ListFeedPostsLite(ctx context.Context, viewerID uuid.UUID, limit int, after *time.Time, afterID *uuid.UUID) ([]dto.PostLiteResponse, error) {
+	// TODO: implement real logic
+	return []dto.PostLiteResponse{}, nil
+}
+
+func (s *postService) ListPublicPostsTree(ctx context.Context, limit int, after *time.Time, afterID *uuid.UUID, viewerID uuid.UUID) ([]dto.PostWithRepliesTreeResponse, error) {
+	// TODO: implement real logic
+	return []dto.PostWithRepliesTreeResponse{}, nil
+}
+
+func (s *postService) ListFeedPostsTree(ctx context.Context, viewerID uuid.UUID, limit int, after *time.Time, afterID *uuid.UUID) ([]dto.PostWithRepliesTreeResponse, error) {
+	// TODO: implement real logic
+	return []dto.PostWithRepliesTreeResponse{}, nil
 }

@@ -47,6 +47,15 @@ type PostResponse struct {
 	CreatedAt      time.Time            `json:"created_at"`
 }
 
+type PostLiteResponse struct {
+	ID          string    `json:"id"`
+	Content     string    `json:"content"`
+	AuthorID    string    `json:"author_id"`
+	PromiseID   string    `json:"promise_id"`
+	MicrotaskID string    `json:"microtask_id"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
 type AttachmentResponse struct {
 	URL      string `json:"url"`
 	FileType string `json:"file_type"` // image, pdf, etc.
