@@ -22,6 +22,7 @@ type PostService interface {
 	ListFeedPosts(ctx context.Context, userID uuid.UUID, limit int, after *time.Time, afterID *uuid.UUID) ([]models.Post, error)
 	ListPostsByPromiseID(ctx context.Context, promiseID uuid.UUID) ([]models.Post, error)
 	CountReplies(ctx context.Context, postID uuid.UUID) (int64, error)
+	GetPostWithRepliesTree(ctx context.Context, postID uuid.UUID) ([]models.Post, error)
 	GetPostByID(ctx context.Context, postID, viewerID uuid.UUID) (*dto.PostWithRepliesTreeResponse, error)
 	ListPublicPostsLite(ctx context.Context, limit int, after *time.Time, afterID *uuid.UUID, viewerID uuid.UUID) ([]dto.PostLiteResponse, error)
 	ListFeedPostsLite(ctx context.Context, viewerID uuid.UUID, limit int, after *time.Time, afterID *uuid.UUID) ([]dto.PostLiteResponse, error)
