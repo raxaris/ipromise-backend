@@ -79,7 +79,7 @@ func main() {
 	authService := services.NewAuthService(userRepo, tokenRepo)
 	userService := services.NewUserService(userRepo)
 	profileService := services.NewProfileService(userRepo, badgeRepo, promiseRepo, followerRepo)
-	promiseService := services.NewPromiseService(promiseRepo, followerRepo)
+	promiseService := services.NewPromiseService(promiseRepo, microtaskRepo, followerRepo, userRepo, postRepo)
 	microtaskService := services.NewMicrotaskService(microtaskRepo, promiseRepo)
 	postService := services.NewPostService(postRepo, microtaskRepo, postMapper, followerRepo, promiseRepo)
 	badgeService := services.NewBadgeService(badgeRepo)
@@ -132,6 +132,7 @@ func main() {
 	promises.Use(middleware.AuthMiddleware())
 	{
 		promises.POST("", promiseHandler.CreatePromise)
+		promises.POST("/full", promiseHandler.CreatePromiseWithMicrotasks)
 		promises.GET("/:id", promiseHandler.GetPromiseByID)
 		promises.PATCH("/:id", promiseHandler.UpdatePromise)
 		promises.DELETE("/:id", promiseHandler.DeletePromise)
@@ -139,6 +140,7 @@ func main() {
 		promises.POST("/:id/microtasks", microtaskHandler.CreateMicrotask)
 		promises.PATCH("/:id/microtasks/reorder", microtaskHandler.ReorderMicrotasks)
 		promises.GET("/user/:username", promiseHandler.ListProfilePromises)
+		promises.GET("/user/:username/with-progress", promiseHandler.GetUserPromisesWithProgress)
 	}
 
 	microtasks := r.Group("/microtasks")

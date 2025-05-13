@@ -73,4 +73,5 @@ type PostRepository interface {
 	) ([]*models.Post, []*models.Post, error)
 
 	CountRepliesByPostID(ctx context.Context, postID uuid.UUID) (int64, error)
+	CountRootPostsByMicrotaskID(ctx context.Context, microtaskID uuid.UUID) (int64, error)
 }

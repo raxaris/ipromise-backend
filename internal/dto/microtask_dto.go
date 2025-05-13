@@ -6,8 +6,9 @@ import (
 )
 
 type CreateMicrotaskRequest struct {
-	Title string `json:"title" binding:"required,min=1,max=255"`
-	Order int    `json:"order"`
+	Title        string `json:"title" binding:"required,min=1,max=255"`
+	StepsPlanned int    `json:"steps_planned"`
+	Order        int    `json:"order"`
 }
 
 type ReorderMicrotasksMapRequest struct {

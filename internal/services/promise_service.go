@@ -3,6 +3,10 @@ package services
 import (
 	"context"
 	"errors"
+	"github.com/raxaris/ipromise-backend/internal/dto"
+	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
+	"github.com/raxaris/ipromise-backend/internal/repositories/post"
+	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 	"strings"
 	"time"
 
@@ -14,6 +18,8 @@ import (
 
 type PromiseService interface {
 	CreatePromise(ctx context.Context, userID uuid.UUID, title, description string, deadline time.Time, isPrivate bool) error
+	CreatePromiseWithMicrotasks(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseWithMicrotasksRequest) error
+	GetUserPromisesWithMicrotasksProgress(ctx context.Context, username string) ([]dto.PromiseWithMicrotasksProgressResponse, error)
 	GetPromiseByID(ctx context.Context, viewerID uuid.UUID, promiseID uuid.UUID) (*models.Promise, error)
 	UpdatePromise(ctx context.Context, userID uuid.UUID, promiseID uuid.UUID, title, description *string, deadline *time.Time, isPrivate *bool) error
 	DeletePromise(ctx context.Context, userID uuid.UUID, promiseID uuid.UUID) error
@@ -24,19 +30,24 @@ type PromiseService interface {
 }
 
 type promiseService struct {
-	promiseRepo  promise.PromiseRepository
-	followerRepo follower.FollowerRepository
+	promiseRepo   promise.PromiseRepository
+	microtaskRepo microtask.MicrotaskRepository
+	followerRepo  follower.FollowerRepository
+	userRepo      user.UserRepository
+	postRepo      post.PostRepository
 }
 
-func NewPromiseService(promiseRepo promise.PromiseRepository, followerRepo follower.FollowerRepository) PromiseService {
+func NewPromiseService(promiseRepo promise.PromiseRepository, microtaskRepo microtask.MicrotaskRepository, followerRepo follower.FollowerRepository, userRepo user.UserRepository, postRepo post.PostRepository) PromiseService {
 	return &promiseService{
-		promiseRepo:  promiseRepo,
-		followerRepo: followerRepo,
+		promiseRepo:   promiseRepo,
+		followerRepo:  followerRepo,
+		microtaskRepo: microtaskRepo,
+		userRepo:      userRepo,
+		postRepo:      postRepo,
 	}
 }
 
 func (s *promiseService) CreatePromise(ctx context.Context, userID uuid.UUID, title, description string, deadline time.Time, isPrivate bool) error {
-	// валидируем
 	if err := validatePromiseInput(&title, &description, &deadline); err != nil {
 		return err
 	}
@@ -52,6 +63,41 @@ func (s *promiseService) CreatePromise(ctx context.Context, userID uuid.UUID, ti
 	}
 
 	return s.promiseRepo.CreatePromise(ctx, newPromise)
+}
+
+func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseWithMicrotasksRequest) error {
+	newPromise := &models.Promise{
+		ID:          uuid.New(),
+		UserID:      userID,
+		Title:       req.Title,
+		Description: req.Description,
+		Deadline:    req.Deadline,
+		IsPrivate:   req.IsPrivate,
+		Status:      "in_progress",
+	}
+
+	if err := s.promiseRepo.CreatePromise(ctx, newPromise); err != nil {
+		return err
+	}
+
+	if len(req.Microtasks) > 0 {
+		var microtasks []models.Microtask
+		for i, m := range req.Microtasks {
+			microtasks = append(microtasks, models.Microtask{
+				ID:        uuid.New(),
+				PromiseID: newPromise.ID,
+				Title:     m.Title,
+				Status:    m.Status,
+				Order:     i,
+			})
+		}
+
+		if err := s.microtaskRepo.CreateManyMicrotasks(ctx, microtasks); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *promiseService) GetPromiseByID(ctx context.Context, viewerID, promiseID uuid.UUID) (*models.Promise, error) {
@@ -70,6 +116,57 @@ func (s *promiseService) GetPromiseByID(ctx context.Context, viewerID, promiseID
 		return existingPromise, nil
 	}
 	return nil, errors.New("обещание недоступно")
+}
+
+func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Context, username string) ([]dto.PromiseWithMicrotasksProgressResponse, error) {
+	user, err := s.userRepo.GetUserByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+
+	promises, err := s.promiseRepo.ListAllPromisesByUserID(ctx, user.ID, 100, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []dto.PromiseWithMicrotasksProgressResponse
+
+	for _, p := range promises {
+		microtasks, err := s.microtaskRepo.ListMicrotasksByPromiseID(ctx, p.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		var microtaskDTOs []dto.MicrotaskProgress
+		for _, m := range microtasks {
+			postCount, err := s.postRepo.CountRootPostsByMicrotaskID(ctx, m.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			progress := 0.0
+			if m.StepsPlanned > 0 {
+				progress = float64(postCount) / float64(m.StepsPlanned)
+			}
+
+			microtaskDTOs = append(microtaskDTOs, dto.MicrotaskProgress{
+				ID:              m.ID.String(),
+				Title:           m.Title,
+				StepsPlanned:    m.StepsPlanned,
+				PostsCount:      postCount,
+				CompletionRatio: progress,
+			})
+		}
+
+		result = append(result, dto.PromiseWithMicrotasksProgressResponse{
+			ID:          p.ID.String(),
+			Title:       p.Title,
+			Description: p.Description,
+			Microtasks:  microtaskDTOs,
+		})
+	}
+
+	return result, nil
 }
 
 func (s *promiseService) UpdatePromise(ctx context.Context, userID, promiseID uuid.UUID, title, description *string, deadline *time.Time, isPrivate *bool) error {

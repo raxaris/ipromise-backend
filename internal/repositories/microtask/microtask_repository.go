@@ -8,6 +8,7 @@ import (
 
 type MicrotaskRepository interface {
 	CreateMicrotask(ctx context.Context, microtask *models.Microtask) error
+	CreateManyMicrotasks(ctx context.Context, microtasks []models.Microtask) error
 	GetMicrotaskByID(ctx context.Context, id uuid.UUID) (*models.Microtask, error)
 	UpdateMicrotask(ctx context.Context, microtask *models.Microtask) error
 	DeleteMicrotask(ctx context.Context, id uuid.UUID) error

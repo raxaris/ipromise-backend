@@ -331,3 +331,12 @@ func (r *postRepository) CountRepliesByPostID(
 		Count(&count).Error
 	return count, err
 }
+
+func (r *postRepository) CountRootPostsByMicrotaskID(ctx context.Context, microtaskID uuid.UUID) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.Post{}).
+		Where("microtask_id = ? AND parent_id IS NULL", microtaskID).
+		Count(&count).Error
+	return count, err
+}

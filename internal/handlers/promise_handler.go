@@ -56,6 +56,39 @@ func (h *PromiseHandler) CreatePromise(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusCreated, "Promise created")
 }
 
+// CreatePromiseWithMicrotasks godoc
+// @Summary      Create promise with microtasks
+// @Description  Creates a new promise and an optional list of microtasks in a single request
+// @Tags         promises
+// @Accept       json
+// @Produce      json
+// @Param        request  body      dto.CreatePromiseWithMicrotasksRequest  true  "Promise and microtasks"
+// @Success      201      {object}  utils.SuccessResponse
+// @Failure      400      {object}  utils.ErrorResponse
+// @Failure      500      {object}  utils.ErrorResponse
+// @Security     BearerAuth
+// @Router       /promises/full [post]
+func (h *PromiseHandler) CreatePromiseWithMicrotasks(c *gin.Context) {
+	var req dto.CreatePromiseWithMicrotasksRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid request")
+		return
+	}
+
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	if err := h.promiseService.CreatePromiseWithMicrotasks(c.Request.Context(), userID, &req); err != nil {
+		utils.RespondWithError(c, http.StatusInternalServerError, "Failed to create promise")
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusCreated, "Promise created successfully")
+}
+
 // GetPromiseByID godoc
 // @Summary Получить обещание по ID
 // @Description Возвращает конкретное обещание (если публичное или пользователь — владелец)
@@ -101,6 +134,28 @@ func (h *PromiseHandler) GetPromiseByID(c *gin.Context) {
 	}
 
 	utils.RespondWithSuccess(c, http.StatusOK, res)
+}
+
+// GetUserPromisesWithProgress godoc
+// @Summary Получить все обещания пользователя с прогрессом по микротаскам
+// @Description Возвращает список всех обещаний указанного пользователя с вложенными микротасками и данными о прогрессе (кол-во постов, запланированные шаги, процент выполнения).
+// @Tags Promises
+// @Param username path string true "Username пользователя"
+// @Success 200 {array} dto.PromiseWithMicrotasksProgressResponse
+// @Failure 400 {object} utils.HTTPError
+// @Failure 404 {object} utils.HTTPError
+// @Failure 500 {object} utils.HTTPError
+// @Router /promises/user/{username}/with-progress [get]
+func (h *PromiseHandler) GetUserPromisesWithProgress(c *gin.Context) {
+	username := c.Param("username")
+
+	result, err := h.promiseService.GetUserPromisesWithMicrotasksProgress(c.Request.Context(), username)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, result)
 }
 
 // UpdatePromise godoc

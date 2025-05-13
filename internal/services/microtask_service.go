@@ -49,7 +49,7 @@ func (s *microtaskService) CreateMicrotask(ctx context.Context, userID, promiseI
 		ID:        uuid.New(),
 		PromiseID: promiseID,
 		Title:     title,
-		Status:    "todo",
+		Status:    "in_progress",
 		Order:     order,
 	}
 
@@ -79,7 +79,7 @@ func (s *microtaskService) UpdateMicrotask(ctx context.Context, userID, microtas
 
 	if status != nil {
 		switch *status {
-		case "todo", "in_progress", "completed":
+		case "in_progress", "completed":
 			mt.Status = *status
 		default:
 			return errors.New("некорректный статус")

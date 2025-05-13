@@ -17,12 +17,10 @@ func NewPromiseRepository(db *gorm.DB) PromiseRepository {
 	return &promiseRepository{db: db}
 }
 
-// ✅ Создание
 func (r *promiseRepository) CreatePromise(ctx context.Context, promise *models.Promise) error {
 	return r.db.WithContext(ctx).Create(promise).Error
 }
 
-// ✅ Получение по ID
 func (r *promiseRepository) GetPromiseByID(ctx context.Context, id uuid.UUID) (*models.Promise, error) {
 	var promise models.Promise
 	if err := r.db.WithContext(ctx).First(&promise, "id = ?", id).Error; err != nil {
@@ -31,17 +29,14 @@ func (r *promiseRepository) GetPromiseByID(ctx context.Context, id uuid.UUID) (*
 	return &promise, nil
 }
 
-// ✅ Обновление
 func (r *promiseRepository) UpdatePromise(ctx context.Context, promise *models.Promise) error {
 	return r.db.WithContext(ctx).Save(promise).Error
 }
 
-// ✅ Удаление
 func (r *promiseRepository) DeletePromise(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&models.Promise{}, "id = ?", id).Error
 }
 
-// Все promises пользователя (без фильтра по приватности)
 func (r *promiseRepository) ListAllPromisesByUserID(
 	ctx context.Context,
 	userID uuid.UUID,
@@ -66,7 +61,6 @@ func (r *promiseRepository) ListAllPromisesByUserID(
 	return promises, nil
 }
 
-// Только публичные promises пользователя
 func (r *promiseRepository) ListPublicPromisesByUserID(
 	ctx context.Context,
 	userID uuid.UUID,
