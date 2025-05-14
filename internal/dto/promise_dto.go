@@ -36,6 +36,9 @@ type PromiseWithMicrotasksProgressResponse struct {
 	ID          string              `json:"id"`
 	Title       string              `json:"title"`
 	Description string              `json:"description"`
+	Deadline    time.Time           `json:"deadline"`
+	IsPrivate   bool                `json:"is_private"`
+	Status      string              `json:"status"`
 	Microtasks  []MicrotaskProgress `json:"microtasks"`
 }
 
@@ -45,6 +48,8 @@ type MicrotaskProgress struct {
 	StepsPlanned    int     `json:"steps_planned"`
 	PostsCount      int64   `json:"posts_count"`
 	ProgressPercent float64 `json:"completion_ratio"`
+	Status          string  `json:"status"`
+	Order           int     `json:"order"`
 }
 
 type PromiseResponse struct {

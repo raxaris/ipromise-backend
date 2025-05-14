@@ -151,7 +151,8 @@ func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Conte
 			return nil, err
 		}
 
-		var mtResponses []dto.MicrotaskProgress
+		mtResponses := make([]dto.MicrotaskProgress, 0) // ✅ всегда будет []
+
 		for _, mt := range microtasks {
 			postCount, err := s.postRepo.CountRootPostsByMicrotaskID(ctx, mt.ID)
 			if err != nil {
@@ -169,6 +170,8 @@ func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Conte
 				StepsPlanned:    mt.StepsPlanned,
 				PostsCount:      postCount,
 				ProgressPercent: percent,
+				Status:          mt.Status,
+				Order:           mt.MicrotaskOrder,
 			})
 		}
 
@@ -176,6 +179,9 @@ func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Conte
 			ID:          promise.ID.String(),
 			Title:       promise.Title,
 			Description: promise.Description,
+			Deadline:    promise.Deadline,
+			IsPrivate:   promise.IsPrivate,
+			Status:      promise.Status,
 			Microtasks:  mtResponses,
 		})
 	}
