@@ -145,11 +145,24 @@ func (h *PromiseHandler) GetPromiseByID(c *gin.Context) {
 // @Failure 400 {object} utils.HTTPError
 // @Failure 404 {object} utils.HTTPError
 // @Failure 500 {object} utils.HTTPError
-// @Router /promises/user/{username}/with-progress [get]
+// @Router /promises/user/{username}/progress [get]
 func (h *PromiseHandler) GetUserPromisesWithProgress(c *gin.Context) {
 	username := c.Param("username")
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
 
-	result, err := h.promiseService.GetUserPromisesWithMicrotasksProgress(c.Request.Context(), username)
+	limit, after := utils.ParsePaginationParams(c)
+
+	result, err := h.promiseService.GetUserPromisesWithMicrotasksProgress(
+		c.Request.Context(),
+		viewerID,
+		username,
+		limit,
+		after,
+	)
 	if err != nil {
 		utils.RespondWithError(c, http.StatusInternalServerError, err.Error())
 		return

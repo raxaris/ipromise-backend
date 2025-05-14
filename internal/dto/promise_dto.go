@@ -44,7 +44,7 @@ type MicrotaskProgress struct {
 	Title           string  `json:"title"`
 	StepsPlanned    int     `json:"steps_planned"`
 	PostsCount      int64   `json:"posts_count"`
-	CompletionRatio float64 `json:"completion_ratio"` // 0.0 to 1.0
+	ProgressPercent float64 `json:"completion_ratio"`
 }
 
 type PromiseResponse struct {

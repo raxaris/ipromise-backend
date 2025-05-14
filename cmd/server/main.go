@@ -140,7 +140,7 @@ func main() {
 		promises.POST("/:id/microtasks", microtaskHandler.CreateMicrotask)
 		promises.PATCH("/:id/microtasks/reorder", microtaskHandler.ReorderMicrotasks)
 		promises.GET("/user/:username", promiseHandler.ListProfilePromises)
-		promises.GET("/user/:username/with-progress", promiseHandler.GetUserPromisesWithProgress)
+		promises.GET("/user/:username/progress", promiseHandler.GetUserPromisesWithProgress)
 	}
 
 	microtasks := r.Group("/microtasks")

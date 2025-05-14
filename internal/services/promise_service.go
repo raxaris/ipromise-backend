@@ -19,7 +19,7 @@ import (
 type PromiseService interface {
 	CreatePromise(ctx context.Context, userID uuid.UUID, title, description string, deadline time.Time, isPrivate bool) error
 	CreatePromiseWithMicrotasks(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseWithMicrotasksRequest) error
-	GetUserPromisesWithMicrotasksProgress(ctx context.Context, username string) ([]dto.PromiseWithMicrotasksProgressResponse, error)
+	GetUserPromisesWithMicrotasksProgress(ctx context.Context, viewerID uuid.UUID, username string, limit int, after *time.Time) ([]dto.PromiseWithMicrotasksProgressResponse, error)
 	GetPromiseByID(ctx context.Context, viewerID uuid.UUID, promiseID uuid.UUID) (*models.Promise, error)
 	UpdatePromise(ctx context.Context, userID uuid.UUID, promiseID uuid.UUID, title, description *string, deadline *time.Time, isPrivate *bool) error
 	DeletePromise(ctx context.Context, userID uuid.UUID, promiseID uuid.UUID) error
@@ -118,13 +118,27 @@ func (s *promiseService) GetPromiseByID(ctx context.Context, viewerID, promiseID
 	return nil, errors.New("обещание недоступно")
 }
 
-func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Context, username string) ([]dto.PromiseWithMicrotasksProgressResponse, error) {
-	user, err := s.userRepo.GetUserByUsername(ctx, username)
+func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Context, viewerID uuid.UUID, username string, limit int, after *time.Time) ([]dto.PromiseWithMicrotasksProgressResponse, error) {
+	existingUser, err := s.userRepo.GetUserByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
 
-	promises, err := s.promiseRepo.ListAllPromisesByUserID(ctx, user.ID, 100, nil)
+	var promises []models.Promise
+
+	if viewerID == existingUser.ID {
+		promises, err = s.promiseRepo.ListAllPromisesByUserID(ctx, existingUser.ID, limit, after)
+	} else {
+		isFollowing, err := s.followerRepo.IsFollowing(ctx, viewerID, existingUser.ID)
+		if err != nil {
+			return nil, err
+		}
+		if isFollowing {
+			promises, err = s.promiseRepo.ListAllPromisesByUserID(ctx, existingUser.ID, limit, after)
+		} else {
+			promises, err = s.promiseRepo.ListPublicPromisesByUserID(ctx, existingUser.ID, limit, after)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -137,24 +151,24 @@ func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Conte
 			return nil, err
 		}
 
-		var microtaskDTOs []dto.MicrotaskProgress
-		for _, m := range microtasks {
-			postCount, err := s.postRepo.CountRootPostsByMicrotaskID(ctx, m.ID)
+		var mtResponses []dto.MicrotaskProgress
+		for _, mt := range microtasks {
+			postCount, err := s.postRepo.CountRootPostsByMicrotaskID(ctx, mt.ID)
 			if err != nil {
 				return nil, err
 			}
 
-			progress := 0.0
-			if m.StepsPlanned > 0 {
-				progress = float64(postCount) / float64(m.StepsPlanned)
+			var percent float64 = 0
+			if mt.StepsPlanned > 0 {
+				percent = float64(postCount) / float64(mt.StepsPlanned) * 100
 			}
 
-			microtaskDTOs = append(microtaskDTOs, dto.MicrotaskProgress{
-				ID:              m.ID.String(),
-				Title:           m.Title,
-				StepsPlanned:    m.StepsPlanned,
+			mtResponses = append(mtResponses, dto.MicrotaskProgress{
+				ID:              mt.ID.String(),
+				Title:           mt.Title,
+				StepsPlanned:    mt.StepsPlanned,
 				PostsCount:      postCount,
-				CompletionRatio: progress,
+				ProgressPercent: percent,
 			})
 		}
 
@@ -162,7 +176,7 @@ func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Conte
 			ID:          p.ID.String(),
 			Title:       p.Title,
 			Description: p.Description,
-			Microtasks:  microtaskDTOs,
+			Microtasks:  mtResponses,
 		})
 	}
 
