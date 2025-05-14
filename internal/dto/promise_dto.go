@@ -20,9 +20,8 @@ type CreatePromiseWithMicrotasksRequest struct {
 }
 
 type CreateMicrotaskInput struct {
-	Title  string `json:"title" binding:"required"`
-	Status string `json:"status" binding:"required,oneof=in_progress completed"`
-	Order  int    `json:"order"`
+	Title string `json:"title" binding:"required"`
+	Order int    `json:"order"`
 }
 
 type UpdatePromiseRequest struct {

@@ -87,7 +87,7 @@ func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID
 				ID:             uuid.New(),
 				PromiseID:      newPromise.ID,
 				Title:          m.Title,
-				Status:         m.Status,
+				Status:         "in progress",
 				MicrotaskOrder: i,
 			})
 		}
