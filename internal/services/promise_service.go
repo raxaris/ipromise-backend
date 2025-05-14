@@ -84,11 +84,11 @@ func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID
 		var microtasks []models.Microtask
 		for i, m := range req.Microtasks {
 			microtasks = append(microtasks, models.Microtask{
-				ID:        uuid.New(),
-				PromiseID: newPromise.ID,
-				Title:     m.Title,
-				Status:    m.Status,
-				Order:     i,
+				ID:             uuid.New(),
+				PromiseID:      newPromise.ID,
+				Title:          m.Title,
+				Status:         m.Status,
+				MicrotaskOrder: i,
 			})
 		}
 
@@ -145,8 +145,8 @@ func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Conte
 
 	var result []dto.PromiseWithMicrotasksProgressResponse
 
-	for _, p := range promises {
-		microtasks, err := s.microtaskRepo.ListMicrotasksByPromiseID(ctx, p.ID)
+	for _, promise := range promises {
+		microtasks, err := s.microtaskRepo.ListMicrotasksByPromiseID(ctx, promise.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -173,9 +173,9 @@ func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Conte
 		}
 
 		result = append(result, dto.PromiseWithMicrotasksProgressResponse{
-			ID:          p.ID.String(),
-			Title:       p.Title,
-			Description: p.Description,
+			ID:          promise.ID.String(),
+			Title:       promise.Title,
+			Description: promise.Description,
 			Microtasks:  mtResponses,
 		})
 	}

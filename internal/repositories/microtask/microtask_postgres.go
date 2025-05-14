@@ -46,7 +46,7 @@ func (r *microtaskRepository) ListMicrotasksByPromiseID(
 	var microtasks []models.Microtask
 	err := r.db.WithContext(ctx).
 		Where("promise_id = ?", promiseID).
-		Order("order ASC").
+		Order("microtask_order ASC").
 		Find(&microtasks).Error
 	return microtasks, err
 }
@@ -59,7 +59,7 @@ func (r *microtaskRepository) ListMicrotasksByStatus(
 	var microtasks []models.Microtask
 	err := r.db.WithContext(ctx).
 		Where("promise_id = ? AND status = ?", promiseID, status).
-		Order("order ASC").
+		Order("microtask_order ASC").
 		Find(&microtasks).Error
 	return microtasks, err
 }
@@ -102,7 +102,7 @@ func (r *microtaskRepository) ReorderMicrotasks(
 	for id, order := range orders {
 		if err := tx.Model(&models.Microtask{}).
 			Where("id = ? AND promise_id = ?", id, promiseID).
-			Update("order", order).Error; err != nil {
+			Update("microtask_order", order).Error; err != nil {
 			tx.Rollback()
 			return err
 		}

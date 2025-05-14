@@ -46,11 +46,11 @@ func (s *microtaskService) CreateMicrotask(ctx context.Context, userID, promiseI
 	}
 
 	mt := &models.Microtask{
-		ID:        uuid.New(),
-		PromiseID: promiseID,
-		Title:     title,
-		Status:    "in_progress",
-		Order:     order,
+		ID:             uuid.New(),
+		PromiseID:      promiseID,
+		Title:          title,
+		Status:         "in_progress",
+		MicrotaskOrder: order,
 	}
 
 	return s.microtaskRepo.CreateMicrotask(ctx, mt)
