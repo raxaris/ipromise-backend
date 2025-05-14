@@ -11,7 +11,7 @@ import (
 
 // GenerateAccessToken – создает Access-токен
 func GenerateAccessToken(userID, role string) (string, error) {
-	expirationTime := time.Now().Add(30 * time.Minute)
+	expirationTime := time.Now().Add(7 * 24 * time.Hour)
 
 	claims := jwt.MapClaims{
 		"user_id": userID,

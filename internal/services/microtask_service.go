@@ -90,20 +90,38 @@ func (s *microtaskService) UpdateMicrotask(ctx context.Context, userID, microtas
 }
 
 func (s *microtaskService) DeleteMicrotask(ctx context.Context, userID, microtaskID uuid.UUID) error {
+	// 1. Получаем микротаск
 	mt, err := s.microtaskRepo.GetMicrotaskByID(ctx, microtaskID)
 	if err != nil {
 		return err
 	}
 
-	p, err := s.promiseRepo.GetPromiseByID(ctx, mt.PromiseID)
+	// 2. Получаем промис и проверяем владельца
+	promise, err := s.promiseRepo.GetPromiseByID(ctx, mt.PromiseID)
 	if err != nil {
 		return err
 	}
-	if p.UserID != userID {
-		return errors.New("вы не владелец этого промиса")
+	if promise.UserID != userID {
+		return errors.New("access denied: not your microtask")
 	}
 
-	return s.microtaskRepo.DeleteMicrotask(ctx, microtaskID)
+	// 3. Удаляем микротаск
+	if err := s.microtaskRepo.DeleteMicrotask(ctx, microtaskID); err != nil {
+		return err
+	}
+
+	// 4. Получаем оставшиеся микротаски и переупорядочиваем
+	microtasks, err := s.microtaskRepo.ListMicrotasksByPromiseID(ctx, mt.PromiseID)
+	if err != nil {
+		return err
+	}
+
+	orders := make(map[uuid.UUID]int)
+	for index, m := range microtasks {
+		orders[m.ID] = index
+	}
+
+	return s.microtaskRepo.ReorderMicrotasks(ctx, mt.PromiseID, orders)
 }
 
 func (s *microtaskService) ListMicrotasksByPromiseID(ctx context.Context, viewerID, promiseID uuid.UUID) ([]models.Microtask, error) {
