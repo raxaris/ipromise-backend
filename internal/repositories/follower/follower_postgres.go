@@ -2,6 +2,7 @@ package follower
 
 import (
 	"context"
+	"errors"
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/models"
 	"gorm.io/gorm"
@@ -15,7 +16,6 @@ func NewFollowerRepository(db *gorm.DB) FollowerRepository {
 	return &followerRepository{db: db}
 }
 
-// ✅ Запрос на подписку (pending)
 func (r *followerRepository) RequestFollow(ctx context.Context, followerID, followingID uuid.UUID) error {
 	follower := models.Follower{
 		FollowerID:  followerID,
@@ -25,7 +25,6 @@ func (r *followerRepository) RequestFollow(ctx context.Context, followerID, foll
 	return r.db.WithContext(ctx).Create(&follower).Error
 }
 
-// ✅ Принять запрос (accepted)
 func (r *followerRepository) AcceptFollowRequest(ctx context.Context, followerID, followingID uuid.UUID) error {
 	return r.db.WithContext(ctx).
 		Model(&models.Follower{}).
@@ -33,21 +32,18 @@ func (r *followerRepository) AcceptFollowRequest(ctx context.Context, followerID
 		Update("status", "accepted").Error
 }
 
-// ✅ Отклонить запрос (удаляем)
 func (r *followerRepository) DeclineFollowRequest(ctx context.Context, followerID, followingID uuid.UUID) error {
 	return r.db.WithContext(ctx).
 		Where("follower_id = ? AND following_id = ? AND status = ?", followerID, followingID, "pending").
 		Delete(&models.Follower{}).Error
 }
 
-// ✅ Отписаться (удалить подписку)
 func (r *followerRepository) Unfollow(ctx context.Context, followerID, followingID uuid.UUID) error {
 	return r.db.WithContext(ctx).
 		Where("follower_id = ? AND following_id = ?", followerID, followingID).
 		Delete(&models.Follower{}).Error
 }
 
-// ✅ Проверить, подписан ли я (accepted)
 func (r *followerRepository) IsFollowing(ctx context.Context, followerID, followingID uuid.UUID) (bool, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
@@ -57,7 +53,6 @@ func (r *followerRepository) IsFollowing(ctx context.Context, followerID, follow
 	return count > 0, err
 }
 
-// ✅ Получить список подписчиков (accepted)
 func (r *followerRepository) ListFollowers(ctx context.Context, userID uuid.UUID) ([]models.Follower, error) {
 	var followers []models.Follower
 	err := r.db.WithContext(ctx).
@@ -66,7 +61,6 @@ func (r *followerRepository) ListFollowers(ctx context.Context, userID uuid.UUID
 	return followers, err
 }
 
-// ✅ Получить список подписок (accepted)
 func (r *followerRepository) ListFollowing(ctx context.Context, userID uuid.UUID) ([]models.Follower, error) {
 	var following []models.Follower
 	err := r.db.WithContext(ctx).
@@ -75,7 +69,6 @@ func (r *followerRepository) ListFollowing(ctx context.Context, userID uuid.UUID
 	return following, err
 }
 
-// ✅ Получить pending-запросы (ждут моего одобрения)
 func (r *followerRepository) ListPendingFollowRequests(ctx context.Context, userID uuid.UUID) ([]models.Follower, error) {
 	var requests []models.Follower
 	err := r.db.WithContext(ctx).
@@ -84,7 +77,6 @@ func (r *followerRepository) ListPendingFollowRequests(ctx context.Context, user
 	return requests, err
 }
 
-// CountFollowers — количество фолловеров (тех, кто подписан на userID)
 func (r *followerRepository) CountFollowers(ctx context.Context, userID uuid.UUID) (int, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
@@ -94,7 +86,6 @@ func (r *followerRepository) CountFollowers(ctx context.Context, userID uuid.UUI
 	return int(count), err
 }
 
-// CountFollowing — количество подписок (на кого подписан userID)
 func (r *followerRepository) CountFollowing(ctx context.Context, userID uuid.UUID) (int, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
@@ -102,6 +93,20 @@ func (r *followerRepository) CountFollowing(ctx context.Context, userID uuid.UUI
 		Where("follower_id = ?", userID).
 		Count(&count).Error
 	return int(count), err
+}
+
+func (r *followerRepository) ListMutualFollowers(ctx context.Context, userID uuid.UUID) ([]models.Follower, error) {
+	var mutuals []models.Follower
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT f1.*
+		FROM followers f1
+		JOIN followers f2
+		ON f1.follower_id = f2.following_id AND f1.following_id = f2.follower_id
+		WHERE f1.status = 'accepted' AND f2.status = 'accepted'
+		AND f1.following_id = ?
+	`, userID).Scan(&mutuals).Error
+
+	return mutuals, err
 }
 
 func (r *followerRepository) IsMutualFollower(ctx context.Context, user1, user2 uuid.UUID) (bool, error) {
@@ -113,4 +118,16 @@ func (r *followerRepository) IsMutualFollower(ctx context.Context, user1, user2 
 	`, user1, user2).Scan(&count).Error
 
 	return count > 0, err
+}
+
+func (r *followerRepository) GetFollowRecord(ctx context.Context, followerID, followingID uuid.UUID) (*models.Follower, error) {
+	var follower *models.Follower
+	err := r.db.WithContext(ctx).
+		Where("follower_id = ? AND following_id = ?", followerID, followingID).
+		First(&follower).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return follower, err
 }

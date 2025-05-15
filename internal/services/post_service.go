@@ -26,9 +26,10 @@ type PostService interface {
 	ListFeedPostsLite(ctx context.Context, viewerID uuid.UUID, limit int, after *time.Time, afterID *uuid.UUID) ([]dto.PostLiteResponse, error)
 	ListPublicPostsTree(ctx context.Context, limit int, after *time.Time, afterID *uuid.UUID, viewerID uuid.UUID) ([]dto.PostWithRepliesTreeResponse, error)
 	ListFeedPostsTree(ctx context.Context, viewerID uuid.UUID, limit int, after *time.Time, afterID *uuid.UUID) ([]dto.PostWithRepliesTreeResponse, error)
-	ListPostsByMicrotaskID(ctx context.Context, microtaskID, viewerID uuid.UUID, limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) ([]models.Post, error)
-	ListPostsByPromiseID(ctx context.Context, promiseID, viewerID uuid.UUID, limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) ([]models.Post, error)
-	ListReplies(ctx context.Context, postID, viewerID uuid.UUID, limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) ([]models.Post, error)
+	ListPostsByMicrotaskIDTree(ctx context.Context, microtaskID, viewerID uuid.UUID, limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) ([]dto.PostWithRepliesTreeResponse, error)
+	ListPostsByPromiseIDTree(ctx context.Context, promiseID, viewerID uuid.UUID, limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) ([]dto.PostWithRepliesTreeResponse, error)
+	ListUserPostsTree(ctx context.Context, username string, viewerID uuid.UUID, limit int, after *time.Time, afterID *uuid.UUID) ([]dto.PostWithRepliesTreeResponse, error)
+	ListReplies(ctx context.Context, postID, viewerID uuid.UUID, limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) ([]dto.PostWithRepliesTreeResponse, error)
 	CountReplies(ctx context.Context, postID uuid.UUID) (int64, error)
 }
 
@@ -144,47 +145,24 @@ func (s *postService) GetPostByID(ctx context.Context, postID, viewerID uuid.UUI
 	return s.postMapper.BuildPostTree(ctx, root, replies, viewerID)
 }
 
-func (s *postService) ListPostsByPromiseID(
-	ctx context.Context,
-	promiseID, viewerID uuid.UUID,
-	limit int,
-	afterCreatedAt *time.Time,
-	afterID *uuid.UUID,
-) ([]models.Post, error) {
-	existingPromise, err := s.promiseRepo.GetPromiseByID(ctx, promiseID)
-	if err != nil {
-		return nil, err
-	}
-
-	canView, err := s.canUserViewPromise(ctx, viewerID, existingPromise.UserID, existingPromise.IsPrivate)
-	if err != nil {
-		return nil, err
-	}
-	if !canView {
-		return nil, errors.New("access denied: this promise is private")
-	}
-
-	return s.postRepo.ListPostsByPromiseID(ctx, promiseID, limit, afterCreatedAt, afterID)
-}
-
-func (s *postService) ListPostsByMicrotaskID(
+func (s *postService) ListPostsByMicrotaskIDTree(
 	ctx context.Context,
 	microtaskID, viewerID uuid.UUID,
 	limit int,
-	afterCreatedAt *time.Time,
+	after *time.Time,
 	afterID *uuid.UUID,
-) ([]models.Post, error) {
-	existingMicrotask, err := s.microtaskRepo.GetMicrotaskByID(ctx, microtaskID)
+) ([]dto.PostWithRepliesTreeResponse, error) {
+	microtask, err := s.microtaskRepo.GetMicrotaskByID(ctx, microtaskID)
 	if err != nil {
 		return nil, err
 	}
 
-	existingPromise, err := s.promiseRepo.GetPromiseByID(ctx, existingMicrotask.PromiseID)
+	promise, err := s.promiseRepo.GetPromiseByID(ctx, microtask.PromiseID)
 	if err != nil {
 		return nil, err
 	}
 
-	canView, err := s.canUserViewPromise(ctx, viewerID, existingPromise.UserID, existingPromise.IsPrivate)
+	canView, err := s.canUserViewPromise(ctx, viewerID, promise.UserID, promise.IsPrivate)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +170,40 @@ func (s *postService) ListPostsByMicrotaskID(
 		return nil, errors.New("access denied")
 	}
 
-	return s.postRepo.ListPostsByMicrotaskID(ctx, microtaskID, limit, afterCreatedAt, afterID)
+	roots, replies, err := s.postRepo.ListPostsWithRepliesByMicrotaskID(ctx, microtaskID, limit, after, afterID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.postMapper.BuildPostTrees(ctx, roots, replies, viewerID)
+}
+
+func (s *postService) ListPostsByPromiseIDTree(
+	ctx context.Context,
+	promiseID, viewerID uuid.UUID,
+	limit int,
+	after *time.Time,
+	afterID *uuid.UUID,
+) ([]dto.PostWithRepliesTreeResponse, error) {
+	promise, err := s.promiseRepo.GetPromiseByID(ctx, promiseID)
+	if err != nil {
+		return nil, err
+	}
+
+	canView, err := s.canUserViewPromise(ctx, viewerID, promise.UserID, promise.IsPrivate)
+	if err != nil {
+		return nil, err
+	}
+	if !canView {
+		return nil, errors.New("access denied")
+	}
+
+	roots, replies, err := s.postRepo.ListPostsWithRepliesByPromiseID(ctx, promiseID, limit, after, afterID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.postMapper.BuildPostTrees(ctx, roots, replies, viewerID)
 }
 
 func (s *postService) ListPublicPostsLite(
@@ -273,15 +284,40 @@ func (s *postService) ListFeedPostsTree(
 	return s.postMapper.BuildPostTrees(ctx, rootPosts, allReplies, viewerID)
 }
 
-func (s *postService) ListReplies(ctx context.Context, postID, viewerID uuid.UUID, limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) ([]models.Post, error) {
+func (s *postService) ListUserPostsTree(
+	ctx context.Context,
+	username string,
+	viewerID uuid.UUID,
+	limit int,
+	after *time.Time,
+	afterID *uuid.UUID,
+) ([]dto.PostWithRepliesTreeResponse, error) {
+	rootPosts, allReplies, err := s.postRepo.ListUserPostsWithReplies(ctx, username, viewerID, limit, after, afterID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.postMapper.BuildPostTrees(ctx, rootPosts, allReplies, viewerID)
+}
+
+func (s *postService) ListReplies(
+	ctx context.Context,
+	postID, viewerID uuid.UUID,
+	limit int,
+	afterCreatedAt *time.Time,
+	afterID *uuid.UUID,
+) ([]dto.PostWithRepliesTreeResponse, error) {
+	// Доступ к родительскому посту
 	existingPost, err := s.postRepo.GetPostByID(ctx, postID)
 	if err != nil {
 		return nil, err
 	}
+
 	existingPromise, err := s.promiseRepo.GetPromiseByID(ctx, existingPost.PromiseID)
 	if err != nil {
 		return nil, err
 	}
+
 	canView, err := s.canUserViewPromise(ctx, viewerID, existingPromise.UserID, existingPromise.IsPrivate)
 	if err != nil {
 		return nil, err
@@ -289,7 +325,13 @@ func (s *postService) ListReplies(ctx context.Context, postID, viewerID uuid.UUI
 	if !canView {
 		return nil, errors.New("access denied")
 	}
-	return s.postRepo.ListRepliesByPostID(ctx, postID, limit, afterCreatedAt, afterID)
+
+	replies, err := s.postRepo.ListRepliesByPostID(ctx, postID, limit, afterCreatedAt, afterID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.postMapper.BuildPostTrees(ctx, nil, replies, viewerID)
 }
 
 func (s *postService) CountReplies(ctx context.Context, postID uuid.UUID) (int64, error) {

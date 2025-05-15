@@ -31,6 +31,12 @@ func (r *microtaskRepository) GetMicrotaskByID(ctx context.Context, id uuid.UUID
 	return &microtask, nil
 }
 
+func (r *microtaskRepository) GetAllMicrotasks(ctx context.Context) ([]models.Microtask, error) {
+	var microtasks []models.Microtask
+	err := r.db.WithContext(ctx).Find(&microtasks).Error
+	return microtasks, err
+}
+
 func (r *microtaskRepository) UpdateMicrotask(ctx context.Context, microtask *models.Microtask) error {
 	return r.db.WithContext(ctx).Save(microtask).Error
 }

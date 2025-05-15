@@ -29,6 +29,12 @@ func (r *promiseRepository) GetPromiseByID(ctx context.Context, id uuid.UUID) (*
 	return &promise, nil
 }
 
+func (r *promiseRepository) GetAllPromises(ctx context.Context) ([]models.Promise, error) {
+	var promises []models.Promise
+	err := r.db.WithContext(ctx).Find(&promises).Error
+	return promises, err
+}
+
 func (r *promiseRepository) UpdatePromise(ctx context.Context, promise *models.Promise) error {
 	return r.db.WithContext(ctx).Save(promise).Error
 }

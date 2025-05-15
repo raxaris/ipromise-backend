@@ -147,7 +147,7 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 // @Param after query string false "Дата (RFC3339) для пагинации"
 // @Param after_id query string false "ID поста для пагинации"
 // @Produce json
-// @Success 200 {array} dto.PostResponse
+// @Success 200 {array}  dto.PostWithRepliesTreeResponse
 // @Failure 400 {object} map[string]string "error: Неверный ID"
 // @Failure 401 {object} map[string]string "error: Неавторизован"
 // @Failure 403 {object} map[string]string "error: Нет доступа"
@@ -168,7 +168,7 @@ func (h *PostHandler) ListPostsByMicrotaskID(c *gin.Context) {
 
 	limit, afterCreatedAt, afterID := utils.ParseCursorPaginationParams(c)
 
-	posts, err := h.postService.ListPostsByMicrotaskID(c.Request.Context(), microtaskID, viewerID, limit, afterCreatedAt, afterID)
+	posts, err := h.postService.ListPostsByMicrotaskIDTree(c.Request.Context(), microtaskID, viewerID, limit, afterCreatedAt, afterID)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
@@ -187,7 +187,7 @@ func (h *PostHandler) ListPostsByMicrotaskID(c *gin.Context) {
 // @Param after query string false "Дата (RFC3339) пагинации"
 // @Param after_id query string false "ID последнего поста"
 // @Produce json
-// @Success 200 {array} dto.PostResponse
+// @Success 200 {array}  dto.PostWithRepliesTreeResponse
 // @Failure 400 {object} map[string]string "error: Неверный ID"
 // @Failure 401 {object} map[string]string "error: Неавторизован"
 // @Failure 403 {object} map[string]string "error: Нет доступа"
@@ -208,7 +208,7 @@ func (h *PostHandler) ListPostsByPromiseID(c *gin.Context) {
 
 	limit, afterCreatedAt, afterID := utils.ParseCursorPaginationParams(c)
 
-	posts, err := h.postService.ListPostsByPromiseID(c.Request.Context(), promiseID, viewerID, limit, afterCreatedAt, afterID)
+	posts, err := h.postService.ListPostsByPromiseIDTree(c.Request.Context(), promiseID, viewerID, limit, afterCreatedAt, afterID)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
@@ -227,7 +227,7 @@ func (h *PostHandler) ListPostsByPromiseID(c *gin.Context) {
 // @Param after query string false "Дата (RFC3339) для пагинации"
 // @Param after_id query string false "ID поста для пагинации"
 // @Produce json
-// @Success 200 {array} dto.PostResponse
+// @Success 200 {array} dto.PostWithRepliesTreeResponse
 // @Failure 400 {object} map[string]string "error: Неверный ID"
 // @Failure 401 {object} map[string]string "error: Неавторизован"
 // @Failure 500 {object} map[string]string "error: Ошибка сервера"
@@ -396,6 +396,40 @@ func (h *PostHandler) ListFeedPostsTree(c *gin.Context) {
 	}
 
 	posts, err := h.postService.ListFeedPostsTree(c.Request.Context(), viewerID, limit, after, afterID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"posts": posts})
+}
+
+// ListUserPostsTree godoc
+// @Summary Посты пользователя (с деревом)
+// @Description Получает все посты пользователя по username, включая комментарии (если приватные – только для владельца)
+// @Tags posts
+// @Security BearerAuth
+// @Param username path string true "Имя пользователя (username)"
+// @Param limit query int false "Максимум постов"
+// @Param after query string false "Дата (RFC3339) для пагинации"
+// @Param after_id query string false "ID последнего поста"
+// @Produce json
+// @Success 200 {array} dto.PostWithRepliesTreeResponse
+// @Failure 400 {object} map[string]string "error: Некорректный username"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /posts/user/{username} [get]
+func (h *PostHandler) ListUserPostsTree(c *gin.Context) {
+	username := c.Param("username")
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	limit, after, afterID := utils.ParseCursorPaginationParams(c)
+
+	posts, err := h.postService.ListUserPostsTree(c.Request.Context(), username, viewerID, limit, after, afterID)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return

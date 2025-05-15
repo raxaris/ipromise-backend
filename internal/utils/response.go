@@ -4,7 +4,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Унифицированный ответ при ошибке
+type ErrorResponse struct {
+	Status  string `json:"status" example:"error"`
+	Message string `json:"message" example:"user not found"`
+	Code    int    `json:"code" example:"404"`
+}
+
+type SuccessResponse struct {
+	Status string      `json:"status" example:"success"`
+	Code   int         `json:"code" example:"200"`
+	Data   interface{} `json:"data"`
+}
+
 func RespondWithError(c *gin.Context, code int, message string) {
 	c.JSON(code, gin.H{
 		"status":  "error",
@@ -13,7 +24,6 @@ func RespondWithError(c *gin.Context, code int, message string) {
 	})
 }
 
-// Унифицированный успешный ответ
 func RespondWithSuccess(c *gin.Context, code int, data interface{}) {
 	var wrapped interface{}
 

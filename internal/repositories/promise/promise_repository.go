@@ -11,6 +11,7 @@ import (
 type PromiseRepository interface {
 	CreatePromise(ctx context.Context, promise *models.Promise) error
 	GetPromiseByID(ctx context.Context, id uuid.UUID) (*models.Promise, error)
+	GetAllPromises(ctx context.Context) ([]models.Promise, error)
 	UpdatePromise(ctx context.Context, promise *models.Promise) error
 	DeletePromise(ctx context.Context, id uuid.UUID) error
 

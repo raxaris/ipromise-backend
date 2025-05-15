@@ -57,17 +57,17 @@ func (h *PromiseHandler) CreatePromise(c *gin.Context) {
 }
 
 // CreatePromiseWithMicrotasks godoc
-// @Summary      Create promise with microtasks
-// @Description  Creates a new promise and an optional list of microtasks in a single request
-// @Tags         promises
-// @Accept       json
-// @Produce      json
-// @Param        request  body      dto.CreatePromiseWithMicrotasksRequest  true  "Promise and microtasks"
-// @Success      201      {object}  utils.SuccessResponse
-// @Failure      400      {object}  utils.ErrorResponse
-// @Failure      500      {object}  utils.ErrorResponse
-// @Security     BearerAuth
-// @Router       /promises/full [post]
+// @Summary Создать обещание с микротасками
+// @Description Создаёт новое обещание и вложенные микротаски (при необходимости) одним запросом
+// @Tags promises
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body dto.CreatePromiseWithMicrotasksRequest true "Данные обещания и микротасков"
+// @Success 201 {object} map[string]string "message: Обещание создано"
+// @Failure 400 {object} map[string]string "error: Неверные данные"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /promises/full [post]
 func (h *PromiseHandler) CreatePromiseWithMicrotasks(c *gin.Context) {
 	var req dto.CreatePromiseWithMicrotasksRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -91,11 +91,11 @@ func (h *PromiseHandler) CreatePromiseWithMicrotasks(c *gin.Context) {
 
 // GetPromiseByID godoc
 // @Summary Получить обещание по ID
-// @Description Возвращает конкретное обещание (если публичное или пользователь — владелец)
+// @Description Возвращает конкретное обещание (если оно публичное, пользователь — владелец или подписчик)
 // @Tags promises
 // @Security BearerAuth
 // @Produce json
-// @Param id path string true "ID обещания"
+// @Param id path string true "ID обещания (UUID)"
 // @Success 200 {object} dto.PromiseResponse
 // @Failure 400 {object} map[string]string "error: Некорректный ID"
 // @Failure 401 {object} map[string]string "error: Неавторизован"
@@ -139,12 +139,14 @@ func (h *PromiseHandler) GetPromiseByID(c *gin.Context) {
 // GetUserPromisesWithProgress godoc
 // @Summary Получить все обещания пользователя с прогрессом по микротаскам
 // @Description Возвращает список всех обещаний указанного пользователя с вложенными микротасками и данными о прогрессе (кол-во постов, запланированные шаги, процент выполнения).
-// @Tags Promises
+// @Tags promises
+// @Security BearerAuth
+// @Produce json
 // @Param username path string true "Username пользователя"
 // @Success 200 {array} dto.PromiseWithMicrotasksProgressResponse
-// @Failure 400 {object} utils.HTTPError
-// @Failure 404 {object} utils.HTTPError
-// @Failure 500 {object} utils.HTTPError
+// @Failure 400 {object} map[string]string "error: Неверный username"
+// @Failure 404 {object} map[string]string "error: Пользователь не найден"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
 // @Router /promises/user/{username}/progress [get]
 func (h *PromiseHandler) GetUserPromisesWithProgress(c *gin.Context) {
 	username := c.Param("username")
@@ -316,7 +318,17 @@ func (h *PromiseHandler) ListFeedPromises(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusOK, promises)
 }
 
-// ✅ Публичные обещания (все)
+// ListPublicPromises godoc
+// @Summary Публичные обещания (все)
+// @Description Возвращает все публичные обещания от всех пользователей
+// @Tags promises
+// @Security BearerAuth
+// @Produce json
+// @Param limit query int false "Лимит"
+// @Param after query string false "Дата и время (RFC3339) для пагинации"
+// @Success 200 {array} dto.PromiseResponse
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /promises/public [get]
 func (h *PromiseHandler) ListPublicPromises(c *gin.Context) {
 	limit, after := utils.ParsePaginationParams(c)
 

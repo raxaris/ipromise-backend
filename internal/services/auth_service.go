@@ -53,10 +53,12 @@ func (s *authService) Signup(ctx context.Context, req dto.SignupRequest) error {
 	}
 
 	newUser := &models.User{
-		ID:       uuid.New(),
-		Username: req.Username,
-		Email:    req.Email,
-		Password: req.Password,
+		ID:        uuid.New(),
+		Username:  req.Username,
+		Email:     req.Email,
+		Password:  req.Password,
+		AvatarURL: "",
+		Bio:       "",
 	}
 
 	if err := newUser.HashPassword(); err != nil {

@@ -17,5 +17,7 @@ type FollowerRepository interface {
 	ListPendingFollowRequests(ctx context.Context, userID uuid.UUID) ([]models.Follower, error)
 	CountFollowing(ctx context.Context, userID uuid.UUID) (int, error)
 	CountFollowers(ctx context.Context, userID uuid.UUID) (int, error)
+	ListMutualFollowers(ctx context.Context, userID uuid.UUID) ([]models.Follower, error)
 	IsMutualFollower(ctx context.Context, user1, user2 uuid.UUID) (bool, error)
+	GetFollowRecord(ctx context.Context, followerID, followingID uuid.UUID) (*models.Follower, error)
 }

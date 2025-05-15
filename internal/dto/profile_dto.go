@@ -22,7 +22,14 @@ type PublicProfileResponse struct {
 	Promises    int    `json:"promises_count"`
 	BadgesCount int    `json:"badges_count"`
 	Bio         string `gorm:"size:160" json:"bio"`
-	IsFollowing bool   `json:"is_following"` // для отображения кнопки "Подписаться"
+	IsFollowing bool   `json:"is_following"`
+}
+
+type UserLiteResponse struct {
+	ID        string `json:"id"`
+	Username  string `json:"username"`
+	AvatarURL string `json:"avatar_url,omitempty"`
+	Bio       string `json:"bio,omitempty"`
 }
 
 type UpdateProfileRequest struct {

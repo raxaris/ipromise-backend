@@ -83,6 +83,8 @@ func main() {
 	microtaskService := services.NewMicrotaskService(microtaskRepo, promiseRepo)
 	postService := services.NewPostService(postRepo, microtaskRepo, postMapper, followerRepo, promiseRepo)
 	badgeService := services.NewBadgeService(badgeRepo)
+	adminService := services.NewAdminService(userRepo, postRepo, microtaskRepo, promiseRepo)
+	followerService := services.NewFollowerService(followerRepo, userRepo)
 
 	// 🤝 Хендлеры
 	authHandler := handlers.NewAuthHandler(authService)
@@ -92,7 +94,8 @@ func main() {
 	microtaskHandler := handlers.NewMicrotaskHandler(microtaskService)
 	postHandler := handlers.NewPostHandler(postService)
 	badgeHandler := handlers.NewBadgeHandler(badgeService)
-
+	adminHandler := handlers.NewAdminHandler(adminService)
+	followHandler := handlers.NewFollowHandler(followerService, userService)
 	// 📌 Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -128,6 +131,14 @@ func main() {
 
 	r.GET("/promises/public", promiseHandler.ListPublicPromises)
 
+	admin := r.Group("/admin")
+	{
+		admin.GET("/users", adminHandler.ListAllUsers)
+		admin.GET("/posts", adminHandler.ListAllPosts)
+		admin.GET("/microtasks", adminHandler.ListAllMicrotasks)
+		admin.GET("/promises", adminHandler.ListAllPromises)
+	}
+
 	promises := r.Group("/promises")
 	promises.Use(middleware.AuthMiddleware())
 	{
@@ -162,6 +173,22 @@ func main() {
 		posts.GET("/feed", postHandler.ListFeedPostsLite)          // Лента подписок (лайт)
 		posts.GET("/public/tree", postHandler.ListPublicPostsTree) // Публичные посты (дерево)
 		posts.GET("/feed/tree", postHandler.ListFeedPostsTree)     // Лента подписок (дерево)
+		posts.GET("/user/:username", postHandler.ListUserPostsTree)
+	}
+
+	follow := r.Group("/follow")
+	follow.Use(middleware.AuthMiddleware())
+	{
+		follow.POST("/:username", followHandler.RequestFollow)
+		follow.POST("/:username/accept", followHandler.AcceptFollowRequest)
+		follow.POST("/:username/decline", followHandler.DeclineFollowRequest)
+		follow.DELETE("/:username", followHandler.Unfollow)
+	}
+
+	friends := r.Group("/friends")
+	friends.Use(middleware.AuthMiddleware())
+	{
+		friends.GET("/:username", followHandler.ListFriends)
 	}
 
 	port := "8080"

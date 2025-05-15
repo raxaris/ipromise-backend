@@ -158,8 +158,8 @@ func (pm *PostMapper) BuildPostTrees(
 	allReplies []*models.Post,
 	viewerID uuid.UUID,
 ) ([]dto.PostWithRepliesTreeResponse, error) {
-	var trees []dto.PostWithRepliesTreeResponse
 
+	trees := make([]dto.PostWithRepliesTreeResponse, 0)
 	for _, root := range rootPosts {
 		tree, err := pm.BuildPostTree(ctx, root, allReplies, viewerID)
 		if err != nil {
