@@ -1,13 +1,20 @@
 package dto
 
 import (
-	"github.com/google/uuid"
+	"mime/multipart"
 	"time"
 )
 
 type CreatePostRequest struct {
-	Content  string     `json:"content" binding:"required,min=1"`
-	ParentID *uuid.UUID `json:"parent_id,omitempty"` // если это комментарий
+	PromiseID   string                  `form:"promise_id"`                      // можно опционально
+	MicrotaskID string                  `form:"microtask_id" binding:"required"` // обязательный
+	Content     string                  `form:"content" binding:"required"`
+	Attachments []*multipart.FileHeader `form:"attachments"` // не binding
+}
+
+type CreateReplyRequest struct {
+	Content     string                  `form:"content"`
+	Attachments []*multipart.FileHeader `form:"attachments"`
 }
 
 type UpdatePostRequest struct {

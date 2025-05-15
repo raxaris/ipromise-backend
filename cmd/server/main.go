@@ -80,7 +80,7 @@ func main() {
 	profileService := services.NewProfileService(userRepo, badgeRepo, promiseRepo, followerRepo)
 	promiseService := services.NewPromiseService(promiseRepo, microtaskRepo, followerRepo, userRepo, postRepo)
 	microtaskService := services.NewMicrotaskService(microtaskRepo, promiseRepo)
-	postService := services.NewPostService(postRepo, microtaskRepo, postMapper, followerRepo, promiseRepo)
+	postService := services.NewPostService(postRepo, microtaskRepo, postMapper, followerRepo, promiseRepo, attachmentRepo, storage)
 	badgeService := services.NewBadgeService(badgeRepo)
 	adminService := services.NewAdminService(userRepo, postRepo, microtaskRepo, promiseRepo)
 	followerService := services.NewFollowerService(followerRepo, userRepo)
@@ -166,6 +166,8 @@ func main() {
 	posts := r.Group("/posts")
 	posts.Use(middleware.AuthMiddleware())
 	{
+		posts.POST("", postHandler.CreatePost)
+		posts.POST("/:id/comments", postHandler.CreateReply)
 		posts.PATCH("/:id", postHandler.UpdatePost)                // Обновить пост
 		posts.DELETE("/:id", postHandler.DeletePost)               // Удалить пост
 		posts.GET("/:id/replies", postHandler.ListReplies)         // Получить комментарии
@@ -175,6 +177,7 @@ func main() {
 		posts.GET("/public/tree", postHandler.ListPublicPostsTree) // Публичные посты (дерево)
 		posts.GET("/feed/tree", postHandler.ListFeedPostsTree)     // Лента подписок (дерево)
 		posts.GET("/user/:username", postHandler.ListUserPostsTree)
+
 	}
 
 	follow := r.Group("/follow")

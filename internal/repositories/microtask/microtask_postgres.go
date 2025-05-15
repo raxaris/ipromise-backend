@@ -98,6 +98,16 @@ func (r *microtaskRepository) CountMicrotasksByPromiseID(
 	return count, err
 }
 
+func (r *microtaskRepository) GetMaxOrderByPromiseID(ctx context.Context, promiseID uuid.UUID) (int, error) {
+	var maxOrder int
+	err := r.db.WithContext(ctx).
+		Model(&models.Microtask{}).
+		Where("promise_id = ?", promiseID).
+		Select("COALESCE(MAX(microtask_order), 0)"). // если нет — вернёт 0
+		Scan(&maxOrder).Error
+	return maxOrder, err
+}
+
 func (r *microtaskRepository) ReorderMicrotasks(
 	ctx context.Context,
 	promiseID uuid.UUID,

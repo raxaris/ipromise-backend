@@ -18,30 +18,24 @@ func NewPostHandler(postService services.PostService) *PostHandler {
 }
 
 // CreatePost godoc
-// @Summary Создать пост или комментарий
-// @Description Создаёт корневой пост или комментарий (если указан parent_id)
+// @Summary Создать пост
+// @Description Создаёт корневой пост с вложениями
 // @Tags posts
 // @Security BearerAuth
-// @Param microtask_id path string true "ID микротаска"
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param input body dto.CreatePostRequest true "Данные поста"
+// @Param promise_id formData string false "ID промиса (опционально)"
+// @Param microtask_id formData string true "ID микротаска"
+// @Param content formData string true "Контент поста"
+// @Param attachments formData file false "Вложения (можно несколько)"
 // @Success 201 {object} map[string]string "message: Пост создан"
-// @Failure 400 {object} map[string]string "error: Неверный формат"
-// @Failure 401 {object} map[string]string "error: Неавторизован"
-// @Failure 403 {object} map[string]string "error: Нет прав доступа"
+// @Failure 400 {object} map[string]string "error: Ошибка валидации"
 // @Failure 500 {object} map[string]string "error: Ошибка сервера"
-// @Router /microtasks/{microtask_id}/posts [post]
+// @Router /posts [post]
 func (h *PostHandler) CreatePost(c *gin.Context) {
 	var req dto.CreatePostRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		utils.RespondWithError(c, http.StatusBadRequest, "Неверный формат запроса")
-		return
-	}
-
-	microtaskID, err := uuid.Parse(c.Param("microtask_id"))
-	if err != nil {
-		utils.RespondWithError(c, http.StatusBadRequest, "Некорректный ID микротаска")
 		return
 	}
 
@@ -51,14 +45,92 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 		return
 	}
 
-	// ⚠️ пока передаём пустой PromiseID — на будущее
-	err = h.postService.CreatePost(c.Request.Context(), userID, uuid.Nil, microtaskID, req.Content, req.ParentID)
+	// Парсим MicrotaskID
+	microtaskID, err := uuid.Parse(req.MicrotaskID)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Неверный microtask_id")
+		return
+	}
+
+	// Парсим PromiseID, если есть
+	var promiseID *uuid.UUID
+	if req.PromiseID != "" {
+		pid, err := uuid.Parse(req.PromiseID)
+		if err != nil {
+			utils.RespondWithError(c, http.StatusBadRequest, "Неверный promise_id")
+			return
+		}
+		promiseID = &pid
+	}
+
+	// Получаем вложения
+	form, err := c.MultipartForm()
+	if err == nil && form.File != nil {
+		req.Attachments = form.File["attachments"]
+	}
+
+	// Вызываем сервис
+	err = h.postService.CreatePostWithAttachments(
+		c.Request.Context(),
+		userID,
+		promiseID,
+		microtaskID,
+		req.Content,
+		req.Attachments,
+	)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
 	}
 
 	utils.RespondWithSuccess(c, http.StatusCreated, gin.H{"message": "Пост создан"})
+}
+
+// CreateReply godoc
+// @Summary Создать комментарий к посту
+// @Description Создаёт комментарий к корневому посту или другому комментарию
+// @Tags posts
+// @Security BearerAuth
+// @Accept multipart/form-data
+// @Produce json
+// @Param id path string true "ID родительского поста"
+// @Param content formData string true "Контент комментария"
+// @Param attachments formData file false "Вложения (можно несколько)"
+// @Success 201 {object} map[string]string "message: Комментарий создан"
+// @Failure 400 {object} map[string]string "error: Ошибка валидации"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /posts/{id}/comments [post]
+func (h *PostHandler) CreateReply(c *gin.Context) {
+	var req dto.CreateReplyRequest
+	if err := c.ShouldBind(&req); err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Неверный формат запроса")
+		return
+	}
+
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	parentID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Некорректный ID родителя")
+		return
+	}
+
+	form, err := c.MultipartForm()
+	if err == nil && form.File != nil {
+		req.Attachments = form.File["attachments"]
+	}
+
+	err = h.postService.CreateReplyWithAttachments(c.Request.Context(), userID, parentID, req.Content, req.Attachments)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusCreated, gin.H{"message": "Комментарий создан"})
 }
 
 // UpdatePost godoc

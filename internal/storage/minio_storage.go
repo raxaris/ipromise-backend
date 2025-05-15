@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
+	"log"
 	"mime"
 	"path/filepath"
 )
@@ -38,6 +39,7 @@ func (s *minioStorage) UploadFile(ctx context.Context, fileBytes []byte, fileNam
 		ContentType: contentType,
 	})
 	if err != nil {
+		log.Printf("Ошибка при загрузке файла в MinIO: %v", err)
 		return "", err
 	}
 

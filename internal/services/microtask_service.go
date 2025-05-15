@@ -45,12 +45,18 @@ func (s *microtaskService) CreateMicrotask(ctx context.Context, userID, promiseI
 		return errors.New("название не может быть пустым")
 	}
 
+	maxOrder, err := s.microtaskRepo.GetMaxOrderByPromiseID(ctx, promiseID)
+	if err != nil {
+		return err
+	}
+	newOrder := maxOrder + 1
+
 	mt := &models.Microtask{
 		ID:             uuid.New(),
 		PromiseID:      promiseID,
 		Title:          title,
 		Status:         "in_progress",
-		MicrotaskOrder: order,
+		MicrotaskOrder: newOrder,
 	}
 
 	return s.microtaskRepo.CreateMicrotask(ctx, mt)

@@ -23,4 +23,6 @@ type MicrotaskRepository interface {
 	CountMicrotasksByPromiseID(ctx context.Context, promiseID uuid.UUID) (int64, error)
 
 	ReorderMicrotasks(ctx context.Context, promiseID uuid.UUID, orders map[uuid.UUID]int) error
+
+	GetMaxOrderByPromiseID(ctx context.Context, promiseID uuid.UUID) (int, error)
 }

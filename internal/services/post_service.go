@@ -5,9 +5,12 @@ import (
 	"errors"
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/mappers"
+	"github.com/raxaris/ipromise-backend/internal/repositories/attachment"
 	"github.com/raxaris/ipromise-backend/internal/repositories/follower"
 	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
 	"github.com/raxaris/ipromise-backend/internal/repositories/promise"
+	"github.com/raxaris/ipromise-backend/internal/storage"
+	"mime/multipart"
 	"strings"
 	"time"
 
@@ -17,7 +20,8 @@ import (
 )
 
 type PostService interface {
-	CreatePost(ctx context.Context, userID, promiseID, microtaskID uuid.UUID, content string, parentID *uuid.UUID) error
+	CreatePostWithAttachments(ctx context.Context, userID uuid.UUID, promiseID *uuid.UUID, microtaskID uuid.UUID, content string, attachments []*multipart.FileHeader) error
+	CreateReplyWithAttachments(ctx context.Context, userID uuid.UUID, parentID uuid.UUID, content string, attachments []*multipart.FileHeader) error
 	UpdatePost(ctx context.Context, userID, postID uuid.UUID, content string) error
 	DeletePost(ctx context.Context, userID, postID uuid.UUID) error
 
@@ -34,11 +38,13 @@ type PostService interface {
 }
 
 type postService struct {
-	postRepo      post.PostRepository
-	promiseRepo   promise.PromiseRepository
-	microtaskRepo microtask.MicrotaskRepository
-	postMapper    *mappers.PostMapper
-	followerRepo  follower.FollowerRepository
+	postRepo       post.PostRepository
+	promiseRepo    promise.PromiseRepository
+	microtaskRepo  microtask.MicrotaskRepository
+	postMapper     *mappers.PostMapper
+	followerRepo   follower.FollowerRepository
+	attachmentRepo attachment.AttachmentRepository
+	storage        storage.Storage
 }
 
 func NewPostService(
@@ -47,43 +53,108 @@ func NewPostService(
 	postMapper *mappers.PostMapper,
 	followerRepo follower.FollowerRepository,
 	promiseRepo promise.PromiseRepository,
+	attachmentRepo attachment.AttachmentRepository,
+	storage storage.Storage,
 ) PostService {
 	return &postService{
-		postRepo:      postRepo,
-		microtaskRepo: microtaskRepo,
-		postMapper:    postMapper,
-		followerRepo:  followerRepo,
-		promiseRepo:   promiseRepo,
+		postRepo:       postRepo,
+		microtaskRepo:  microtaskRepo,
+		postMapper:     postMapper,
+		followerRepo:   followerRepo,
+		promiseRepo:    promiseRepo,
+		attachmentRepo: attachmentRepo,
+		storage:        storage,
 	}
 }
 
-func (s *postService) CreatePost(ctx context.Context, userID, promiseID, microtaskID uuid.UUID, content string, parentID *uuid.UUID) error {
-	content = strings.TrimSpace(content)
-	if len(content) == 0 {
-		return errors.New("content cannot be empty")
-	}
-
-	if parentID != nil {
-		parent, err := s.postRepo.GetPostByID(ctx, *parentID)
-		if err != nil {
-			return errors.New("specified parent post not found")
-		}
-
-		if parent.MicrotaskID != microtaskID {
-			return errors.New("parent post refers to another microtask")
-		}
-	}
-
-	newPost := &models.Post{
+func (s *postService) CreatePostWithAttachments(
+	ctx context.Context,
+	userID uuid.UUID,
+	promiseID *uuid.UUID,
+	microtaskID uuid.UUID,
+	content string,
+	attachments []*multipart.FileHeader,
+) error {
+	post := &models.Post{
 		ID:          uuid.New(),
 		UserID:      userID,
-		PromiseID:   promiseID,
+		PromiseID:   uuid.Nil,
 		MicrotaskID: microtaskID,
-		ParentID:    parentID,
+		Content:     content,
+	}
+	if promiseID != nil {
+		post.PromiseID = *promiseID
+	}
+
+	if err := s.postRepo.CreatePost(ctx, post); err != nil {
+		return err
+	}
+
+	s.uploadPostAttachments(ctx, post.ID, attachments)
+	return nil
+}
+
+func (s *postService) CreateReplyWithAttachments(
+	ctx context.Context,
+	userID uuid.UUID,
+	parentID uuid.UUID,
+	content string,
+	attachments []*multipart.FileHeader,
+) error {
+	parent, err := s.postRepo.GetPostByID(ctx, parentID)
+	if err != nil {
+		return err
+	}
+
+	post := &models.Post{
+		ID:          uuid.New(),
+		UserID:      userID,
+		PromiseID:   parent.PromiseID,
+		MicrotaskID: parent.MicrotaskID,
+		ParentID:    &parent.ID,
 		Content:     content,
 	}
 
-	return s.postRepo.CreatePost(ctx, newPost)
+	if err := s.postRepo.CreatePost(ctx, post); err != nil {
+		return err
+	}
+
+	s.uploadPostAttachments(ctx, post.ID, attachments)
+	return nil
+}
+
+func (s *postService) uploadPostAttachments(
+	ctx context.Context,
+	postID uuid.UUID,
+	attachments []*multipart.FileHeader,
+) {
+	for _, file := range attachments {
+		fileContent, err := file.Open()
+		if err != nil {
+			continue
+		}
+		
+		data := make([]byte, file.Size)
+		_, _ = fileContent.Read(data)
+		_ = fileContent.Close()
+
+		fileURL, err := s.storage.UploadFile(ctx, data, file.Filename)
+		if err != nil {
+			continue
+		}
+
+		attachment := &models.Attachment{
+			ID:       uuid.New(),
+			PostID:   postID,
+			FileURL:  fileURL,
+			FileType: file.Header.Get("Content-Type"),
+		}
+
+		if err := s.attachmentRepo.UploadAttachment(ctx, attachment); err != nil {
+			_ = s.storage.DeleteFile(ctx, fileURL)
+			continue
+		}
+	}
 }
 
 func (s *postService) UpdatePost(ctx context.Context, userID, postID uuid.UUID, content string) error {
