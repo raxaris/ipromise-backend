@@ -3,9 +3,10 @@ definitions:
   dto.AttachmentResponse:
     properties:
       file_type:
-        description: image, pdf, etc.
         type: string
-      url:
+      file_url:
+        type: string
+      id:
         type: string
     type: object
   dto.BadgeResponse:
@@ -279,7 +280,6 @@ definitions:
       id:
         type: string
       is_following:
-        description: для отображения кнопки "Подписаться"
         type: boolean
       promises_count:
         type: integer
@@ -379,6 +379,39 @@ definitions:
         minLength: 3
         type: string
     type: object
+  dto.UserLiteResponse:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      id:
+        type: string
+      username:
+        type: string
+    type: object
+  utils.ErrorResponse:
+    properties:
+      code:
+        example: 404
+        type: integer
+      message:
+        example: user not found
+        type: string
+      status:
+        example: error
+        type: string
+    type: object
+  utils.SuccessResponse:
+    properties:
+      code:
+        example: 200
+        type: integer
+      data: {}
+      status:
+        example: success
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -386,6 +419,41 @@ info:
   title: iPromise API
   version: "1.0"
 paths:
+  /attachments/{id}:
+    delete:
+      description: Удаляет вложение из MinIO и базы данных
+      parameters:
+      - description: ID вложения
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Удалено'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Неверный ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить вложение по ID
+      tags:
+      - attachments
   /auth/login:
     post:
       consumes:
@@ -580,6 +648,325 @@ paths:
       summary: Получить бейджи текущего пользователя
       tags:
       - badges
+  /follow/{username}:
+    delete:
+      description: Удаляет подписку на указанного пользователя
+      parameters:
+      - description: Username, от кого отписаться
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Unfollowed successfully'
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: 'error: Не подписан на этого пользователя или пытаешься отписаться
+            от себя'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отписаться от пользователя
+      tags:
+      - follow
+    post:
+      description: Авторизованный пользователь отправляет запрос на подписку другому
+        пользователю
+      parameters:
+      - description: Username, кому отправить запрос
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Follow request sent'
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: 'error: Уже подписан или нельзя подписаться на себя'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отправить запрос на подписку
+      tags:
+      - follow
+  /follow/{username}/accept:
+    post:
+      description: Подтверждает входящий запрос на подписку от указанного пользователя
+      parameters:
+      - description: Username отправителя запроса
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Follow request accepted'
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: 'error: Нет ожидающего запроса от пользователя'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Принять запрос на подписку
+      tags:
+      - follow
+  /follow/{username}/decline:
+    post:
+      description: Отклоняет входящий запрос на подписку от указанного пользователя
+      parameters:
+      - description: Username отправителя запроса
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Follow request declined'
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: 'error: Нет ожидающего запроса от пользователя'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отклонить запрос на подписку
+      tags:
+      - follow
+  /follow/recommended:
+    get:
+      description: Возвращает список пользователей с общими друзьями, затем случайных
+      parameters:
+      - description: Максимум пользователей
+        in: query
+        name: limit
+        type: integer
+      - description: Дата (RFC3339) для пагинации
+        in: query
+        name: after
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserLiteResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Рекомендуемые друзья
+      tags:
+      - follow
+  /follow/requests:
+    get:
+      description: Возвращает список пользователей, которые отправили запрос на добавление
+        в друзья (ожидают подтверждения)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserLiteResponse'
+                  type: array
+              type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить входящие заявки в друзья
+      tags:
+      - follow
+  /follow/requests/sent:
+    get:
+      description: Возвращает список пользователей, которым текущий пользователь отправил
+        follow-запросы
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserLiteResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отправленные заявки в друзья
+      tags:
+      - follow
+  /friends/{username}:
+    get:
+      description: Возвращает список пользователей, у которых с данным пользователем
+        установлена взаимная подписка (дружба)
+      parameters:
+      - description: Username пользователя, чьих друзей получить
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список взаимных друзей
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserLiteResponse'
+                  type: array
+              type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить список друзей (взаимных подписок)
+      tags:
+      - follow
   /microtasks/{id}:
     delete:
       description: Удаляет микротаск (soft delete)
@@ -895,6 +1282,88 @@ paths:
       summary: Обновить пост
       tags:
       - posts
+  /posts/{id}/attachments:
+    get:
+      description: Возвращает список вложенных файлов у поста
+      parameters:
+      - description: ID поста
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.AttachmentResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить вложения поста
+      tags:
+      - attachments
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает файлы, сохраняет в MinIO и БД, возвращает массив с URL-ами
+      parameters:
+      - description: ID поста
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Файлы (можно несколько)
+        in: formData
+        name: attachments
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/dto.AttachmentResponse'
+            type: array
+        "400":
+          description: 'error: Неверный ID или формат'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Загрузить вложения к посту
+      tags:
+      - attachments
   /posts/{id}/full:
     get:
       description: Возвращает пост, все его реплаи, автора, вложения и лайки
