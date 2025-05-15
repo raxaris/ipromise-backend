@@ -161,3 +161,29 @@ func (h *FollowHandler) ListFriends(c *gin.Context) {
 	}
 	utils.RespondWithSuccess(c, http.StatusOK, friends)
 }
+
+// ListPendingRequests godoc
+// @Summary Получить входящие заявки в друзья
+// @Description Возвращает список пользователей, которые отправили запрос на добавление в друзья (ожидают подтверждения)
+// @Tags follow
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} utils.SuccessResponse{data=[]dto.UserLiteResponse}
+// @Failure 401 {object} utils.ErrorResponse "error: Неавторизован"
+// @Failure 500 {object} utils.ErrorResponse "error: Внутренняя ошибка сервера"
+// @Router /follow/requests [get]
+func (h *FollowHandler) ListPendingRequests(c *gin.Context) {
+	currentUserID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	requests, err := h.followerService.ListPendingRequests(c.Request.Context(), currentUserID)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, requests)
+}
