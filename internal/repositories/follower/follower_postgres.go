@@ -3,9 +3,11 @@ package follower
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/models"
 	"gorm.io/gorm"
+	"time"
 )
 
 type followerRepository struct {
@@ -77,6 +79,14 @@ func (r *followerRepository) ListPendingFollowRequests(ctx context.Context, user
 	return requests, err
 }
 
+func (r *followerRepository) ListSentFollowRequests(ctx context.Context, userID uuid.UUID) ([]models.Follower, error) {
+	var requests []models.Follower
+	err := r.db.WithContext(ctx).
+		Where("follower_id = ? AND status = ?", userID, "pending").
+		Find(&requests).Error
+	return requests, err
+}
+
 func (r *followerRepository) CountFollowers(ctx context.Context, userID uuid.UUID) (int, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
@@ -118,6 +128,43 @@ func (r *followerRepository) IsMutualFollower(ctx context.Context, user1, user2 
 	`, user1, user2).Scan(&count).Error
 
 	return count > 0, err
+}
+
+func (r *followerRepository) ListUsersWithMutualFriendPrioritized(
+	ctx context.Context,
+	userID uuid.UUID,
+	limit int,
+	afterCreatedAt *time.Time,
+) ([]models.User, error) {
+	query := r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("id != ?", userID).
+		Where("id NOT IN (?)",
+			r.db.Model(&models.Follower{}).
+				Select("following_id").
+				Where("follower_id = ?", userID),
+		)
+
+	if afterCreatedAt != nil {
+		query = query.Where("created_at < ?", *afterCreatedAt)
+	}
+
+	orderClause := fmt.Sprintf(`
+	(
+		SELECT COUNT(*) FROM followers f1
+		JOIN followers f2 ON f1.follower_id = f2.follower_id
+		WHERE f1.following_id = users.id AND f2.following_id = '%s'
+		AND f1.status = 'accepted' AND f2.status = 'accepted'
+	) DESC, users.created_at DESC
+`, userID.String())
+
+	query = query.Order(orderClause).Limit(limit)
+
+	var users []models.User
+	if err := query.Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 func (r *followerRepository) GetFollowRecord(ctx context.Context, followerID, followingID uuid.UUID) (*models.Follower, error) {

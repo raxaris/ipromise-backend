@@ -187,3 +187,59 @@ func (h *FollowHandler) ListPendingRequests(c *gin.Context) {
 
 	utils.RespondWithSuccess(c, http.StatusOK, requests)
 }
+
+// ListSentRequests godoc
+// @Summary Отправленные заявки в друзья
+// @Description Возвращает список пользователей, которым текущий пользователь отправил follow-запросы
+// @Tags follow
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} utils.SuccessResponse{data=[]dto.UserLiteResponse}
+// @Failure 401 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /follow/requests/sent [get]
+func (h *FollowHandler) ListSentRequests(c *gin.Context) {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	requests, err := h.followerService.ListSentRequests(c.Request.Context(), userID)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, requests)
+}
+
+// GetRecommendedUsers godoc
+// @Summary Рекомендуемые друзья
+// @Description Возвращает список пользователей с общими друзьями, затем случайных
+// @Tags follow
+// @Security BearerAuth
+// @Param limit query int false "Максимум пользователей"
+// @Param after query string false "Дата (RFC3339) для пагинации"
+// @Produce json
+// @Success 200 {object} utils.SuccessResponse{data=[]dto.UserLiteResponse}
+// @Failure 401 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /follow/recommended [get]
+func (h *FollowHandler) GetRecommendedUsers(c *gin.Context) {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	limit, after := utils.ParsePaginationParams(c)
+
+	users, err := h.followerService.GetRecommendedUsers(c, userID, limit, after)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, users)
+}

@@ -8,6 +8,7 @@ import (
 	"github.com/raxaris/ipromise-backend/internal/repositories/follower"
 	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 	"gorm.io/gorm"
+	"time"
 )
 
 type FollowerService interface {
@@ -21,6 +22,8 @@ type FollowerService interface {
 	ListFollowers(ctx context.Context, userID uuid.UUID) ([]dto.UserLiteResponse, error)
 	ListFollowing(ctx context.Context, userID uuid.UUID) ([]dto.UserLiteResponse, error)
 	ListPendingRequests(ctx context.Context, userID uuid.UUID) ([]dto.UserLiteResponse, error)
+	ListSentRequests(ctx context.Context, userID uuid.UUID) ([]dto.UserLiteResponse, error)
+	GetRecommendedUsers(ctx context.Context, userID uuid.UUID, limit int, afterCreatedAt *time.Time) ([]dto.UserLiteResponse, error)
 }
 
 type followerService struct {
@@ -203,5 +206,51 @@ func (s *followerService) ListPendingRequests(ctx context.Context, userID uuid.U
 			})
 		}
 	}
+	return result, nil
+}
+
+func (s *followerService) ListSentRequests(ctx context.Context, userID uuid.UUID) ([]dto.UserLiteResponse, error) {
+	records, err := s.followerRepo.ListSentFollowRequests(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]dto.UserLiteResponse, 0)
+	for _, f := range records {
+		u, err := s.userRepo.GetUserByID(ctx, f.FollowingID)
+		if err == nil {
+			result = append(result, dto.UserLiteResponse{
+				ID:        u.ID.String(),
+				Username:  u.Username,
+				AvatarURL: u.AvatarURL,
+				Bio:       u.Bio,
+			})
+		}
+	}
+	return result, nil
+}
+
+func (s *followerService) GetRecommendedUsers(
+	ctx context.Context,
+	userID uuid.UUID,
+	limit int,
+	afterCreatedAt *time.Time,
+) ([]dto.UserLiteResponse, error) {
+
+	users, err := s.followerRepo.ListUsersWithMutualFriendPrioritized(ctx, userID, limit, afterCreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]dto.UserLiteResponse, 0)
+	for _, u := range users {
+		result = append(result, dto.UserLiteResponse{
+			ID:        u.ID.String(),
+			Username:  u.Username,
+			AvatarURL: u.AvatarURL,
+			Bio:       u.Bio,
+		})
+	}
+
 	return result, nil
 }

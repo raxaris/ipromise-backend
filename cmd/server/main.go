@@ -183,7 +183,9 @@ func main() {
 		follow.POST("/:username", followHandler.RequestFollow)
 		follow.POST("/:username/accept", followHandler.AcceptFollowRequest)
 		follow.POST("/:username/decline", followHandler.DeclineFollowRequest)
+		follow.GET("/recommended", followHandler.GetRecommendedUsers)
 		follow.GET("/requests", followHandler.ListPendingRequests)
+		follow.GET("/requests/sent", followHandler.ListSentRequests)
 		follow.DELETE("/:username", followHandler.Unfollow)
 	}
 

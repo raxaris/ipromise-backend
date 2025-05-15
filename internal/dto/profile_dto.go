@@ -28,8 +28,8 @@ type PublicProfileResponse struct {
 type UserLiteResponse struct {
 	ID        string `json:"id"`
 	Username  string `json:"username"`
-	AvatarURL string `json:"avatar_url,omitempty"`
-	Bio       string `json:"bio,omitempty"`
+	AvatarURL string `json:"avatar_url"`
+	Bio       string `json:"bio"`
 }
 
 type UpdateProfileRequest struct {
