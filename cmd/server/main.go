@@ -39,8 +39,7 @@ func main() {
 	config.LoadEnv()
 
 	db := config.ConnectDB()
-	config.InitGlobalDB(db)
-	config.InitMinIO()
+	storage := config.CreateStorage()
 
 	r := gin.Default()
 	r.Use(gin.Recovery())
@@ -85,6 +84,7 @@ func main() {
 	badgeService := services.NewBadgeService(badgeRepo)
 	adminService := services.NewAdminService(userRepo, postRepo, microtaskRepo, promiseRepo)
 	followerService := services.NewFollowerService(followerRepo, userRepo)
+	attachmentService := services.NewAttachmentService(attachmentRepo, storage)
 
 	// 🤝 Хендлеры
 	authHandler := handlers.NewAuthHandler(authService)
@@ -96,6 +96,7 @@ func main() {
 	badgeHandler := handlers.NewBadgeHandler(badgeService)
 	adminHandler := handlers.NewAdminHandler(adminService)
 	followHandler := handlers.NewFollowHandler(followerService, userService)
+	attachmentHandler := handlers.NewAttachmentHandler(attachmentService)
 	// 📌 Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -189,6 +190,13 @@ func main() {
 	friends.Use(middleware.AuthMiddleware())
 	{
 		friends.GET("/:username", followHandler.ListFriends)
+	}
+
+	attachments := r.Group("/attachments")
+	{
+		attachments.POST("/posts/:id", attachmentHandler.UploadAttachmentsToPost)
+		attachments.GET("/posts/:id", attachmentHandler.ListAttachmentsByPostID)
+		attachments.DELETE("/:id", attachmentHandler.DeleteAttachmentByID)
 	}
 
 	port := "8080"

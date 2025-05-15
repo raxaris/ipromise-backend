@@ -48,6 +48,7 @@ type PostLiteResponse struct {
 }
 
 type AttachmentResponse struct {
-	URL      string `json:"url"`
-	FileType string `json:"file_type"` // image, pdf, etc.
+	ID       string `json:"id"`
+	FileURL  string `json:"file_url"`
+	FileType string `json:"file_type"`
 }

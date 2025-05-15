@@ -11,8 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
-
 func ConnectDB() *gorm.DB {
 	err := godotenv.Load()
 	if err != nil {
@@ -38,8 +36,4 @@ func ConnectDB() *gorm.DB {
 	models.MigrateDB(database)
 
 	return database
-}
-
-func InitGlobalDB(db *gorm.DB) {
-	DB = db
 }

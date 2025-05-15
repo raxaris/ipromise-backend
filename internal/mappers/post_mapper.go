@@ -68,7 +68,8 @@ func (pm *PostMapper) BuildPostLite(
 	attachmentDTOs := make([]dto.AttachmentResponse, 0, len(attachments))
 	for _, a := range attachments {
 		attachmentDTOs = append(attachmentDTOs, dto.AttachmentResponse{
-			URL:      a.FileURL,
+			ID:       a.ID.String(),
+			FileURL:  a.FileURL,
 			FileType: a.FileType,
 		})
 	}
