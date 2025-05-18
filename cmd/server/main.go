@@ -85,7 +85,7 @@ func main() {
 	adminService := services.NewAdminService(userRepo, postRepo, microtaskRepo, promiseRepo)
 	followerService := services.NewFollowerService(followerRepo, userRepo)
 	attachmentService := services.NewAttachmentService(attachmentRepo, storage)
-
+	likeService := services.NewLikeService(likeRepo, postRepo)
 	// 🤝 Хендлеры
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -97,6 +97,7 @@ func main() {
 	adminHandler := handlers.NewAdminHandler(adminService)
 	followHandler := handlers.NewFollowHandler(followerService, userService)
 	attachmentHandler := handlers.NewAttachmentHandler(attachmentService)
+	likeHandler := handlers.NewLikeHandler(likeService)
 	// 📌 Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -199,12 +200,19 @@ func main() {
 	}
 
 	attachments := r.Group("/attachments")
+	attachments.Use(middleware.AuthMiddleware())
 	{
 		attachments.POST("/posts/:id", attachmentHandler.UploadAttachmentsToPost)
 		attachments.GET("/posts/:id", attachmentHandler.ListAttachmentsByPostID)
 		attachments.DELETE("/:id", attachmentHandler.DeleteAttachmentByID)
 	}
 
+	likes := r.Group("/posts")
+	likes.Use(middleware.AuthMiddleware())
+	{
+		likes.POST("/:id/like", likeHandler.LikePost)
+		likes.POST("/:id/unlike", likeHandler.UnlikePost)
+	}
 	port := "8080"
 	fmt.Println("🚀 Сервер запущен на порту " + port)
 	log.Fatal(r.Run(":" + port))

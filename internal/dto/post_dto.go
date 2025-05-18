@@ -32,9 +32,11 @@ type PostWithRepliesTreeResponse struct {
 	MicrotaskID    string                        `json:"microtask_id"`
 	MicrotaskTitle string                        `json:"microtask_title"`
 	LikesCount     int64                         `json:"likes"`
+	IsLikedByMe    bool                          `json:"is_liked_by_me"`
 	CommentsCount  int64                         `json:"comments"`
 	Attachments    []AttachmentResponse          `json:"attachments,omitempty"`
 	Replies        []PostWithRepliesTreeResponse `json:"replies"`
+	IsPrivate      bool                          `json:"is_private"`
 	CreatedAt      time.Time                     `json:"created_at"`
 }
 
@@ -49,8 +51,10 @@ type PostLiteResponse struct {
 	MicrotaskID    string               `json:"microtask_id"`
 	MicrotaskTitle string               `json:"microtask_title"`
 	LikesCount     int64                `json:"likes"`
+	IsLikedByMe    bool                 `json:"is_liked_by_me"`
 	CommentsCount  int64                `json:"comments"`
 	Attachments    []AttachmentResponse `json:"attachments,omitempty"`
+	IsPrivate      bool                 `json:"is_private"`
 	CreatedAt      time.Time            `json:"created_at"`
 }
 

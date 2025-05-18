@@ -12,7 +12,7 @@ import (
 )
 
 type MicrotaskService interface {
-	CreateMicrotask(ctx context.Context, userID, promiseID uuid.UUID, title string, order int) error
+	CreateMicrotask(ctx context.Context, userID, promiseID uuid.UUID, title string, steps int) error
 	UpdateMicrotask(ctx context.Context, userID, microtaskID uuid.UUID, title *string, status *string) error
 	DeleteMicrotask(ctx context.Context, userID, microtaskID uuid.UUID) error
 	ListMicrotasksByPromiseID(ctx context.Context, viewerID, promiseID uuid.UUID) ([]models.Microtask, error)
@@ -31,7 +31,7 @@ func NewMicrotaskService(microtaskRepo microtask.MicrotaskRepository, promiseRep
 	}
 }
 
-func (s *microtaskService) CreateMicrotask(ctx context.Context, userID, promiseID uuid.UUID, title string, order int) error {
+func (s *microtaskService) CreateMicrotask(ctx context.Context, userID, promiseID uuid.UUID, title string, steps int) error {
 	p, err := s.promiseRepo.GetPromiseByID(ctx, promiseID)
 	if err != nil {
 		return err
@@ -56,6 +56,7 @@ func (s *microtaskService) CreateMicrotask(ctx context.Context, userID, promiseI
 		PromiseID:      promiseID,
 		Title:          title,
 		Status:         "in_progress",
+		StepsPlanned:   steps,
 		MicrotaskOrder: newOrder,
 	}
 

@@ -7,7 +7,7 @@ import (
 
 type CreateMicrotaskRequest struct {
 	Title        string `json:"title" binding:"required,min=1,max=255"`
-	StepsPlanned int    `json:"steps_planned"`
+	StepsPlanned int    `json:"steps_planned" binding:"required"`
 	Order        int    `json:"order"`
 }
 
@@ -21,11 +21,12 @@ type UpdateMicrotaskRequest struct {
 }
 
 type MicrotaskResponse struct {
-	ID        uuid.UUID `json:"id"`
-	PromiseID uuid.UUID `json:"promise_id"`
-	Title     string    `json:"title"`
-	Status    string    `json:"status"`
-	Order     int       `json:"order"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID           uuid.UUID `json:"id"`
+	PromiseID    uuid.UUID `json:"promise_id"`
+	Title        string    `json:"title"`
+	Status       string    `json:"status"`
+	StepsPlanned int       `json:"steps_planned"`
+	Order        int       `json:"order"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }

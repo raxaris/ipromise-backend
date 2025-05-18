@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
 	"github.com/raxaris/ipromise-backend/internal/repositories/post"
@@ -83,6 +84,7 @@ func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID
 	if len(req.Microtasks) > 0 {
 		var microtasks []models.Microtask
 		for i, m := range req.Microtasks {
+			fmt.Println("Microtasks: ", m)
 			microtasks = append(microtasks, models.Microtask{
 				ID:             uuid.New(),
 				PromiseID:      newPromise.ID,

@@ -60,6 +60,11 @@ func (pm *PostMapper) BuildPostLite(
 		return nil, err
 	}
 
+	isLiked, err := pm.likeRepository.IsPostLikedByUser(ctx, viewerID, post.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	attachments, err := pm.attachmentRepository.ListAttachmentsByPostID(ctx, post.ID)
 	if err != nil {
 		return nil, err
@@ -95,8 +100,10 @@ func (pm *PostMapper) BuildPostLite(
 		MicrotaskID:    microtaskModel.ID.String(),
 		MicrotaskTitle: microtaskModel.Title,
 		LikesCount:     likesCount,
+		IsLikedByMe:    isLiked,
 		CommentsCount:  commentsCount,
 		Attachments:    attachmentDTOs,
+		IsPrivate:      promiseModel.IsPrivate,
 		CreatedAt:      post.CreatedAt,
 	}, nil
 }
@@ -134,8 +141,10 @@ func (pm *PostMapper) BuildPostTree(
 			MicrotaskID:    dtoLite.MicrotaskID,
 			MicrotaskTitle: dtoLite.MicrotaskTitle,
 			LikesCount:     dtoLite.LikesCount,
+			IsLikedByMe:    dtoLite.IsLikedByMe,
 			CommentsCount:  dtoLite.CommentsCount,
 			Attachments:    dtoLite.Attachments,
+			IsPrivate:      dtoLite.IsPrivate,
 			CreatedAt:      dtoLite.CreatedAt,
 		}
 
