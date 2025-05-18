@@ -89,7 +89,7 @@ func main() {
 	// 🤝 Хендлеры
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
-	profileHandler := handlers.NewProfileHandler(profileService)
+	profileHandler := handlers.NewProfileHandler(profileService, attachmentService)
 	promiseHandler := handlers.NewPromiseHandler(promiseService, userService)
 	microtaskHandler := handlers.NewMicrotaskHandler(microtaskService)
 	postHandler := handlers.NewPostHandler(postService)
@@ -128,7 +128,7 @@ func main() {
 	{
 		profile.GET("/me", profileHandler.GetMyProfile)
 		profile.GET("/:username", profileHandler.GetPublicProfile)
-		profile.PATCH("/me", profileHandler.UpdateProfile)
+		profile.PATCH("/me", profileHandler.UpdateProfileWithAvatar)
 	}
 
 	r.GET("/promises/public", promiseHandler.ListPublicPromises)
