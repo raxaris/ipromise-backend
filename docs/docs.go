@@ -2252,9 +2252,9 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Обновляет имя пользователя, аватар или статус",
+                "description": "Обновляет имя, био и аватар пользователя одним multipart-запросом",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -2262,16 +2262,25 @@ const docTemplate = `{
                 "tags": [
                     "profile"
                 ],
-                "summary": "Обновить профиль",
+                "summary": "Обновить профиль с аватаркой",
                 "parameters": [
                     {
-                        "description": "Новые данные профиля",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.UpdateProfileRequest"
-                        }
+                        "type": "string",
+                        "description": "Новое имя пользователя",
+                        "name": "username",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Описание профиля",
+                        "name": "bio",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Аватарка пользователя",
+                        "name": "avatar",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -2285,7 +2294,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "error: Некорректные данные профиля",
+                        "description": "error: Неверные данные",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3917,24 +3926,6 @@ const docTemplate = `{
             "properties": {
                 "content": {
                     "type": "string"
-                }
-            }
-        },
-        "dto.UpdateProfileRequest": {
-            "type": "object",
-            "properties": {
-                "avatar_url": {
-                    "type": "string"
-                },
-                "bio": {
-                    "description": "необязательное описание",
-                    "type": "string",
-                    "maxLength": 160
-                },
-                "username": {
-                    "type": "string",
-                    "maxLength": 30,
-                    "minLength": 3
                 }
             }
         },

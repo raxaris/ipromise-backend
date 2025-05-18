@@ -39,3 +39,9 @@ type UpdateProfileFormRequest struct {
 	Bio      *string               `form:"bio"`
 	Avatar   *multipart.FileHeader `form:"avatar"`
 }
+
+type UpdateProfileRequest struct {
+	Username  *string `json:"username,omitempty"`
+	Bio       *string `json:"bio,omitempty"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
+}

@@ -339,19 +339,6 @@ definitions:
     required:
     - content
     type: object
-  dto.UpdateProfileRequest:
-    properties:
-      avatar_url:
-        type: string
-      bio:
-        description: необязательное описание
-        maxLength: 160
-        type: string
-      username:
-        maxLength: 30
-        minLength: 3
-        type: string
-    type: object
   dto.UpdatePromiseRequest:
     properties:
       deadline:
@@ -1840,15 +1827,21 @@ paths:
   /profile:
     patch:
       consumes:
-      - application/json
-      description: Обновляет имя пользователя, аватар или статус
+      - multipart/form-data
+      description: Обновляет имя, био и аватар пользователя одним multipart-запросом
       parameters:
-      - description: Новые данные профиля
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/dto.UpdateProfileRequest'
+      - description: Новое имя пользователя
+        in: formData
+        name: username
+        type: string
+      - description: Описание профиля
+        in: formData
+        name: bio
+        type: string
+      - description: Аватарка пользователя
+        in: formData
+        name: avatar
+        type: file
       produces:
       - application/json
       responses:
@@ -1859,7 +1852,7 @@ paths:
               type: string
             type: object
         "400":
-          description: 'error: Некорректные данные профиля'
+          description: 'error: Неверные данные'
           schema:
             additionalProperties:
               type: string
@@ -1878,7 +1871,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Обновить профиль
+      summary: Обновить профиль с аватаркой
       tags:
       - profile
   /profile/{username}:

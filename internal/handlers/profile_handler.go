@@ -10,11 +10,15 @@ import (
 )
 
 type ProfileHandler struct {
-	profileService services.ProfileService
+	profileService    services.ProfileService
+	attachmentService services.AttachmentService
 }
 
-func NewProfileHandler(profileService services.ProfileService) *ProfileHandler {
-	return &ProfileHandler{profileService: profileService}
+func NewProfileHandler(profileService services.ProfileService, attachmentService services.AttachmentService) *ProfileHandler {
+	return &ProfileHandler{
+		profileService:    profileService,
+		attachmentService: attachmentService,
+	}
 }
 
 // GetMyProfile godoc
@@ -66,23 +70,25 @@ func (h *ProfileHandler) GetPublicProfile(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusOK, profile)
 }
 
-// UpdateProfile godoc
-// @Summary Обновить профиль
-// @Description Обновляет имя, аватар и био. Аватар предварительно загружается как attachment и передаётся в avatar_url
+// UpdateProfileWithAvatar godoc
+// @Summary Обновить профиль с аватаркой
+// @Description Обновляет имя, био и аватар пользователя одним multipart-запросом
 // @Tags profile
 // @Security BearerAuth
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param input body dto.UpdateProfileRequest true "Поля профиля"
+// @Param username formData string false "Новое имя пользователя"
+// @Param bio formData string false "Описание профиля"
+// @Param avatar formData file false "Аватарка пользователя"
 // @Success 200 {object} map[string]string "message: Профиль обновлён"
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} map[string]string "error: Неверные данные"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
 // @Router /profile [patch]
-func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
-	var req dto.UpdateProfileFormRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.RespondWithError(c, http.StatusBadRequest, "Некорректные данные профиля")
+func (h *ProfileHandler) UpdateProfileWithAvatar(c *gin.Context) {
+	var form dto.UpdateProfileFormRequest
+	if err := c.ShouldBind(&form); err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Некорректные данные формы")
 		return
 	}
 
@@ -92,7 +98,40 @@ func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	if err := h.profileService.UpdateProfile(c.Request.Context(), userID, req); err != nil {
+	var avatarURL *string
+	if form.Avatar != nil {
+		file, err := form.Avatar.Open()
+		if err != nil {
+			utils.RespondWithError(c, http.StatusBadRequest, "Ошибка при открытии аватара")
+			return
+		}
+		defer file.Close()
+
+		fileBytes := make([]byte, form.Avatar.Size)
+		_, _ = file.Read(fileBytes)
+
+		uploaded, err := h.attachmentService.UploadAttachment(
+			c.Request.Context(),
+			userID, // в MinIO может использоваться userID как ID владельца аватара
+			fileBytes,
+			form.Avatar.Filename,
+			form.Avatar.Header.Get("Content-Type"),
+		)
+		if err != nil {
+			utils.RespondWithMappedError(c, err)
+			return
+		}
+		avatarURL = &uploaded.FileURL
+	}
+
+	// Передаём в сервис уже готовый DTO с URL-ом
+	updateData := dto.UpdateProfileRequest{
+		Username:  form.Username,
+		Bio:       form.Bio,
+		AvatarURL: avatarURL,
+	}
+
+	if err := h.profileService.UpdateProfile(c.Request.Context(), userID, updateData); err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
 	}
