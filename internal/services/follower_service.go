@@ -16,6 +16,7 @@ type FollowerService interface {
 	AcceptFollowRequest(ctx context.Context, followerID, followingID uuid.UUID) error
 	DeclineFollowRequest(ctx context.Context, followerID, followingID uuid.UUID) error
 	Unfollow(ctx context.Context, followerID, followingID uuid.UUID) error
+	CancelFollowRequest(ctx context.Context, followerID, followingID uuid.UUID) error
 	IsFollowing(ctx context.Context, followerID, followingID uuid.UUID) (bool, error)
 
 	ListFriendsByUsername(ctx context.Context, username string) ([]dto.UserLiteResponse, error)
@@ -109,6 +110,25 @@ func (s *followerService) Unfollow(ctx context.Context, followerID, followingID 
 	}
 
 	return s.followerRepo.Unfollow(ctx, followerID, followingID)
+}
+
+func (s *followerService) CancelFollowRequest(ctx context.Context, followerID, followingID uuid.UUID) error {
+	// 1. Получаем текущую запись
+	follow, err := s.followerRepo.GetFollowRecord(ctx, followerID, followingID)
+	if err != nil {
+		return err
+	}
+	if follow == nil {
+		return errors.New("запрос на подписку не найден")
+	}
+
+	// 2. Проверяем, что статус — pending
+	if follow.Status != "pending" {
+		return errors.New("запрос уже принят или отклонён и не может быть отменён")
+	}
+
+	// 3. Удаляем
+	return s.followerRepo.CancelFollowRequest(ctx, followerID, followingID)
 }
 
 func (s *followerService) IsFollowing(ctx context.Context, followerID, followingID uuid.UUID) (bool, error) {

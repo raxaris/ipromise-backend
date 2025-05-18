@@ -1,5 +1,7 @@
 package dto
 
+import "mime/multipart"
+
 type MyProfileResponse struct {
 	ID          string `json:"id"` // UUID юзера
 	Username    string `json:"username"`
@@ -32,8 +34,8 @@ type UserLiteResponse struct {
 	Bio       string `json:"bio"`
 }
 
-type UpdateProfileRequest struct {
-	Username  *string `json:"username,omitempty" binding:"omitempty,min=3,max=30"`
-	AvatarURL *string `json:"avatar_url,omitempty" binding:"omitempty,url"`
-	Bio       *string `json:"bio,omitempty" binding:"omitempty,max=160"` // необязательное описание
+type UpdateProfileFormRequest struct {
+	Username *string               `form:"username"`
+	Bio      *string               `form:"bio"`
+	Avatar   *multipart.FileHeader `form:"avatar"`
 }

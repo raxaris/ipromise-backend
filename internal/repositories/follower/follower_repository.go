@@ -23,4 +23,5 @@ type FollowerRepository interface {
 	IsMutualFollower(ctx context.Context, user1, user2 uuid.UUID) (bool, error)
 	GetFollowRecord(ctx context.Context, followerID, followingID uuid.UUID) (*models.Follower, error)
 	ListUsersWithMutualFriendPrioritized(ctx context.Context, userID uuid.UUID, limit int, afterCreatedAt *time.Time) ([]models.User, error)
+	CancelFollowRequest(ctx context.Context, followerID, followingID uuid.UUID) error
 }

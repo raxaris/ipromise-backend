@@ -68,19 +68,19 @@ func (h *ProfileHandler) GetPublicProfile(c *gin.Context) {
 
 // UpdateProfile godoc
 // @Summary Обновить профиль
-// @Description Обновляет имя пользователя, аватар или статус
+// @Description Обновляет имя, аватар и био. Аватар предварительно загружается как attachment и передаётся в avatar_url
 // @Tags profile
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param input body dto.UpdateProfileRequest true "Новые данные профиля"
+// @Param input body dto.UpdateProfileRequest true "Поля профиля"
 // @Success 200 {object} map[string]string "message: Профиль обновлён"
-// @Failure 400 {object} map[string]string "error: Некорректные данные профиля"
-// @Failure 401 {object} map[string]string "error: Неавторизован"
-// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
 // @Router /profile [patch]
 func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
-	var req dto.UpdateProfileRequest
+	var req dto.UpdateProfileFormRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.RespondWithError(c, http.StatusBadRequest, "Некорректные данные профиля")
 		return

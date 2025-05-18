@@ -178,3 +178,9 @@ func (r *followerRepository) GetFollowRecord(ctx context.Context, followerID, fo
 	}
 	return follower, err
 }
+
+func (r *followerRepository) CancelFollowRequest(ctx context.Context, followerID, followingID uuid.UUID) error {
+	return r.db.WithContext(ctx).
+		Where("follower_id = ? AND following_id = ? AND status = ?", followerID, followingID, "pending").
+		Delete(&models.Follower{}).Error
+}

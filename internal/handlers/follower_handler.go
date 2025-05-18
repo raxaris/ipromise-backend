@@ -140,6 +140,41 @@ func (h *FollowHandler) Unfollow(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusOK, "unfollowed successfully")
 }
 
+// CancelFollowRequest godoc
+// @Summary Отменить запрос на подписку
+// @Description Удаляет запрос на подписку, если он ещё не принят (status = "pending")
+// @Tags follows
+// @Security BearerAuth
+// @Param username path string true "Username пользователя, которому был отправлен запрос"
+// @Success 200 {object} map[string]string "message: Запрос отменён"
+// @Failure 400 {object} map[string]string "error: Неверный формат"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /follow/requests/{username}/cancel [delete]
+func (h *FollowHandler) CancelFollowRequest(c *gin.Context) {
+	username := c.Param("username")
+
+	targetUser, err := h.userService.GetUserByUsername(c.Request.Context(), username)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Пользователь не найден")
+		return
+	}
+
+	currentUserID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	err = h.followerService.CancelFollowRequest(c.Request.Context(), currentUserID, targetUser.ID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"message": "Запрос на подписку отменён"})
+}
+
 // ListFriends godoc
 // @Summary Получить список друзей (взаимных подписок)
 // @Description Возвращает список пользователей, у которых с данным пользователем установлена взаимная подписка (дружба)
