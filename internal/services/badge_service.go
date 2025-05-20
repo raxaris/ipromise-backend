@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,10 +43,19 @@ func (s *badgeService) ListAllBadges(ctx context.Context) ([]dto.BadgeResponse, 
 
 // ✅ Назначение бейджа пользователю по коду
 func (s *badgeService) AssignBadgeByCode(ctx context.Context, userID uuid.UUID, badgeCode string) error {
+	has, err := s.badgeRepo.HasUserBadgeByCode(ctx, userID, badgeCode)
+	if err != nil {
+		return err
+	}
+	if has {
+		return nil // уже есть
+	}
+
 	badge, err := s.badgeRepo.GetBadgeByCode(ctx, badgeCode)
 	if err != nil {
-		return errors.New("бейдж с таким кодом не найден")
+		return err
 	}
+
 	return s.badgeRepo.AssignBadgeToUser(ctx, userID, badge.ID)
 }
 

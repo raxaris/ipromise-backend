@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/raxaris/ipromise-backend/internal/mappers"
 	"github.com/raxaris/ipromise-backend/internal/middleware"
@@ -14,6 +15,7 @@ import (
 	"github.com/raxaris/ipromise-backend/internal/repositories/token"
 	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 	"github.com/raxaris/ipromise-backend/internal/services"
+	"github.com/raxaris/ipromise-backend/internal/watchers"
 	"log"
 	"time"
 
@@ -93,13 +95,16 @@ func main() {
 	promiseHandler := handlers.NewPromiseHandler(promiseService, userService)
 	microtaskHandler := handlers.NewMicrotaskHandler(microtaskService)
 	postHandler := handlers.NewPostHandler(postService)
-	badgeHandler := handlers.NewBadgeHandler(badgeService)
-	adminHandler := handlers.NewAdminHandler(adminService)
+	badgeHandler := handlers.NewBadgeHandler(badgeService, userService)
+	adminHandler := handlers.NewAdminHandler(adminService, badgeService, userService)
 	followHandler := handlers.NewFollowHandler(followerService, userService)
 	attachmentHandler := handlers.NewAttachmentHandler(attachmentService)
 	likeHandler := handlers.NewLikeHandler(likeService)
 	// 📌 Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Watcher
+	ctx := context.Background()
+	go watchers.StartBadgeWatcher(ctx, userRepo, postRepo, promiseRepo, followerRepo, badgeService)
 
 	auth := r.Group("/auth")
 	{
@@ -114,6 +119,7 @@ func main() {
 	{
 		badgeGroup.GET("/", badgeHandler.ListAllBadges)
 		badgeGroup.GET("/me", badgeHandler.ListUserBadges)
+		badgeGroup.GET("/:username", badgeHandler.GetBadgesByUsername)
 	}
 
 	users := r.Group("/users")
@@ -134,11 +140,14 @@ func main() {
 	r.GET("/promises/public", promiseHandler.ListPublicPromises)
 
 	admin := r.Group("/admin")
+	admin.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
 		admin.GET("/users", adminHandler.ListAllUsers)
 		admin.GET("/posts", adminHandler.ListAllPosts)
 		admin.GET("/microtasks", adminHandler.ListAllMicrotasks)
 		admin.GET("/promises", adminHandler.ListAllPromises)
+		admin.POST("/admin/badges/assign", adminHandler.AssignBadge)
+		admin.POST("/admin/badges", adminHandler.CreateBadge)
 	}
 
 	promises := r.Group("/promises")
@@ -162,6 +171,7 @@ func main() {
 		microtasks.PATCH("/:id", microtaskHandler.UpdateMicrotask)
 		microtasks.GET("/:id/posts", postHandler.ListPostsByMicrotaskID)
 		microtasks.POST("/:id/posts", postHandler.CreatePost)
+		microtasks.DELETE("/:id", microtaskHandler.DeleteMicrotask)
 	}
 
 	posts := r.Group("/posts")

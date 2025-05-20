@@ -15,7 +15,7 @@ type PostRepository interface {
 	GetAllPosts(ctx context.Context) ([]models.Post, error)
 	ListPostsWithRepliesByMicrotaskID(ctx context.Context, microtaskID uuid.UUID, limit int, after *time.Time, afterID *uuid.UUID) (rootPosts []*models.Post, allReplies []*models.Post, err error)
 	ListPostsWithRepliesByPromiseID(ctx context.Context, promiseID uuid.UUID, limit int, after *time.Time, afterID *uuid.UUID) (rootPosts []*models.Post, allReplies []*models.Post, err error)
-
+	CountUserPosts(ctx context.Context, userID uuid.UUID) (int, error)
 	ListRepliesByPostID(
 		ctx context.Context,
 		postID uuid.UUID,

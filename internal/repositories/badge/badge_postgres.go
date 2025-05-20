@@ -77,3 +77,13 @@ func (r *badgeRepo) GetBadgeByCode(ctx context.Context, code string) (*models.Ba
 	}
 	return &badge, nil
 }
+
+func (r *badgeRepo) HasUserBadgeByCode(ctx context.Context, userID uuid.UUID, badgeCode string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Table("user_badges").
+		Joins("JOIN badges ON badges.id = user_badges.badge_id").
+		Where("user_badges.user_id = ? AND badges.code = ?", userID, badgeCode).
+		Count(&count).Error
+	return count > 0, err
+}

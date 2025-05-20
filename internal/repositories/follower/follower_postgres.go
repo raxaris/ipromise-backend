@@ -184,3 +184,13 @@ func (r *followerRepository) CancelFollowRequest(ctx context.Context, followerID
 		Where("follower_id = ? AND following_id = ? AND status = ?", followerID, followingID, "pending").
 		Delete(&models.Follower{}).Error
 }
+
+func (r *followerRepository) CountMutualFriends(ctx context.Context, userID uuid.UUID) (int, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT COUNT(*) FROM followers f1
+		JOIN followers f2 ON f1.follower_id = f2.following_id AND f1.following_id = f2.follower_id
+		WHERE f1.follower_id = ? AND f1.status = 'accepted' AND f2.status = 'accepted'
+	`, userID).Scan(&count).Error
+	return int(count), err
+}

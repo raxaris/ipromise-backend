@@ -49,6 +49,16 @@ func (r *postRepository) DeletePost(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&models.Post{}, "id = ?", id).Error
 }
 
+func (r *postRepository) CountUserPosts(ctx context.Context, userID uuid.UUID) (int, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.Post{}).
+		Where("user_id = ?", userID).
+		Count(&count).Error
+
+	return int(count), err
+}
+
 func (r *postRepository) ListPostsWithRepliesByMicrotaskID(
 	ctx context.Context,
 	microtaskID uuid.UUID,
