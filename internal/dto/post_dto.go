@@ -33,6 +33,7 @@ type PostWithRepliesTreeResponse struct {
 	MicrotaskTitle string                        `json:"microtask_title"`
 	LikesCount     int64                         `json:"likes"`
 	IsLikedByMe    bool                          `json:"is_liked_by_me"`
+	IsYourFriend   bool                          `json:"is_your_friend"`
 	CommentsCount  int64                         `json:"comments"`
 	Attachments    []AttachmentResponse          `json:"attachments,omitempty"`
 	Replies        []PostWithRepliesTreeResponse `json:"replies"`
@@ -52,6 +53,7 @@ type PostLiteResponse struct {
 	MicrotaskTitle string               `json:"microtask_title"`
 	LikesCount     int64                `json:"likes"`
 	IsLikedByMe    bool                 `json:"is_liked_by_me"`
+	IsYourFriend   bool                 `json:"is_your_friend"`
 	CommentsCount  int64                `json:"comments"`
 	Attachments    []AttachmentResponse `json:"attachments,omitempty"`
 	IsPrivate      bool                 `json:"is_private"`

@@ -18,7 +18,7 @@ import (
 )
 
 type PromiseService interface {
-	CreatePromise(ctx context.Context, userID uuid.UUID, title, description string, deadline time.Time, isPrivate bool) error
+	CreatePromise(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseRequest) error
 	CreatePromiseWithMicrotasks(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseWithMicrotasksRequest) error
 	GetUserPromisesWithMicrotasksProgress(ctx context.Context, viewerID uuid.UUID, username string, limit int, after *time.Time) ([]dto.PromiseWithMicrotasksProgressResponse, error)
 	GetPromiseByID(ctx context.Context, viewerID uuid.UUID, promiseID uuid.UUID) (*models.Promise, error)
@@ -48,18 +48,19 @@ func NewPromiseService(promiseRepo promise.PromiseRepository, microtaskRepo micr
 	}
 }
 
-func (s *promiseService) CreatePromise(ctx context.Context, userID uuid.UUID, title, description string, deadline time.Time, isPrivate bool) error {
-	if err := validatePromiseInput(&title, &description, &deadline); err != nil {
+func (s *promiseService) CreatePromise(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseRequest) error {
+	if err := validatePromiseInput(&req.Title, &req.Description, &req.Deadline); err != nil {
 		return err
 	}
 
 	newPromise := &models.Promise{
 		ID:          uuid.New(),
 		UserID:      userID,
-		Title:       title,
-		Description: description,
-		Deadline:    deadline,
-		IsPrivate:   isPrivate,
+		Title:       req.Title,
+		Description: req.Description,
+		Deadline:    req.Deadline,
+		Category:    req.Category,
+		IsPrivate:   req.IsPrivate,
 		Status:      "in_progress",
 	}
 
@@ -73,6 +74,7 @@ func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID
 		Title:       req.Title,
 		Description: req.Description,
 		Deadline:    req.Deadline,
+		Category:    req.Category,
 		IsPrivate:   req.IsPrivate,
 		Status:      "in_progress",
 	}

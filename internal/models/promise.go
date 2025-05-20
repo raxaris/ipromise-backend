@@ -16,6 +16,7 @@ type Promise struct {
 	IsPrivate   bool           `gorm:"not null;default:false"`
 	Status      string         `gorm:"type:varchar(20);not null"` // "in_progress" / "completed"
 	CreatedAt   time.Time      `gorm:"autoCreateTime"`
+	Category    string         `gorm:"type:varchar(30)"`
 	UpdatedAt   time.Time      `gorm:"autoUpdateTime"`
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
 }

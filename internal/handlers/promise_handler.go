@@ -47,7 +47,7 @@ func (h *PromiseHandler) CreatePromise(c *gin.Context) {
 		return
 	}
 
-	err = h.promiseService.CreatePromise(c.Request.Context(), userID, req.Title, req.Description, req.Deadline, req.IsPrivate)
+	err = h.promiseService.CreatePromise(c.Request.Context(), userID, &req)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return

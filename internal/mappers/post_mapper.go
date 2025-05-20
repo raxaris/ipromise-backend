@@ -6,6 +6,7 @@ import (
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/models"
 	"github.com/raxaris/ipromise-backend/internal/repositories/attachment"
+	"github.com/raxaris/ipromise-backend/internal/repositories/follower"
 	"github.com/raxaris/ipromise-backend/internal/repositories/like"
 	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
 	"github.com/raxaris/ipromise-backend/internal/repositories/post"
@@ -20,6 +21,7 @@ type PostMapper struct {
 	microtaskRepository  microtask.MicrotaskRepository
 	promiseRepository    promise.PromiseRepository
 	postRepository       post.PostRepository
+	followerRepository   follower.FollowerRepository
 }
 
 func NewPostMapper(
@@ -29,6 +31,7 @@ func NewPostMapper(
 	microtaskRepository microtask.MicrotaskRepository,
 	promiseRepository promise.PromiseRepository,
 	postRepository post.PostRepository,
+	followerRepository follower.FollowerRepository,
 ) *PostMapper {
 	return &PostMapper{
 		userRepository:       userRepository,
@@ -37,6 +40,7 @@ func NewPostMapper(
 		microtaskRepository:  microtaskRepository,
 		promiseRepository:    promiseRepository,
 		postRepository:       postRepository,
+		followerRepository:   followerRepository,
 	}
 }
 
@@ -89,6 +93,11 @@ func (pm *PostMapper) BuildPostLite(
 		return nil, err
 	}
 
+	isFriend, err := pm.followerRepository.IsMutualFollower(ctx, viewerID, userModel.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &dto.PostLiteResponse{
 		ID:             post.ID.String(),
 		Content:        post.Content,
@@ -104,6 +113,7 @@ func (pm *PostMapper) BuildPostLite(
 		CommentsCount:  commentsCount,
 		Attachments:    attachmentDTOs,
 		IsPrivate:      promiseModel.IsPrivate,
+		IsYourFriend:   isFriend,
 		CreatedAt:      post.CreatedAt,
 	}, nil
 }

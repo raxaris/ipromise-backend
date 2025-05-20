@@ -36,7 +36,7 @@ func StartBadgeWatcher(
 				for _, user := range users {
 					assignBadges(ctx, user.ID, postRepo, promiseRepo, followerRepo, badgeService)
 				}
-
+				log.Printf("Вотчер завершил круг")
 			case <-ctx.Done():
 				ticker.Stop()
 				return
@@ -78,6 +78,7 @@ func assignBadges(
 			if err != nil {
 				log.Printf("Не удалось выдать бейдж %s пользователю %s: %v", badge.Code, userID, err)
 			}
+			log.Printf("Не удалось выдать бейдж пользователю %s", userID)
 		}
 	}
 }

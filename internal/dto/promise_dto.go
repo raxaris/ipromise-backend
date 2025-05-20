@@ -8,6 +8,7 @@ type CreatePromiseRequest struct {
 	Title       string    `json:"title" binding:"required,min=1,max=100"`
 	Description string    `json:"description" binding:"max=2000"`
 	Deadline    time.Time `json:"deadline" binding:"required"`
+	Category    string    `json:"category"`
 	IsPrivate   bool      `json:"is_private"`
 }
 
@@ -15,6 +16,7 @@ type CreatePromiseWithMicrotasksRequest struct {
 	Title       string                 `json:"title" binding:"required"`
 	Description string                 `json:"description"`
 	Deadline    time.Time              `json:"deadline" binding:"required"`
+	Category    string                 `json:"category"`
 	IsPrivate   bool                   `json:"is_private"`
 	Microtasks  []CreateMicrotaskInput `json:"microtasks"`
 }
