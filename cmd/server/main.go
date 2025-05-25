@@ -213,6 +213,7 @@ func main() {
 		follow.GET("/requests", followHandler.ListPendingRequests)
 		follow.GET("/requests/sent", followHandler.ListSentRequests)
 		follow.DELETE("/:username", followHandler.Unfollow)
+		follow.DELETE("/requests/:username/cancel", followHandler.CancelFollowRequest)
 	}
 
 	friends := r.Group("/friends")
