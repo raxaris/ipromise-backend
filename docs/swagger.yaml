@@ -49,6 +49,8 @@ definitions:
     type: object
   dto.CreatePromiseRequest:
     properties:
+      category:
+        type: string
       deadline:
         type: string
       description:
@@ -66,6 +68,8 @@ definitions:
     type: object
   dto.CreatePromiseWithMicrotasksRequest:
     properties:
+      category:
+        type: string
       deadline:
         type: string
       description:
@@ -174,6 +178,8 @@ definitions:
         type: boolean
       is_private:
         type: boolean
+      is_your_friend:
+        type: boolean
       likes:
         type: integer
       microtask_id:
@@ -209,6 +215,8 @@ definitions:
         type: boolean
       is_private:
         type: boolean
+      is_your_friend:
+        type: boolean
       likes:
         type: integer
       microtask_id:
@@ -225,6 +233,15 @@ definitions:
         type: array
       username:
         type: string
+    type: object
+  dto.PredictionResponse:
+    properties:
+      advice:
+        type: string
+      promise_id:
+        type: string
+      success_rate:
+        type: number
     type: object
   dto.PromiseResponse:
     properties:
@@ -377,6 +394,21 @@ definitions:
       username:
         type: string
     type: object
+  models.Badge:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      iconURL:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+    type: object
   utils.ErrorResponse:
     properties:
       code:
@@ -406,6 +438,84 @@ info:
   title: iPromise API
   version: "1.0"
 paths:
+  /admin/badges:
+    post:
+      consumes:
+      - application/json
+      description: Админ может создать новый бейдж вручную
+      parameters:
+      - description: Данные бейджа
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.Badge'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: Бейдж создан'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Некорректные данные'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать новый бейдж
+      tags:
+      - badges
+  /admin/badges/{username}/{code}:
+    post:
+      description: Админ вручную назначает бейдж по коду
+      parameters:
+      - description: Имя пользователя
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: Код бейджа
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Бейдж назначен'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Пользователь или бейдж не найден'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Назначить бейдж пользователю
+      tags:
+      - badges
   /attachments/{id}:
     delete:
       description: Удаляет вложение из MinIO и базы данных
@@ -604,6 +714,39 @@ paths:
               type: string
             type: object
       summary: Получить все бейджи
+      tags:
+      - badges
+  /badges/{username}:
+    get:
+      description: Возвращает список бейджей по username
+      parameters:
+      - description: Имя пользователя
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.BadgeResponse'
+            type: array
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить бейджи пользователя
       tags:
       - badges
   /badges/me:
@@ -2123,6 +2266,77 @@ paths:
       summary: Обновить обещание
       tags:
       - promises
+  /promises/{id}/prediction:
+    get:
+      description: Возвращает сохранённое предсказание без повторной генерации
+      parameters:
+      - description: ID Promise
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PredictionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить существующее предсказание по Promise
+      tags:
+      - prediction
+    post:
+      description: Вызывает AI и сохраняет новое предсказание
+      parameters:
+      - description: ID Promise
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PredictionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Сгенерировать или обновить предсказание
+      tags:
+      - prediction
   /promises/{promise_id}/microtasks:
     get:
       description: Возвращает все микротаски, прикреплённые к заданному промису

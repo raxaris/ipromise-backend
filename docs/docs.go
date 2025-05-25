@@ -15,6 +15,128 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/badges": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Админ может создать новый бейдж вручную",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "badges"
+                ],
+                "summary": "Создать новый бейдж",
+                "parameters": [
+                    {
+                        "description": "Данные бейджа",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Badge"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "message: Бейдж создан",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Некорректные данные",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/badges/{username}/{code}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Админ вручную назначает бейдж по коду",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "badges"
+                ],
+                "summary": "Назначить бейдж пользователю",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя пользователя",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Код бейджа",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Бейдж назначен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь или бейдж не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/attachments/{id}": {
             "delete": {
                 "security": [
@@ -349,6 +471,56 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "error: Требуется авторизация",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/badges/{username}": {
+            "get": {
+                "description": "Возвращает список бейджей по username",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "badges"
+                ],
+                "summary": "Получить бейджи пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя пользователя",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.BadgeResponse"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь не найден",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2957,6 +3129,117 @@ const docTemplate = `{
                 }
             }
         },
+        "/promises/{id}/prediction": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает сохранённое предсказание без повторной генерации",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prediction"
+                ],
+                "summary": "Получить существующее предсказание по Promise",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID Promise",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PredictionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Вызывает AI и сохраняет новое предсказание",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prediction"
+                ],
+                "summary": "Сгенерировать или обновить предсказание",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID Promise",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PredictionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/promises/{promise_id}/microtasks": {
             "get": {
                 "security": [
@@ -3498,6 +3781,9 @@ const docTemplate = `{
                 "title"
             ],
             "properties": {
+                "category": {
+                    "type": "string"
+                },
                 "deadline": {
                     "type": "string"
                 },
@@ -3522,6 +3808,9 @@ const docTemplate = `{
                 "title"
             ],
             "properties": {
+                "category": {
+                    "type": "string"
+                },
                 "deadline": {
                     "type": "string"
                 },
@@ -3681,6 +3970,9 @@ const docTemplate = `{
                 "is_private": {
                     "type": "boolean"
                 },
+                "is_your_friend": {
+                    "type": "boolean"
+                },
                 "likes": {
                     "type": "integer"
                 },
@@ -3734,6 +4026,9 @@ const docTemplate = `{
                 "is_private": {
                     "type": "boolean"
                 },
+                "is_your_friend": {
+                    "type": "boolean"
+                },
                 "likes": {
                     "type": "integer"
                 },
@@ -3757,6 +4052,20 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.PredictionResponse": {
+            "type": "object",
+            "properties": {
+                "advice": {
+                    "type": "string"
+                },
+                "promise_id": {
+                    "type": "string"
+                },
+                "success_rate": {
+                    "type": "number"
                 }
             }
         },
@@ -3980,6 +4289,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Badge": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "iconURL": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "title": {
                     "type": "string"
                 }
             }
