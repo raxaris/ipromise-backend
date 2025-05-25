@@ -12,12 +12,12 @@ type Badge struct {
 	Title       string    `gorm:"size:100;not null"`
 	Description string    `gorm:"size:255"`
 	IconURL     string    `gorm:"size:255"`
-	CreatedAt   time.Time
+	CreatedAt   time.Time `gorm:"autoCreateTime"`
 }
 
 type UserBadge struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index:idx_user_badge,unique"`
 	BadgeID   uuid.UUID `gorm:"type:uuid;not null;index:idx_user_badge,unique"`
-	AwardedAt time.Time
+	AwardedAt time.Time `gorm:"autoCreateTime"`
 }

@@ -20,7 +20,7 @@ type User struct {
 	Email      string    `gorm:"unique;not null"`
 	Password   string    `gorm:"not null" json:"-"`
 	Role       string    `gorm:"type:varchar(15);default:'user'" json:"role"`
-	AvatarURL  string    `gorm:"size:255"` // можно оставить пустым
+	AvatarURL  string    `gorm:"size:255"`
 	Bio        string    `gorm:"size:160" json:"bio"`
 }
 

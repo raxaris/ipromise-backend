@@ -11,6 +11,7 @@ import (
 	"github.com/raxaris/ipromise-backend/internal/repositories/like"
 	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
 	"github.com/raxaris/ipromise-backend/internal/repositories/post"
+	"github.com/raxaris/ipromise-backend/internal/repositories/prediction"
 	"github.com/raxaris/ipromise-backend/internal/repositories/promise"
 	"github.com/raxaris/ipromise-backend/internal/repositories/token"
 	"github.com/raxaris/ipromise-backend/internal/repositories/user"
@@ -42,6 +43,7 @@ func main() {
 
 	db := config.ConnectDB()
 	storage := config.CreateStorage()
+	openaiClient := config.InitOpenAIClient()
 
 	r := gin.Default()
 	r.Use(gin.Recovery())
@@ -65,7 +67,7 @@ func main() {
 	badgeRepo := badge.NewBadgeRepository(db)
 	likeRepo := like.NewLikeRepository(db)
 	attachmentRepo := attachment.NewAttachmentRepository(db)
-
+	predictionRepo := prediction.NewPredictionRepository(db)
 	// Маппер
 	postMapper := mappers.NewPostMapper(
 		userRepo,
@@ -74,6 +76,7 @@ func main() {
 		microtaskRepo,
 		promiseRepo,
 		postRepo,
+		followerRepo,
 	)
 
 	// 🧠 Сервисы
@@ -88,6 +91,7 @@ func main() {
 	followerService := services.NewFollowerService(followerRepo, userRepo)
 	attachmentService := services.NewAttachmentService(attachmentRepo, storage)
 	likeService := services.NewLikeService(likeRepo, postRepo)
+	predictionService := services.NewPredictionService(predictionRepo, openaiClient)
 	// 🤝 Хендлеры
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -100,6 +104,7 @@ func main() {
 	followHandler := handlers.NewFollowHandler(followerService, userService)
 	attachmentHandler := handlers.NewAttachmentHandler(attachmentService)
 	likeHandler := handlers.NewLikeHandler(likeService)
+	predictionHandler := handlers.NewPredictionHandler(predictionService, promiseService)
 	// 📌 Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// Watcher
@@ -163,6 +168,13 @@ func main() {
 		promises.PATCH("/:id/microtasks/reorder", microtaskHandler.ReorderMicrotasks)
 		promises.GET("/user/:username", promiseHandler.ListProfilePromises)
 		promises.GET("/user/:username/progress", promiseHandler.GetUserPromisesWithProgress)
+	}
+
+	predictions := r.Group("/promises/:id/prediction")
+	predictions.Use(middleware.AuthMiddleware())
+	{
+		predictions.GET("", predictionHandler.GetPrediction)
+		predictions.POST("", predictionHandler.GeneratePrediction)
 	}
 
 	microtasks := r.Group("/microtasks")
