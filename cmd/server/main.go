@@ -10,6 +10,7 @@ import (
 	"github.com/raxaris/ipromise-backend/internal/repositories/follower"
 	"github.com/raxaris/ipromise-backend/internal/repositories/like"
 	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
+	"github.com/raxaris/ipromise-backend/internal/repositories/notification"
 	"github.com/raxaris/ipromise-backend/internal/repositories/post"
 	"github.com/raxaris/ipromise-backend/internal/repositories/prediction"
 	"github.com/raxaris/ipromise-backend/internal/repositories/promise"
@@ -47,6 +48,7 @@ func main() {
 
 	r := gin.Default()
 	r.Use(gin.Recovery())
+
 	// CORS Middleware
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
@@ -68,6 +70,8 @@ func main() {
 	likeRepo := like.NewLikeRepository(db)
 	attachmentRepo := attachment.NewAttachmentRepository(db)
 	predictionRepo := prediction.NewPredictionRepository(db)
+	notificationRepo := notification.NewNotificationRepository(db)
+
 	// Маппер
 	postMapper := mappers.NewPostMapper(
 		userRepo,
@@ -92,6 +96,8 @@ func main() {
 	followerService := services.NewFollowerService(followerRepo, userRepo)
 	attachmentService := services.NewAttachmentService(attachmentRepo, storage)
 	likeService := services.NewLikeService(likeRepo, postRepo)
+	notificationService := services.NewNotificationService(notificationRepo)
+
 	// 🤝 Хендлеры
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -105,11 +111,15 @@ func main() {
 	attachmentHandler := handlers.NewAttachmentHandler(attachmentService)
 	likeHandler := handlers.NewLikeHandler(likeService)
 	predictionHandler := handlers.NewPredictionHandler(predictionService, promiseService)
+	notificationHandler := handlers.NewNotificationHandler(notificationService)
+
 	// 📌 Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Watcher
 	ctx := context.Background()
 	go watchers.StartBadgeWatcher(ctx, userRepo, postRepo, promiseRepo, followerRepo, badgeService)
+	go watchers.StartDeadlineWatcher(ctx, promiseRepo, notificationService)
 
 	auth := r.Group("/auth")
 	{
@@ -236,6 +246,14 @@ func main() {
 		likes.POST("/:id/like", likeHandler.LikePost)
 		likes.POST("/:id/unlike", likeHandler.UnlikePost)
 	}
+
+	notifications := r.Group("/notifications")
+	notifications.Use(middleware.AuthMiddleware())
+	{
+		notifications.GET("/me", notificationHandler.ListMyNotifications)
+		notifications.POST("/:id/read", notificationHandler.MarkAsRead)
+	}
+
 	port := "8080"
 	fmt.Println("🚀 Сервер запущен на порту " + port)
 	log.Fatal(r.Run(":" + port))

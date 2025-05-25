@@ -29,14 +29,14 @@ func StartBadgeWatcher(
 			case <-ticker.C:
 				users, err := userRepo.GetAllUsers(ctx)
 				if err != nil {
-					log.Println("Ошибка получения пользователей для бейджей:", err)
+					log.Println("Error collecting users:", err)
 					continue
 				}
 
 				for _, user := range users {
 					assignBadges(ctx, user.ID, postRepo, promiseRepo, followerRepo, badgeService)
 				}
-				log.Printf("Вотчер завершил круг")
+				log.Printf("Watcher finished cycle")
 			case <-ctx.Done():
 				ticker.Stop()
 				return
@@ -73,12 +73,24 @@ func assignBadges(
 	}
 
 	for _, badge := range badgeConditions {
-		if badge.Check {
-			err := badgeService.AssignBadgeByCode(ctx, userID, badge.Code)
-			if err != nil {
-				log.Printf("Не удалось выдать бейдж %s пользователю %s: %v", badge.Code, userID, err)
-			}
-			log.Printf("Не удалось выдать бейдж пользователю %s", userID)
+		if !badge.Check {
+			continue // условие не выполнено — пропускаем
+		}
+
+		has, err := badgeService.HasUserBadgeByCode(ctx, userID, badge.Code)
+		if err != nil {
+			log.Printf("Error while assigning badge %s for %s: %v", badge.Code, userID, err)
+			continue
+		}
+		if has {
+			continue
+		}
+
+		err = badgeService.AssignBadgeByCode(ctx, userID, badge.Code)
+		if err != nil {
+			log.Printf("Error while assigning badge %s for %s: %v", badge.Code, userID, err)
+		} else {
+			log.Printf("Badge %s assigned to user %s", badge.Code, userID)
 		}
 	}
 }
