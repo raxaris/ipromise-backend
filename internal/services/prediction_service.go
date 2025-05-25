@@ -96,6 +96,7 @@ func buildPrompt(promise *models.Promise) string {
 		"Title: " + promise.Title + "\n" +
 		"Description: " + promise.Description + "\n" +
 		"Deadline: " + promise.Deadline.Format("2006-01-02") + "\n" +
+		"Today: " + time.Now().Format("2006-01-02") + "\n" +
 		"Category: " + promise.Category + "\n\n" +
 		"Based on this information, estimate the user's likelihood of success (as a percentage), and give a short motivational advice (max 100 words).\n\n" +
 		"Format strictly as:\nSuccess Rate: XX%\nAdvice: ..."

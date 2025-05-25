@@ -31,20 +31,22 @@ type PromiseService interface {
 }
 
 type promiseService struct {
-	promiseRepo   promise.PromiseRepository
-	microtaskRepo microtask.MicrotaskRepository
-	followerRepo  follower.FollowerRepository
-	userRepo      user.UserRepository
-	postRepo      post.PostRepository
+	promiseRepo       promise.PromiseRepository
+	microtaskRepo     microtask.MicrotaskRepository
+	followerRepo      follower.FollowerRepository
+	userRepo          user.UserRepository
+	postRepo          post.PostRepository
+	predictionService PredictionService
 }
 
-func NewPromiseService(promiseRepo promise.PromiseRepository, microtaskRepo microtask.MicrotaskRepository, followerRepo follower.FollowerRepository, userRepo user.UserRepository, postRepo post.PostRepository) PromiseService {
+func NewPromiseService(promiseRepo promise.PromiseRepository, microtaskRepo microtask.MicrotaskRepository, followerRepo follower.FollowerRepository, userRepo user.UserRepository, postRepo post.PostRepository, predictionService PredictionService) PromiseService {
 	return &promiseService{
-		promiseRepo:   promiseRepo,
-		followerRepo:  followerRepo,
-		microtaskRepo: microtaskRepo,
-		userRepo:      userRepo,
-		postRepo:      postRepo,
+		promiseRepo:       promiseRepo,
+		followerRepo:      followerRepo,
+		microtaskRepo:     microtaskRepo,
+		userRepo:          userRepo,
+		postRepo:          postRepo,
+		predictionService: predictionService,
 	}
 }
 
@@ -77,6 +79,15 @@ func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID
 		Category:    req.Category,
 		IsPrivate:   req.IsPrivate,
 		Status:      "in_progress",
+	}
+
+	prediction, err := s.predictionService.CreateOrReplacePrediction(ctx, newPromise)
+	if err != nil {
+		return err
+	}
+
+	if prediction.SuccessRate < 25 {
+		return fmt.Errorf("Success rate too low: %.0f%%. Advice: %s", prediction.SuccessRate, prediction.Advice)
 	}
 
 	if err := s.promiseRepo.CreatePromise(ctx, newPromise); err != nil {

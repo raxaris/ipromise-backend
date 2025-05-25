@@ -83,7 +83,8 @@ func main() {
 	authService := services.NewAuthService(userRepo, tokenRepo)
 	userService := services.NewUserService(userRepo)
 	profileService := services.NewProfileService(userRepo, badgeRepo, promiseRepo, followerRepo)
-	promiseService := services.NewPromiseService(promiseRepo, microtaskRepo, followerRepo, userRepo, postRepo)
+	predictionService := services.NewPredictionService(predictionRepo, openaiClient)
+	promiseService := services.NewPromiseService(promiseRepo, microtaskRepo, followerRepo, userRepo, postRepo, predictionService)
 	microtaskService := services.NewMicrotaskService(microtaskRepo, promiseRepo)
 	postService := services.NewPostService(postRepo, microtaskRepo, postMapper, followerRepo, promiseRepo, attachmentRepo, storage)
 	badgeService := services.NewBadgeService(badgeRepo)
@@ -91,7 +92,6 @@ func main() {
 	followerService := services.NewFollowerService(followerRepo, userRepo)
 	attachmentService := services.NewAttachmentService(attachmentRepo, storage)
 	likeService := services.NewLikeService(likeRepo, postRepo)
-	predictionService := services.NewPredictionService(predictionRepo, openaiClient)
 	// 🤝 Хендлеры
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)

@@ -7,6 +7,7 @@ import (
 	"github.com/raxaris/ipromise-backend/internal/services"
 	"github.com/raxaris/ipromise-backend/internal/utils"
 	"net/http"
+	"strings"
 )
 
 type PromiseHandler struct {
@@ -82,7 +83,11 @@ func (h *PromiseHandler) CreatePromiseWithMicrotasks(c *gin.Context) {
 	}
 
 	if err := h.promiseService.CreatePromiseWithMicrotasks(c.Request.Context(), userID, &req); err != nil {
-		utils.RespondWithError(c, http.StatusInternalServerError, "Failed to create promise")
+		if strings.HasPrefix(err.Error(), "Success rate too low") {
+			utils.RespondWithError(c, http.StatusBadRequest, err.Error())
+		} else {
+			utils.RespondWithError(c, http.StatusInternalServerError, "Failed to create promise")
+		}
 		return
 	}
 
