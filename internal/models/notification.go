@@ -7,8 +7,8 @@ import (
 
 type Notification struct {
 	ID        uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	UserID    uuid.UUID `gorm:"not null"`
-	Type      string    `gorm:"not null"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null"`
+	Type      string    `gorm:"type:text;not null"`
 	Message   string    `gorm:"type:text;not null"`
 	IsRead    bool      `gorm:"default:false"`
 	RelatedID *uuid.UUID

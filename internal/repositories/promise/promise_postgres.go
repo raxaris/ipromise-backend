@@ -183,3 +183,7 @@ func (r *promiseRepository) ListPromisesBeforeDeadline(
 
 	return promises, nil
 }
+
+func (r *promiseRepository) WithTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error {
+	return r.db.WithContext(ctx).Transaction(fn)
+}

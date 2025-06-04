@@ -2,6 +2,7 @@ package promise
 
 import (
 	"context"
+	"gorm.io/gorm"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +15,7 @@ type PromiseRepository interface {
 	GetAllPromises(ctx context.Context) ([]models.Promise, error)
 	UpdatePromise(ctx context.Context, promise *models.Promise) error
 	DeletePromise(ctx context.Context, id uuid.UUID) error
+	WithTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error
 
 	ListAllPromisesByUserID(
 		ctx context.Context,

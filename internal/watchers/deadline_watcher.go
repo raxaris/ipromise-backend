@@ -66,8 +66,16 @@ func sendDeadlineReminderIfNeeded(ctx context.Context, promise *models.Promise, 
 	}
 }
 
-func sendNotification(ctx context.Context, userID uuid.UUID, promiseID uuid.UUID, notificationService services.NotificationService, amount int, unit string) {
-	msg := ""
+func sendNotification(
+	ctx context.Context,
+	userID uuid.UUID,
+	promiseID uuid.UUID,
+	notificationService services.NotificationService,
+	amount int,
+	unit string,
+) {
+	var msg string
+
 	switch unit {
 	case "day":
 		if amount == 1 {
@@ -81,7 +89,16 @@ func sendNotification(ctx context.Context, userID uuid.UUID, promiseID uuid.UUID
 		} else {
 			msg = fmt.Sprintf("⏰ %d months left until your promise deadline.", amount)
 		}
+	default:
+		msg = "⏰ A reminder about your promise deadline."
 	}
 
-	_ = notificationService.SendNotification(ctx, userID, "deadline", msg, &promiseID)
+	notif := &models.Notification{
+		Type:      "deadline",
+		Message:   msg,
+		RelatedID: &promiseID,
+		CreatedAt: time.Now(),
+	}
+
+	_ = notificationService.SendNotification(ctx, userID, notif)
 }

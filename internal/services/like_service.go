@@ -3,9 +3,12 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
+	"github.com/raxaris/ipromise-backend/internal/models"
 	"github.com/raxaris/ipromise-backend/internal/repositories/like"
 	"github.com/raxaris/ipromise-backend/internal/repositories/post"
+	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 )
 
 type LikeService interface {
@@ -17,14 +20,19 @@ type LikeService interface {
 }
 
 type likeService struct {
-	repo     like.LikeRepository
-	postRepo post.PostRepository
+	repo                like.LikeRepository
+	postRepo            post.PostRepository
+	userRepo            user.UserRepository
+	notificationService NotificationService
 }
 
-func NewLikeService(repo like.LikeRepository, postRepo post.PostRepository) LikeService {
+func NewLikeService(repo like.LikeRepository, postRepo post.PostRepository, userRepo user.UserRepository, notificationService NotificationService) LikeService {
 	return &likeService{
-		repo:     repo,
-		postRepo: postRepo}
+		repo:                repo,
+		postRepo:            postRepo,
+		userRepo:            userRepo,
+		notificationService: notificationService,
+	}
 }
 
 func (s *likeService) LikePost(ctx context.Context, userID, postID uuid.UUID) error {
@@ -40,7 +48,31 @@ func (s *likeService) LikePost(ctx context.Context, userID, postID uuid.UUID) er
 		return errors.New("post already liked")
 	}
 
-	return s.repo.LikePost(ctx, userID, postID)
+	if err := s.repo.LikePost(ctx, userID, postID); err != nil {
+		return err
+	}
+
+	post, err := s.postRepo.GetPostByID(ctx, postID)
+	if err != nil {
+		return err
+	}
+
+	if post.UserID != userID {
+		user, err := s.userRepo.GetUserByID(ctx, userID)
+		if err != nil {
+			return err
+		}
+
+		message := fmt.Sprintf("%s liked your post", user.Username)
+		notification := &models.Notification{
+			Type:      "like",
+			Message:   message,
+			RelatedID: &postID,
+		}
+		_ = s.notificationService.SendNotification(ctx, post.UserID, notification)
+	}
+
+	return nil
 }
 
 func (s *likeService) UnlikePost(ctx context.Context, userID, postID uuid.UUID) error {
@@ -56,7 +88,16 @@ func (s *likeService) UnlikePost(ctx context.Context, userID, postID uuid.UUID) 
 		return errors.New("like not found")
 	}
 
-	return s.repo.UnlikePost(ctx, userID, postID)
+	if err := s.repo.UnlikePost(ctx, userID, postID); err != nil {
+		return err
+	}
+
+	post, err := s.postRepo.GetPostByID(ctx, postID)
+	if err == nil && post.UserID != userID {
+		_ = s.notificationService.DeleteByTypeAndRelatedID(ctx, post.UserID, "like", postID)
+	}
+
+	return nil
 }
 
 func (s *likeService) IsPostLikedByUser(ctx context.Context, userID, postID uuid.UUID) (bool, error) {

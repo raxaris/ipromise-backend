@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"gorm.io/gorm"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 type PredictionService interface {
 	GetPrediction(ctx context.Context, promiseID uuid.UUID) (*dto.PredictionResponse, error)
 	CreateOrReplacePrediction(ctx context.Context, promise *models.Promise) (*dto.PredictionResponse, error)
+	CreateOrReplacePredictionTx(ctx context.Context, tx *gorm.DB, promise *models.Promise) (*models.Prediction, error)
 }
 
 type predictionService struct {
@@ -89,6 +91,36 @@ func (s *predictionService) CreateOrReplacePrediction(ctx context.Context, promi
 		SuccessRate: newPrediction.SuccessRate,
 		Advice:      newPrediction.Advice,
 	}, nil
+}
+
+func (s *predictionService) CreateOrReplacePredictionTx(ctx context.Context, tx *gorm.DB, promise *models.Promise) (*models.Prediction, error) {
+	prompt := buildPrompt(promise)
+
+	result, err := s.client.SendPrompt(ctx, prompt)
+	if err != nil {
+		return nil, err
+	}
+
+	successRate, advice := parsePredictionResult(result)
+
+	if err := s.repo.DeleteByPromiseIDTx(ctx, tx, promise.ID); err != nil {
+		return nil, err
+	}
+
+	prediction := &models.Prediction{
+		ID:          uuid.New(),
+		PromiseID:   promise.ID,
+		SuccessRate: float64(successRate),
+		Advice:      advice,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	if err := s.repo.CreateTx(ctx, tx, prediction); err != nil {
+		return nil, err
+	}
+
+	return prediction, nil
 }
 
 func buildPrompt(promise *models.Promise) string {

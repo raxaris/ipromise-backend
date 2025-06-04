@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	notificationcache "github.com/raxaris/ipromise-backend/internal/cache/notification"
 	"github.com/raxaris/ipromise-backend/internal/mappers"
 	"github.com/raxaris/ipromise-backend/internal/middleware"
 	"github.com/raxaris/ipromise-backend/internal/repositories/attachment"
@@ -18,6 +19,7 @@ import (
 	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 	"github.com/raxaris/ipromise-backend/internal/services"
 	"github.com/raxaris/ipromise-backend/internal/watchers"
+	"github.com/raxaris/ipromise-backend/internal/ws"
 	"log"
 	"time"
 
@@ -45,18 +47,24 @@ func main() {
 	db := config.ConnectDB()
 	storage := config.CreateStorage()
 	openaiClient := config.InitOpenAIClient()
+	redisClient := config.NewRedisClient()
+	notificationCache := notificationcache.NewRedisNotificationCache(redisClient)
+
+	// WebSocket Hub
+	notificationHub := ws.NewNotificationHub()
+	go notificationHub.Run()
 
 	r := gin.Default()
 	r.Use(gin.Recovery())
 
 	// CORS Middleware
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5500"},
 		AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
+		MaxAge:           24 * time.Hour,
 	}))
 
 	// 📦 Репозитории
@@ -73,15 +81,8 @@ func main() {
 	notificationRepo := notification.NewNotificationRepository(db)
 
 	// Маппер
-	postMapper := mappers.NewPostMapper(
-		userRepo,
-		likeRepo,
-		attachmentRepo,
-		microtaskRepo,
-		promiseRepo,
-		postRepo,
-		followerRepo,
-	)
+	postMapper := mappers.NewPostMapper(userRepo, likeRepo, attachmentRepo, microtaskRepo, promiseRepo, postRepo, followerRepo)
+	notificationMapper := mappers.NewNotificationMapper()
 
 	// 🧠 Сервисы
 	authService := services.NewAuthService(userRepo, tokenRepo)
@@ -95,8 +96,8 @@ func main() {
 	adminService := services.NewAdminService(userRepo, postRepo, microtaskRepo, promiseRepo)
 	followerService := services.NewFollowerService(followerRepo, userRepo)
 	attachmentService := services.NewAttachmentService(attachmentRepo, storage)
-	likeService := services.NewLikeService(likeRepo, postRepo)
-	notificationService := services.NewNotificationService(notificationRepo)
+	notificationService := services.NewNotificationService(notificationRepo, notificationCache, notificationHub, notificationMapper)
+	likeService := services.NewLikeService(likeRepo, postRepo, userRepo, notificationService)
 
 	// 🤝 Хендлеры
 	authHandler := handlers.NewAuthHandler(authService)
@@ -120,6 +121,12 @@ func main() {
 	ctx := context.Background()
 	go watchers.StartBadgeWatcher(ctx, userRepo, postRepo, promiseRepo, followerRepo, badgeService)
 	go watchers.StartDeadlineWatcher(ctx, promiseRepo, notificationService)
+
+	wsHandler := handlers.NewWebSocketHandler(notificationHub, notificationService)
+	wsGroup := r.Group("/ws")
+	{
+		wsGroup.GET("/notifications", wsHandler.ServeWS)
+	}
 
 	auth := r.Group("/auth")
 	{
@@ -251,7 +258,8 @@ func main() {
 	notifications.Use(middleware.AuthMiddleware())
 	{
 		notifications.GET("/me", notificationHandler.ListMyNotifications)
-		notifications.POST("/:id/read", notificationHandler.MarkAsRead)
+		notifications.POST("/:id/read", notificationHandler.MarkManyAsRead)
+		notifications.POST("/test-notification", notificationHandler.TestNotification)
 	}
 
 	port := "8080"

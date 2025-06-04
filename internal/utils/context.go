@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// GetUserIDFromContext извлекает user_id из gin.Context и приводит к uuid.UUID
 func GetUserIDFromContext(c *gin.Context) (uuid.UUID, error) {
 	val, exists := c.Get("user_id")
 	if !exists {
@@ -21,7 +20,6 @@ func GetUserIDFromContext(c *gin.Context) (uuid.UUID, error) {
 	return id, nil
 }
 
-// IsAdmin проверяет, есть ли у пользователя роль "admin"
 func IsAdmin(c *gin.Context) bool {
 	role, exists := c.Get("role")
 	if !exists {

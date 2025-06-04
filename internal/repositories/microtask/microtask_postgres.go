@@ -126,3 +126,7 @@ func (r *microtaskRepository) ReorderMicrotasks(
 
 	return tx.Commit().Error
 }
+
+func (r *microtaskRepository) CreateManyMicrotasksTx(ctx context.Context, tx *gorm.DB, microtasks []models.Microtask) error {
+	return tx.WithContext(ctx).Create(&microtasks).Error
+}

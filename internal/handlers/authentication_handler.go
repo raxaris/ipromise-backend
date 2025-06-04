@@ -67,6 +67,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	c.SetCookie("access_token", access, 24*3600, "/", "", false, true)
+
 	utils.RespondWithSuccess(c, http.StatusOK, gin.H{
 		"access_token":  access,
 		"refresh_token": refresh,

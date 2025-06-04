@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/raxaris/ipromise-backend/internal/models"
 	"github.com/raxaris/ipromise-backend/internal/services"
 	"github.com/raxaris/ipromise-backend/internal/utils"
 	"net/http"
@@ -18,13 +19,13 @@ func NewNotificationHandler(service services.NotificationService) *NotificationH
 
 // ListMyNotifications godoc
 // @Summary Получить все мои уведомления
-// @Description Возвращает список всех уведомлений, отправленных текущему пользователю
+// @Description Возвращает список всех уведомлений пользователя
 // @Tags notifications
 // @Security BearerAuth
 // @Produce json
 // @Success 200 {object} utils.SuccessResponse{data=[]dto.NotificationResponse}
-// @Failure 401 {object} utils.ErrorResponse "Неавторизован"
-// @Failure 500 {object} utils.ErrorResponse "Ошибка сервера"
+// @Failure 401 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Router /notifications/me [get]
 func (h *NotificationHandler) ListMyNotifications(c *gin.Context) {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -33,7 +34,7 @@ func (h *NotificationHandler) ListMyNotifications(c *gin.Context) {
 		return
 	}
 
-	notifications, err := h.service.GetMyNotifications(c.Request.Context(), userID)
+	notifications, err := h.service.ListUserNotifications(c.Request.Context(), userID)
 	if err != nil {
 		utils.RespondWithError(c, http.StatusInternalServerError, "Failed to load notifications")
 		return
@@ -42,29 +43,69 @@ func (h *NotificationHandler) ListMyNotifications(c *gin.Context) {
 	utils.RespondWithSuccess(c, http.StatusOK, notifications)
 }
 
-// MarkAsRead godoc
-// @Summary Отметить уведомление как прочитанное
-// @Description Обновляет статус уведомления по ID и помечает его как прочитанное
+// MarkManyAsRead godoc
+// @Summary Массовая отметка уведомлений как прочитанных
+// @Description Отмечает переданные уведомления как прочитанные
 // @Tags notifications
 // @Security BearerAuth
-// @Param id path string true "ID уведомления"
+// @Accept json
 // @Produce json
-// @Success 200 {object} utils.SuccessResponse{data=string} "message: Marked as read"
-// @Failure 400 {object} utils.ErrorResponse "Неверный формат ID"
-// @Failure 401 {object} utils.ErrorResponse "Неавторизован"
-// @Failure 500 {object} utils.ErrorResponse "Ошибка сервера"
-// @Router /notifications/{id}/read [post]
-func (h *NotificationHandler) MarkAsRead(c *gin.Context) {
-	notificationID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		utils.RespondWithError(c, http.StatusBadRequest, "Invalid ID")
+// @Param ids body []string true "Массив ID уведомлений"
+// @Success 200 {object} utils.SuccessResponse{data=string}
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 401 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /notifications/mark-read [post]
+func (h *NotificationHandler) MarkManyAsRead(c *gin.Context) {
+	var idsRaw []string
+	if err := c.ShouldBindJSON(&idsRaw); err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
 
-	if err := h.service.MarkAsRead(c.Request.Context(), notificationID); err != nil {
+	var ids []uuid.UUID
+	for _, idStr := range idsRaw {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			utils.RespondWithError(c, http.StatusBadRequest, "Invalid ID format")
+			return
+		}
+		ids = append(ids, id)
+	}
+
+	if err := h.service.MarkManyAsRead(c.Request.Context(), ids); err != nil {
 		utils.RespondWithError(c, http.StatusInternalServerError, "Failed to mark as read")
 		return
 	}
 
-	utils.RespondWithSuccess(c, http.StatusOK, "Marked as read")
+	utils.RespondWithSuccess(c, http.StatusOK, "Notifications marked as read")
+}
+
+// TestNotification godoc
+// @Summary Тестовое уведомление
+// @Tags debug
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body dto.NotificationRequest true "Test data"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /debug/test-notification [post]
+func (h *NotificationHandler) TestNotification(c *gin.Context) {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	notification := &models.Notification{
+		Type:    "test",
+		Message: "🚨 This is a test notification",
+	}
+
+	if err := h.service.SendNotification(c.Request.Context(), userID, notification); err != nil {
+		utils.RespondWithError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, "Sent")
 }

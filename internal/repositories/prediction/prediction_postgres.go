@@ -42,3 +42,13 @@ func (r *predictionRepository) DeleteByPromiseID(ctx context.Context, promiseID 
 		Where("promise_id = ?", promiseID).
 		Delete(&models.Prediction{}).Error
 }
+
+func (r *predictionRepository) CreateTx(ctx context.Context, tx *gorm.DB, prediction *models.Prediction) error {
+	return tx.WithContext(ctx).Create(prediction).Error
+}
+
+func (r *predictionRepository) DeleteByPromiseIDTx(ctx context.Context, tx *gorm.DB, promiseID uuid.UUID) error {
+	return tx.WithContext(ctx).
+		Where("promise_id = ?", promiseID).
+		Delete(&models.Prediction{}).Error
+}

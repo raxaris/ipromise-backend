@@ -94,7 +94,7 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (string, 
 	if err := s.tokenRepo.Save(ctx, token); err != nil {
 		return "", "", err
 	}
-
+	
 	return accessToken, refreshToken, nil
 }
 

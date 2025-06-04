@@ -8,6 +8,7 @@ import (
 	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
 	"github.com/raxaris/ipromise-backend/internal/repositories/post"
 	"github.com/raxaris/ipromise-backend/internal/repositories/user"
+	"gorm.io/gorm"
 	"strings"
 	"time"
 
@@ -69,51 +70,101 @@ func (s *promiseService) CreatePromise(ctx context.Context, userID uuid.UUID, re
 	return s.promiseRepo.CreatePromise(ctx, newPromise)
 }
 
+//func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseWithMicrotasksRequest) error {
+//	newPromise := &models.Promise{
+//		ID:          uuid.New(),
+//		UserID:      userID,
+//		Title:       req.Title,
+//		Description: req.Description,
+//		Deadline:    req.Deadline,
+//		Category:    req.Category,
+//		IsPrivate:   req.IsPrivate,
+//		Status:      "in_progress",
+//	}
+//
+//	prediction, err := s.predictionService.CreateOrReplacePrediction(ctx, newPromise)
+//	if err != nil {
+//		return err
+//	}
+//
+//	if prediction.SuccessRate < 25 {
+//		return fmt.Errorf("Success rate too low: %.0f%%. Advice: %s", prediction.SuccessRate, prediction.Advice)
+//	}
+//
+//	if err := s.promiseRepo.CreatePromise(ctx, newPromise); err != nil {
+//		return err
+//	}
+//
+//	if len(req.Microtasks) > 0 {
+//		var microtasks []models.Microtask
+//		for i, m := range req.Microtasks {
+//			fmt.Println("Microtasks: ", m)
+//			microtasks = append(microtasks, models.Microtask{
+//				ID:             uuid.New(),
+//				PromiseID:      newPromise.ID,
+//				Title:          m.Title,
+//				Status:         "in progress",
+//				StepsPlanned:   m.StepsPlanned,
+//				MicrotaskOrder: i,
+//			})
+//		}
+//
+//		if err := s.microtaskRepo.CreateManyMicrotasks(ctx, microtasks); err != nil {
+//			return err
+//		}
+//	}
+//
+//	return nil
+//}
+
 func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseWithMicrotasksRequest) error {
-	newPromise := &models.Promise{
-		ID:          uuid.New(),
-		UserID:      userID,
-		Title:       req.Title,
-		Description: req.Description,
-		Deadline:    req.Deadline,
-		Category:    req.Category,
-		IsPrivate:   req.IsPrivate,
-		Status:      "in_progress",
-	}
-
-	prediction, err := s.predictionService.CreateOrReplacePrediction(ctx, newPromise)
-	if err != nil {
-		return err
-	}
-
-	if prediction.SuccessRate < 25 {
-		return fmt.Errorf("Success rate too low: %.0f%%. Advice: %s", prediction.SuccessRate, prediction.Advice)
-	}
-
-	if err := s.promiseRepo.CreatePromise(ctx, newPromise); err != nil {
-		return err
-	}
-
-	if len(req.Microtasks) > 0 {
-		var microtasks []models.Microtask
-		for i, m := range req.Microtasks {
-			fmt.Println("Microtasks: ", m)
-			microtasks = append(microtasks, models.Microtask{
-				ID:             uuid.New(),
-				PromiseID:      newPromise.ID,
-				Title:          m.Title,
-				Status:         "in progress",
-				StepsPlanned:   m.StepsPlanned,
-				MicrotaskOrder: i,
-			})
+	return s.promiseRepo.WithTransaction(ctx, func(tx *gorm.DB) error {
+		newPromise := &models.Promise{
+			ID:          uuid.New(),
+			UserID:      userID,
+			Title:       req.Title,
+			Description: req.Description,
+			Deadline:    req.Deadline,
+			Category:    req.Category,
+			IsPrivate:   req.IsPrivate,
+			Status:      "in_progress",
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		}
 
-		if err := s.microtaskRepo.CreateManyMicrotasks(ctx, microtasks); err != nil {
+		if err := tx.WithContext(ctx).Create(newPromise).Error; err != nil {
 			return err
 		}
-	}
 
-	return nil
+		prediction, err := s.predictionService.CreateOrReplacePredictionTx(ctx, tx, newPromise)
+		if err != nil {
+			return err
+		}
+
+		if prediction.SuccessRate < 25 {
+			return fmt.Errorf("success rate too low: %.0f%%. Advice: %s", prediction.SuccessRate, prediction.Advice)
+		}
+
+		if len(req.Microtasks) > 0 {
+			var microtasks []models.Microtask
+			for i, m := range req.Microtasks {
+				microtasks = append(microtasks, models.Microtask{
+					ID:             uuid.New(),
+					PromiseID:      newPromise.ID,
+					Title:          m.Title,
+					Status:         "in progress",
+					StepsPlanned:   m.StepsPlanned,
+					MicrotaskOrder: i,
+					CreatedAt:      time.Now(),
+					UpdatedAt:      time.Now(),
+				})
+			}
+			if err := s.microtaskRepo.CreateManyMicrotasksTx(ctx, tx, microtasks); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (s *promiseService) GetPromiseByID(ctx context.Context, viewerID, promiseID uuid.UUID) (*models.Promise, error) {
