@@ -87,15 +87,15 @@ func main() {
 	// 🧠 Сервисы
 	authService := services.NewAuthService(userRepo, tokenRepo)
 	userService := services.NewUserService(userRepo)
+	attachmentService := services.NewAttachmentService(attachmentRepo, storage)
 	profileService := services.NewProfileService(userRepo, badgeRepo, promiseRepo, followerRepo)
 	predictionService := services.NewPredictionService(predictionRepo, openaiClient)
 	promiseService := services.NewPromiseService(promiseRepo, microtaskRepo, followerRepo, userRepo, postRepo, predictionService)
 	microtaskService := services.NewMicrotaskService(microtaskRepo, promiseRepo)
-	postService := services.NewPostService(postRepo, microtaskRepo, postMapper, followerRepo, promiseRepo, attachmentRepo, storage)
+	postService := services.NewPostService(postRepo, microtaskRepo, postMapper, followerRepo, promiseRepo, attachmentService)
 	badgeService := services.NewBadgeService(badgeRepo)
 	adminService := services.NewAdminService(userRepo, postRepo, microtaskRepo, promiseRepo)
 	followerService := services.NewFollowerService(followerRepo, userRepo)
-	attachmentService := services.NewAttachmentService(attachmentRepo, storage)
 	notificationService := services.NewNotificationService(notificationRepo, notificationCache, notificationHub, notificationMapper)
 	likeService := services.NewLikeService(likeRepo, postRepo, userRepo, notificationService)
 
@@ -208,14 +208,14 @@ func main() {
 	{
 		posts.POST("", postHandler.CreatePost)
 		posts.POST("/:id/comments", postHandler.CreateReply)
-		posts.PATCH("/:id", postHandler.UpdatePost)                // Обновить пост
-		posts.DELETE("/:id", postHandler.DeletePost)               // Удалить пост
-		posts.GET("/:id/replies", postHandler.ListReplies)         // Получить комментарии
-		posts.GET("/:id/full", postHandler.GetFullPost)            // Получить дерево поста
-		posts.GET("/public", postHandler.ListPublicPostsLite)      // Публичные посты (лайт)
-		posts.GET("/feed", postHandler.ListFeedPostsLite)          // Лента подписок (лайт)
-		posts.GET("/public/tree", postHandler.ListPublicPostsTree) // Публичные посты (дерево)
-		posts.GET("/feed/tree", postHandler.ListFeedPostsTree)     // Лента подписок (дерево)
+		posts.PATCH("/:id", postHandler.UpdatePost)
+		posts.DELETE("/:id", postHandler.DeletePost)
+		posts.GET("/:id/replies", postHandler.ListReplies)
+		posts.GET("/:id/full", postHandler.GetFullPost)
+		posts.GET("/public", postHandler.ListPublicPostsLite)
+		posts.GET("/feed", postHandler.ListFeedPostsLite)
+		posts.GET("/public/tree", postHandler.ListPublicPostsTree)
+		posts.GET("/feed/tree", postHandler.ListFeedPostsTree)
 		posts.GET("/user/:username", postHandler.ListUserPostsTree)
 
 	}
@@ -258,11 +258,11 @@ func main() {
 	notifications.Use(middleware.AuthMiddleware())
 	{
 		notifications.GET("/me", notificationHandler.ListMyNotifications)
-		notifications.POST("/:id/read", notificationHandler.MarkManyAsRead)
+		notifications.POST("/read", notificationHandler.MarkManyAsRead)
 		notifications.POST("/test-notification", notificationHandler.TestNotification)
 	}
 
 	port := "8080"
-	fmt.Println("🚀 Сервер запущен на порту " + port)
+	fmt.Println("🚀 Server runs on port " + port)
 	log.Fatal(r.Run(":" + port))
 }

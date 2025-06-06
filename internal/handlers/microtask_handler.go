@@ -52,7 +52,7 @@ func (h *MicrotaskHandler) CreateMicrotask(c *gin.Context) {
 		return
 	}
 
-	err = h.service.CreateMicrotask(c.Request.Context(), userID, promiseID, req.Title, req.Order)
+	err = h.service.CreateMicrotask(c.Request.Context(), userID, promiseID, req.Title, req.StepsPlanned)
 	if err != nil {
 		utils.RespondWithMappedError(c, err)
 		return

@@ -110,9 +110,9 @@ func (h *ProfileHandler) UpdateProfileWithAvatar(c *gin.Context) {
 		fileBytes := make([]byte, form.Avatar.Size)
 		_, _ = file.Read(fileBytes)
 
-		uploaded, err := h.attachmentService.UploadAttachment(
+		uploaded, err := h.attachmentService.UploadAvatar(
 			c.Request.Context(),
-			userID, // в MinIO может использоваться userID как ID владельца аватара
+			userID,
 			fileBytes,
 			form.Avatar.Filename,
 			form.Avatar.Header.Get("Content-Type"),
@@ -124,7 +124,6 @@ func (h *ProfileHandler) UpdateProfileWithAvatar(c *gin.Context) {
 		avatarURL = &uploaded.FileURL
 	}
 
-	// Передаём в сервис уже готовый DTO с URL-ом
 	updateData := dto.UpdateProfileRequest{
 		Username:  form.Username,
 		Bio:       form.Bio,

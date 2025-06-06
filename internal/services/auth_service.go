@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"github.com/raxaris/ipromise-backend/internal/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -74,12 +75,12 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (string, 
 		return "", "", errors.New("неверный email или пароль")
 	}
 
-	accessToken, err := GenerateAccessToken(existingUser.ID.String(), existingUser.Role)
+	accessToken, err := utils.GenerateAccessToken(existingUser.ID.String(), existingUser.Role)
 	if err != nil {
 		return "", "", err
 	}
 
-	refreshToken, err := GenerateRefreshToken(existingUser.ID.String(), existingUser.Role)
+	refreshToken, err := utils.GenerateRefreshToken(existingUser.ID.String(), existingUser.Role)
 	if err != nil {
 		return "", "", err
 	}
@@ -94,7 +95,7 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (string, 
 	if err := s.tokenRepo.Save(ctx, token); err != nil {
 		return "", "", err
 	}
-	
+
 	return accessToken, refreshToken, nil
 }
 
@@ -109,7 +110,7 @@ func (s *authService) Refresh(ctx context.Context, token string) (string, error)
 		return "", errors.New("пользователь не найден")
 	}
 
-	return GenerateAccessToken(existingUser.ID.String(), existingUser.Role)
+	return utils.GenerateAccessToken(existingUser.ID.String(), existingUser.Role)
 }
 
 func (s *authService) Logout(ctx context.Context, refreshToken string) error {

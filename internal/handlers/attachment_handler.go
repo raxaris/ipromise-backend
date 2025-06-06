@@ -59,7 +59,7 @@ func (h *AttachmentHandler) UploadAttachmentsToPost(c *gin.Context) {
 		fileBytes := make([]byte, fileHeader.Size)
 		_, _ = file.Read(fileBytes)
 
-		uploaded, err := h.attachmentService.UploadAttachment(
+		uploaded, err := h.attachmentService.UploadAttachmentToPost(
 			c.Request.Context(),
 			postID,
 			fileBytes,
@@ -67,7 +67,7 @@ func (h *AttachmentHandler) UploadAttachmentsToPost(c *gin.Context) {
 			fileHeader.Header.Get("Content-Type"),
 		)
 		if err != nil {
-			fmt.Println("upload error:", err) // 👈 добавь это!
+			fmt.Println("upload error:", err)
 			continue
 		}
 

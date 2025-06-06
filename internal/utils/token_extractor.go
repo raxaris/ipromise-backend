@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/raxaris/ipromise-backend/internal/services"
 	"strings"
 )
 
@@ -30,7 +29,7 @@ func ExtractUserFromRequest(c *gin.Context) (uuid.UUID, string, error) {
 		return uuid.Nil, "", errors.New("access token not provided")
 	}
 
-	claims, err := services.ValidateAccessToken(tokenString)
+	claims, err := ValidateAccessToken(tokenString)
 	if err != nil {
 		return uuid.Nil, "", err
 	}

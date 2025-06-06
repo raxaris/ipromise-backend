@@ -20,6 +20,6 @@ func MigrateDB(db *gorm.DB) {
 		&Notification{},
 	)
 	if err != nil {
-		panic("❌ Ошибка миграции: " + err.Error())
+		panic("❌ Migration error: " + err.Error())
 	}
 }

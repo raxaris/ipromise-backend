@@ -5,11 +5,11 @@ import (
 	"errors"
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/mappers"
-	"github.com/raxaris/ipromise-backend/internal/repositories/attachment"
 	"github.com/raxaris/ipromise-backend/internal/repositories/follower"
 	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
 	"github.com/raxaris/ipromise-backend/internal/repositories/promise"
-	"github.com/raxaris/ipromise-backend/internal/storage"
+	"io"
+	"log"
 	"mime/multipart"
 	"strings"
 	"time"
@@ -38,13 +38,12 @@ type PostService interface {
 }
 
 type postService struct {
-	postRepo       post.PostRepository
-	promiseRepo    promise.PromiseRepository
-	microtaskRepo  microtask.MicrotaskRepository
-	postMapper     *mappers.PostMapper
-	followerRepo   follower.FollowerRepository
-	attachmentRepo attachment.AttachmentRepository
-	storage        storage.Storage
+	postRepo          post.PostRepository
+	promiseRepo       promise.PromiseRepository
+	microtaskRepo     microtask.MicrotaskRepository
+	postMapper        *mappers.PostMapper
+	followerRepo      follower.FollowerRepository
+	attachmentService AttachmentService
 }
 
 func NewPostService(
@@ -53,17 +52,15 @@ func NewPostService(
 	postMapper *mappers.PostMapper,
 	followerRepo follower.FollowerRepository,
 	promiseRepo promise.PromiseRepository,
-	attachmentRepo attachment.AttachmentRepository,
-	storage storage.Storage,
+	attachmentService AttachmentService,
 ) PostService {
 	return &postService{
-		postRepo:       postRepo,
-		microtaskRepo:  microtaskRepo,
-		postMapper:     postMapper,
-		followerRepo:   followerRepo,
-		promiseRepo:    promiseRepo,
-		attachmentRepo: attachmentRepo,
-		storage:        storage,
+		postRepo:          postRepo,
+		microtaskRepo:     microtaskRepo,
+		postMapper:        postMapper,
+		followerRepo:      followerRepo,
+		promiseRepo:       promiseRepo,
+		attachmentService: attachmentService,
 	}
 }
 
@@ -126,33 +123,30 @@ func (s *postService) CreateReplyWithAttachments(
 func (s *postService) uploadPostAttachments(
 	ctx context.Context,
 	postID uuid.UUID,
-	attachments []*multipart.FileHeader,
+	files []*multipart.FileHeader,
 ) {
-	for _, file := range attachments {
-		fileContent, err := file.Open()
-		if err != nil {
-			continue
-		}
-		
-		data := make([]byte, file.Size)
-		_, _ = fileContent.Read(data)
-		_ = fileContent.Close()
+	if len(files) == 0 {
+		return
+	}
 
-		fileURL, err := s.storage.UploadFile(ctx, data, file.Filename)
+	for _, file := range files {
+		f, err := file.Open()
 		if err != nil {
 			continue
 		}
 
-		attachment := &models.Attachment{
-			ID:       uuid.New(),
-			PostID:   postID,
-			FileURL:  fileURL,
-			FileType: file.Header.Get("Content-Type"),
+		data, err := io.ReadAll(f)
+		_ = f.Close()
+		if err != nil {
+			continue
 		}
 
-		if err := s.attachmentRepo.UploadAttachment(ctx, attachment); err != nil {
-			_ = s.storage.DeleteFile(ctx, fileURL)
-			continue
+		if _, err := s.attachmentService.UploadAttachmentToPost(ctx,
+			postID,
+			data,
+			file.Filename,
+			file.Header.Get("Content-Type")); err != nil {
+			log.Printf("failed to upload attachment: %v", err)
 		}
 	}
 }
@@ -185,19 +179,16 @@ func (s *postService) DeletePost(ctx context.Context, userID, postID uuid.UUID) 
 }
 
 func (s *postService) GetPostByID(ctx context.Context, postID, viewerID uuid.UUID) (*dto.PostWithRepliesTreeResponse, error) {
-	// 1. Получаем пост
 	existingPost, err := s.postRepo.GetPostByID(ctx, postID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. Получаем информацию о промисе
 	existingPromise, err := s.promiseRepo.GetPromiseByID(ctx, existingPost.PromiseID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 3. Проверяем, имеет ли пользователь доступ к этому посту
 	canView, err := s.canUserViewPromise(ctx, viewerID, existingPromise.UserID, existingPromise.IsPrivate)
 	if err != nil {
 		return nil, err
@@ -206,13 +197,11 @@ func (s *postService) GetPostByID(ctx context.Context, postID, viewerID uuid.UUI
 		return nil, errors.New("access denied: you cannot view this post")
 	}
 
-	// 4. Получаем дерево поста
 	root, replies, err := s.postRepo.GetPostWithRepliesTree(ctx, postID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 5. Собираем DTO
 	return s.postMapper.BuildPostTree(ctx, root, replies, viewerID)
 }
 
@@ -378,7 +367,6 @@ func (s *postService) ListReplies(
 	afterCreatedAt *time.Time,
 	afterID *uuid.UUID,
 ) ([]dto.PostWithRepliesTreeResponse, error) {
-	// Доступ к родительскому посту
 	existingPost, err := s.postRepo.GetPostByID(ctx, postID)
 	if err != nil {
 		return nil, err

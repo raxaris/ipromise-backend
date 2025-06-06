@@ -69,7 +69,6 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 		req.Attachments = form.File["attachments"]
 	}
 
-	// Вызываем сервис
 	err = h.postService.CreatePostWithAttachments(
 		c.Request.Context(),
 		userID,
