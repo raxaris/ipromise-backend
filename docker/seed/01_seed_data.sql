@@ -1,55 +1,41 @@
-COPY public.attachments (id, post_id, file_url, file_type, created_at, deleted_at, user_id, attachment_type) FROM stdin;
-e23914f0-75d8-4519-8ebb-d1114b6c3254	\N	http://localhost:9000/ipromise/4478dce2-4b15-413b-8813-639e8170fb5f.png	image/png	2025-06-06 12:47:36.940883+00	\N	7e4a119f-4121-424e-af44-a9e97cbae049	avatar
-4d77930b-b331-4f6d-b138-0d597f15d3b0	23ad69f9-8c1f-45e1-bdb6-86ae97f0a2d2	http://localhost:9000/ipromise/490e1f2c-3323-414b-b0e1-2cbb80ed173d.jpeg	image/jpeg	2025-06-07 16:15:30.660681+00	\N	\N	post_image
-e430a0b7-03ac-4aa9-8139-0928a31e4dd4	741d9f45-74da-4da2-b40e-06b325c5342f	http://localhost:9000/ipromise/151b108a-054a-43ca-bbdd-f2df0566ea86.jpeg	image/jpeg	2025-06-07 16:20:17.666089+00	\N	\N	post_image
-d12fa1b9-29ba-43c2-bbe5-4b6990a1f0fd	60333cb2-3eac-4c88-b1ab-187788f3a753	http://localhost:9000/ipromise/b3f04097-83e5-4fd8-873c-8d9c48c76338.jpeg	image/jpeg	2025-06-07 16:23:59.439292+00	\N	\N	post_image
-e31356b1-00d7-4fe9-81e7-21e1ea39a141	31f82a0d-869c-4ea9-8c72-152d229893cf	http://localhost:9000/ipromise/c16494e9-842f-4c57-b270-257a05282b87.png	image/png	2025-06-07 16:49:02.689124+00	\N	\N	post_image
-ea0b6ca3-7b06-44ef-889e-97bb687eb6f3	223da9a0-82b1-4745-9a4a-5b657d47299e	http://localhost:9000/ipromise/a1af8183-b41a-4069-9c4a-f47bc02ec65d.jpg	image/jpeg	2025-06-07 18:31:21.425609+00	\N	\N	post_image
-67da62a4-f159-4e0d-94b5-05ddf10d7b72	a3f8de46-d113-48a1-b569-a20561d328f5	http://localhost:9000/ipromise/2e04b9e8-805f-419e-8825-091950d86313.jpeg	image/jpeg	2025-06-07 18:33:11.6177+00	\N	\N	post_image
-e3cb3985-9f10-44fe-ae61-9f70deea6d8a	b3621746-9032-46c1-9e9c-072c55b709a7	http://localhost:9000/ipromise/c10f2317-0330-40ee-ba63-25c9240416bd.png	image/png	2025-06-07 18:42:48.861851+00	\N	\N	post_image
-2fe0f1b5-6ed0-4b65-98c8-4bc305f231e1	5931007c-9050-44ae-90af-0c9732651ff3	http://localhost:9000/ipromise/6c27818a-f165-4c87-91ce-4972b81b14dc.jpg	image/jpeg	2025-06-07 19:11:55.902955+00	\N	\N	post_image
-199d8280-ba24-46a6-8e52-a6c37e821697	660c8c08-468b-4a0d-a37d-fe58d7d0b075	http://localhost:9000/ipromise/6ff6a754-e644-4230-9f69-dbb63111636b.jpg	image/jpeg	2025-06-07 19:20:10.473915+00	\N	\N	post_image
-656e329d-421f-45fc-addd-3a0ae4091cd0	c4e4435b-e210-481c-9603-880796a0b7df	http://localhost:9000/ipromise/6b328193-df3f-4e0f-b70e-881df4f5d348.png	image/png	2025-06-07 19:22:43.05936+00	\N	\N	post_image
-01cedf4a-459f-4f5f-ac1a-d95e3ee1a565	6a82001d-b416-4515-913e-5b6e3f57fbdf	http://localhost:9000/ipromise/afc95188-62eb-4ffa-b314-88aa5e601815.jpg	image/jpeg	2025-06-07 19:23:48.4721+00	\N	\N	post_image
+COPY public.users (id, created_at, updated_at, deleted_at, username, email, password, role, avatar_url, bio) FROM stdin;
+f399a996-1567-4fc0-a86a-92774494ca44	2025-05-25 20:28:15.427525+00	2025-05-25 20:28:15.427525+00	\N	johndoe	johndoe@example.com	$2a$10$5Ai8T0Vueev0ll6cKobWhOhkWG/Hca/tYuiLFzoz0tj44ZXScvMPa	user
+a03b3300-0d14-454e-8112-7b3eada90ae9	2025-05-25 20:28:41.77735+00	2025-05-25 20:28:41.77735+00	\N	janedoe	janedoe@example.com	$2a$10$POkvoB2up.f0tFVShVuSyOIgSteS5A3/YKbw3yWU6Hm37w1bO7ztS	user
+6929aaa9-f3a8-4e28-b959-f6585f65b6b1	2025-05-25 20:28:47.413388+00	2025-05-25 20:28:47.413388+00	\N	alexsmith	alexsmith@example.com	$2a$10$2uPDDCCPZ6nNqV.k7yqxZO3bZRncpWd0y/Cp1F0birRwibcfCoNqK	user
+d440ff73-81ae-4a7c-b7cb-3336e3b24a4c	2025-05-25 20:28:51.592047+00	2025-05-25 20:28:51.592047+00	\N	emilyjones	emilyjones@example.com	$2a$10$KTUBOvC1hurqcGSJJ8IqNuKf/BAhK2HMZjwWoEzrawIz81l1P3G1K	user
+092b44d9-e9d7-4a40-a59f-d868d193dd0d	2025-05-25 20:28:56.632514+00	2025-05-25 20:28:56.632514+00	\N	michaelbrown	michaelbrown@example.com	$2a$10$RnPMerRGCDnb9E7Wq6hRmuIqSjVmjLf7ZISrsKK2J9k62WOhmitFq	user
+3b0ebec9-3805-490b-987f-4c6e7286319e	2025-05-25 20:29:02.859366+00	2025-05-25 20:29:02.859366+00	\N	sarahlee	sarahlee@example.com	$2a$10$a6TS0FN4IIc1i35ZjgX6WOvuPlI.E6dTyuRzEDOQ8/lojTAbtd3hq	user
+ae884ed2-075a-4ed2-9dde-736921d80e9f	2025-05-25 20:29:07.36962+00	2025-05-25 20:29:07.36962+00	\N	davidclark	davidclark@example.com	$2a$10$ETRwUmBOQxkYgukM6X0DA.I1F5UpGGyT1C0DgwsB8DpRjnzcdwmI6	user
+a203c89a-3ab9-42b2-ae92-0c979d8425de	2025-05-25 20:29:11.983565+00	2025-05-25 20:29:11.983565+00	\N	nataliewilson	nataliewilson@example.com	$2a$10$B2PzfU7hK0oETWeZ2aTXSeSO4ClexCTT9HJNUDjmF/xkzkp6WuAtC	user
+6e137217-71a9-439b-a579-4bcd1a729af9	2025-05-25 20:29:16.99026+00	2025-05-25 20:29:16.99026+00	\N	danielmartin	danielmartin@example.com	$2a$10$.4yRj.ICdkXJHNehph5fRu4A5MeNtBULMWpEvEZ/DaEZKphc9vOrK	user
+79758f94-70d8-4a11-b05f-793fcb57e093	2025-05-25 20:29:20.474495+00	2025-05-25 20:29:20.474495+00	\N	lauragarcia	lauragarcia@example.com	$2a$10$iQdfkkzgZOOvZRSUEYDuze1m/7xvsr6jli3JJHxfvBKOYVp8OsLQy	user
+56e89866-3a90-4f97-8461-34b24f842da4	2025-06-04 19:20:34.356125+00	2025-06-04 19:20:34.356125+00	\N	emanuelneuer	emanuelneuer@example.com	$2a$10$KyEdttw7eTelHj7p3bwCzuW40AJbpkM4eCS1M0gPQsmcNMO0ztwGy	user
+d943512c-a462-4f9e-8881-13dc2b9b59e1	2025-06-04 21:33:46.271911+00	2025-06-04 22:02:19.235879+00	\N	raxarbek	raxarbek@example.com	$2a$10$2gPsgmsSPVyix/xroKyBousthYebDTd.7WXhunCh4sDx0gCXelPZu	user
 \.
 
-
---
--- Data for Name: badges; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.badges (id, code, title, description, icon_url, created_at) FROM stdin;
-4769b089-f1c3-4cb6-88af-7f53614d1e6d	post_1	First post	You created your first post!	http://localhost:9000/ipromise/1stlevel.png	2025-05-18 15:08:17.169147+00
-4fe90924-2c53-4882-b404-e27d066ef682	post_50	50 posts	50 posts! You're a legend!	http://localhost:9000/ipromise/4rthlevel.png	2025-05-18 15:08:17.169147+00
-5db810f1-1a7f-4022-9ca1-85b3b727db56	friends_5	5 friends	5 friends! You're not alone anymore!	http://localhost:9000/ipromise/2ndlevel.png	2025-05-18 15:08:17.169147+00
-6eb08fda-7fae-42fc-a7e9-8c2aa4df7d35	friends_15	15 friends	15 friends! You're the life of the party	http://localhost:9000/ipromise/4rthlevel.png	2025-05-18 15:08:17.169147+00
-712e8ca2-37e2-46eb-98e6-1615f66d0fd7	friends_1	First friend	You made your first friend!	http://localhost:9000/ipromise/1stlevel.png	2025-05-18 15:08:17.169147+00
-a725e609-3804-43d6-ada5-f17e92458f6c	promise_5	5 promises	You've already made 5 promises!	http://localhost:9000/ipromise/2ndlevel.png	2025-05-18 15:08:17.169147+00
-d67d0bd3-06ad-4f4c-bf43-09ebcb3240a0	post_10	10 posts	You published 10 posts!	http://localhost:9000/ipromise/2ndlevel.png	2025-05-18 15:08:17.169147+00
-f0963252-7299-43e2-8849-6cce3b3ea52a	promise_1	First promise	Your first promise is created!	http://localhost:9000/ipromise/1stlevel.png	2025-05-18 15:08:17.169147+00
-f926bd1b-370b-40b0-854a-51a036c346e2	promise_15	15 promises	15 promises! You're a motivator!	http://localhost:9000/ipromise/4rthlevel.png	2025-05-18 15:08:17.169147+00
+COPY public.promises (id, user_id, title, description, deadline, is_private, status, created_at, updated_at, deleted_at, category) FROM stdin;
+9dd80410-bd88-455a-b8fe-a5c2e39edcf0	092b44d9-e9d7-4a40-a59f-d868d193dd0d	Learn how to cook samsa	I want to learn how to cook samsa to replace raw chicken with rice.	2025-07-30 00:00:00+00	f	in_progress	2025-06-07 15:52:02.460083+00	2025-06-07 15:52:02.460083+00	\N	personal
+9edaf28d-e47c-4bec-aa12-f4d6b78c6edb	092b44d9-e9d7-4a40-a59f-d868d193dd0d	Read 3 books on productivity	I want to become more efficient in my daily life by reading useful books.	2025-08-15 00:00:00+00	f	in_progress	2025-06-07 15:52:18.108362+00	2025-06-07 15:52:18.108362+00	\N	self-growth
+609eba42-64bc-460a-9468-bc011dae591c	092b44d9-e9d7-4a40-a59f-d868d193dd0d	Practice daily meditation	Build a habit of meditating every morning.	2025-07-20 00:00:00+00	f	in_progress	2025-06-07 15:57:16.024924+00	2025-06-07 15:57:16.024925+00	\N	wellness
+8ecb2652-80cf-4fe2-bab8-f3841d663a2d	3b0ebec9-3805-490b-987f-4c6e7286319e	Start a morning routine	Build a healthy start to my day with consistent habits.	2025-08-10 00:00:00+00	f	in_progress	2025-06-07 16:44:01.500466+00	2025-06-07 16:44:01.500466+00	\N	wellness
+66b19273-144f-4dd0-971e-830c18c26b38	3b0ebec9-3805-490b-987f-4c6e7286319e	Complete 10 LeetCode problems	To prepare for interviews and sharpen problem-solving skills.	2025-08-20 00:00:00+00	f	in_progress	2025-06-07 16:44:11.615415+00	2025-06-07 16:44:11.615415+00	\N	career
+e5bf481a-040b-4b1b-96c7-787909876292	3b0ebec9-3805-490b-987f-4c6e7286319e	Read the Quran in a month	Spiritual goal: read and reflect on the Quran regularly.	2025-08-31 00:00:00+00	t	in_progress	2025-06-07 16:44:35.20675+00	2025-06-07 16:44:35.20675+00	\N	spiritual
+912c9992-debd-42b8-9df7-28a9c4b7a319	56e89866-3a90-4f97-8461-34b24f842da4	Start a daily journaling habit	I want to reflect on my days and improve self-awareness	2025-08-10 00:00:00+00	f	in_progress	2025-06-07 16:55:17.668905+00	2025-06-07 16:55:17.668905+00	\N	self-growth
+6b7011e6-fb89-4542-8eba-31b219970185	56e89866-3a90-4f97-8461-34b24f842da4	Run 5km without stopping	Improve stamina and health by training regularly	2025-09-01 00:00:00+00	f	in_progress	2025-06-07 16:55:30.313291+00	2025-06-07 16:55:30.313291+00	\N	fitness
+c84f3282-901c-4433-82ee-42fc3f4ddf3a	56e89866-3a90-4f97-8461-34b24f842da4	Learn basic German phrases	Prepare for trip to Germany by learning key phrases	2025-08-25 00:00:00+00	f	in_progress	2025-06-07 16:55:41.745948+00	2025-06-07 16:55:41.745948+00	\N	language
+47b0bc29-2ef0-4b57-a3b9-849968031526	6929aaa9-f3a8-4e28-b959-f6585f65b6b1	Build a personal website	I want to showcase my projects and skills online.	2025-09-30 00:00:00+00	f	in_progress	2025-06-07 18:36:02.99803+00	2025-06-07 18:36:02.99803+00	\N	career
+c3f3d0c5-29e5-4167-87ab-8178d06ac7c2	6929aaa9-f3a8-4e28-b959-f6585f65b6b1	Start a workout routine	I want to get in better shape and feel more energetic.	2025-08-30 00:00:00+00	f	in_progress	2025-06-07 18:36:20.43694+00	2025-06-07 18:36:20.43694+00	\N	fitness
+111e36b5-3a31-4079-a5c8-8ead7454723b	6929aaa9-f3a8-4e28-b959-f6585f65b6b1	Improve time management	I want to be more productive and focused.	2025-08-20 00:00:00+00	f	in_progress	2025-06-07 18:36:40.687889+00	2025-06-07 18:36:40.687889+00	\N	self-growth
+c4c10327-612e-4a10-a744-853e80c41a49	6e137217-71a9-439b-a579-4bcd1a729af9	Learn to draw digitally	Practice digital drawing to improve my art skills.	2025-09-15 00:00:00+00	f	in_progress	2025-06-07 19:15:43.098632+00	2025-06-07 19:15:43.098632+00	\N	hobby
+ac557757-04c4-428d-a616-655ecda8b969	6e137217-71a9-439b-a579-4bcd1a729af9	Memorize 50 new English words	Improve my vocabulary by learning 50 words.	2025-08-28 00:00:00+00	f	in_progress	2025-06-07 19:15:54.292575+00	2025-06-07 19:15:54.292576+00	\N	language
+30a43be9-a3fe-43c9-b536-25cb0ee96c1b	6e137217-71a9-439b-a579-4bcd1a729af9	Organize my workspace	Declutter and optimize my desk for better focus.	2025-08-15 00:00:00+00	t	in_progress	2025-06-07 19:16:06.481473+00	2025-06-07 19:16:06.481473+00	\N	personal
+70679b66-1611-48c0-9bcb-0558b6d28965	79758f94-70d8-4a11-b05f-793fcb57e093	Pass German A2 Exam by October	I need to pass the A2 level to apply for residency.	2025-10-01 00:00:00+00	f	in_progress	2025-06-07 19:30:59.472305+00	2025-06-07 19:30:59.472306+00	\N	language
+7e8e87bc-1b4c-44e9-832c-6e29617642d8	79758f94-70d8-4a11-b05f-793fcb57e093	Fix posture and reduce back pain	Improve daily posture and reduce pain from long work hours.	2025-09-01 00:00:00+00	f	in_progress	2025-06-07 19:31:11.050676+00	2025-06-07 19:31:11.050676+00	\N	health
+a9528f6b-3895-4cab-af6c-62a93ef1b83e	79758f94-70d8-4a11-b05f-793fcb57e093	Make a personal online portfolio	To showcase my projects and resume to employers.	2025-08-25 00:00:00+00	f	in_progress	2025-06-07 19:31:50.507042+00	2025-06-07 19:31:50.507042+00	\N	career
+b438fcc1-9526-4e3c-8bd2-039bc7e71e7b	a03b3300-0d14-454e-8112-7b3eada90ae9	Write and publish a blog post about AI in education	Share my insights and experience with using ChatGPT in learning.	2025-08-12 00:00:00+00	f	in_progress	2025-06-07 19:54:52.5664+00	2025-06-07 19:54:52.5664+00	\N	career
+513f748c-0dc9-4b04-a8f0-f33ea5892151	a03b3300-0d14-454e-8112-7b3eada90ae9	Build a basic to-do app with Go	Get comfortable with backend development in Go by making a simple web app.	2025-08-20 00:00:00+00	f	in_progress	2025-06-07 19:54:58.449098+00	2025-06-07 19:54:58.449098+00	\N	career
+f3984ee6-5f7b-47b0-a88c-c684e10eae43	a03b3300-0d14-454e-8112-7b3eada90ae9	Switch to a healthier morning routine	Establish better habits for energy and focus.	2025-08-05 00:00:00+00	t	in_progress	2025-06-07 19:55:06.226955+00	2025-06-07 19:55:06.226955+00	\N	wellness
 \.
-
-
---
--- Data for Name: followers; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.followers (id, follower_id, following_id, status, created_at) FROM stdin;
-\.
-
-
---
--- Data for Name: likes; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.likes (id, user_id, post_id, created_at) FROM stdin;
-\.
-
-
---
--- Data for Name: microtasks; Type: TABLE DATA; Schema: public; Owner: postgres
---
 
 COPY public.microtasks (id, promise_id, title, steps_planned, status, microtask_order, created_at, updated_at, deleted_at) FROM stdin;
 be99dca9-40d3-475d-8ca1-a0f599df7795	9dd80410-bd88-455a-b8fe-a5c2e39edcf0	Watch video tutorial	1	in progress	0	2025-06-07 15:52:06.391299+00	2025-06-07 15:52:06.391299+00	\N
@@ -111,18 +97,6 @@ a40da453-3b25-4f00-97c3-04c8ac10f93b	b438fcc1-9526-4e3c-8bd2-039bc7e71e7b	Write 
 15f6b3ad-4408-457a-879a-cc080aeb3746	f3984ee6-5f7b-47b0-a88c-c684e10eae43	No phone for 1 hour after waking	7	in progress	2	2025-06-07 19:55:08.848617+00	2025-06-07 19:55:08.848617+00	\N
 \.
 
-
---
--- Data for Name: notifications; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.notifications (id, user_id, type, message, is_read, related_id, created_at) FROM stdin;
-\.
-
-
---
--- Data for Name: posts; Type: TABLE DATA; Schema: public; Owner: postgres
---
 
 COPY public.posts (id, user_id, promise_id, microtask_id, parent_id, content, created_at, updated_at, deleted_at) FROM stdin;
 866d6d95-29d3-41e2-adb7-a01b09fd5616	092b44d9-e9d7-4a40-a59f-d868d193dd0d	9dd80410-bd88-455a-b8fe-a5c2e39edcf0	be99dca9-40d3-475d-8ca1-a0f599df7795	\N	Just watched a detailed Uzbek chef explain how to make traditional samsa with lamb. Looks delicious and easier than I thought!	2025-06-07 16:14:35.740502+00	2025-06-07 16:14:35.740502+00	\N
@@ -199,10 +173,6 @@ e2d16c26-ba68-4a8d-ab33-8a68890f1683	a03b3300-0d14-454e-8112-7b3eada90ae9	f3984e
 \.
 
 
---
--- Data for Name: predictions; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
 COPY public.predictions (id, promise_id, success_rate, advice, created_at, updated_at) FROM stdin;
 69549c2c-cfcb-490e-be05-c4a228988cf6	9dd80410-bd88-455a-b8fe-a5c2e39edcf0	85	You've taken the first step towards mastering a new skill, which is great! Cooking is a skill that requires practice, so start small and be consistent. Adjust recipes to your liking - itтАЩs part of the process. Embrace mistakes, they're only opportunities to learn. You've got this!	2025-06-07 15:52:06.388359+00	2025-06-07 15:52:06.388359+00
 9ad163d9-5520-432b-8471-d1af8eafa59c	9edaf28d-e47c-4bec-aa12-f4d6b78c6edb	85	Your goal aligns with enhancing your self-growth, and it's achievable within the timeframe. Break it into small tasks: choose the books, set a reading schedule, and apply what you learn. Remember, productivity is not about being busy, but being efficient. Keep up the pace!	2025-06-07 15:52:21.291314+00	2025-06-07 15:52:21.291314+00
@@ -228,39 +198,6 @@ d2d23a8c-338b-463c-ace8-ddd1fbde9640	b438fcc1-9526-4e3c-8bd2-039bc7e71e7b	90	You
 \.
 
 
---
--- Data for Name: promises; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.promises (id, user_id, title, description, deadline, is_private, status, created_at, updated_at, deleted_at, category) FROM stdin;
-9dd80410-bd88-455a-b8fe-a5c2e39edcf0	092b44d9-e9d7-4a40-a59f-d868d193dd0d	Learn how to cook samsa	I want to learn how to cook samsa to replace raw chicken with rice.	2025-07-30 00:00:00+00	f	in_progress	2025-06-07 15:52:02.460083+00	2025-06-07 15:52:02.460083+00	\N	personal
-9edaf28d-e47c-4bec-aa12-f4d6b78c6edb	092b44d9-e9d7-4a40-a59f-d868d193dd0d	Read 3 books on productivity	I want to become more efficient in my daily life by reading useful books.	2025-08-15 00:00:00+00	f	in_progress	2025-06-07 15:52:18.108362+00	2025-06-07 15:52:18.108362+00	\N	self-growth
-609eba42-64bc-460a-9468-bc011dae591c	092b44d9-e9d7-4a40-a59f-d868d193dd0d	Practice daily meditation	Build a habit of meditating every morning.	2025-07-20 00:00:00+00	f	in_progress	2025-06-07 15:57:16.024924+00	2025-06-07 15:57:16.024925+00	\N	wellness
-8ecb2652-80cf-4fe2-bab8-f3841d663a2d	3b0ebec9-3805-490b-987f-4c6e7286319e	Start a morning routine	Build a healthy start to my day with consistent habits.	2025-08-10 00:00:00+00	f	in_progress	2025-06-07 16:44:01.500466+00	2025-06-07 16:44:01.500466+00	\N	wellness
-66b19273-144f-4dd0-971e-830c18c26b38	3b0ebec9-3805-490b-987f-4c6e7286319e	Complete 10 LeetCode problems	To prepare for interviews and sharpen problem-solving skills.	2025-08-20 00:00:00+00	f	in_progress	2025-06-07 16:44:11.615415+00	2025-06-07 16:44:11.615415+00	\N	career
-e5bf481a-040b-4b1b-96c7-787909876292	3b0ebec9-3805-490b-987f-4c6e7286319e	Read the Quran in a month	Spiritual goal: read and reflect on the Quran regularly.	2025-08-31 00:00:00+00	t	in_progress	2025-06-07 16:44:35.20675+00	2025-06-07 16:44:35.20675+00	\N	spiritual
-912c9992-debd-42b8-9df7-28a9c4b7a319	56e89866-3a90-4f97-8461-34b24f842da4	Start a daily journaling habit	I want to reflect on my days and improve self-awareness	2025-08-10 00:00:00+00	f	in_progress	2025-06-07 16:55:17.668905+00	2025-06-07 16:55:17.668905+00	\N	self-growth
-6b7011e6-fb89-4542-8eba-31b219970185	56e89866-3a90-4f97-8461-34b24f842da4	Run 5km without stopping	Improve stamina and health by training regularly	2025-09-01 00:00:00+00	f	in_progress	2025-06-07 16:55:30.313291+00	2025-06-07 16:55:30.313291+00	\N	fitness
-c84f3282-901c-4433-82ee-42fc3f4ddf3a	56e89866-3a90-4f97-8461-34b24f842da4	Learn basic German phrases	Prepare for trip to Germany by learning key phrases	2025-08-25 00:00:00+00	f	in_progress	2025-06-07 16:55:41.745948+00	2025-06-07 16:55:41.745948+00	\N	language
-47b0bc29-2ef0-4b57-a3b9-849968031526	6929aaa9-f3a8-4e28-b959-f6585f65b6b1	Build a personal website	I want to showcase my projects and skills online.	2025-09-30 00:00:00+00	f	in_progress	2025-06-07 18:36:02.99803+00	2025-06-07 18:36:02.99803+00	\N	career
-c3f3d0c5-29e5-4167-87ab-8178d06ac7c2	6929aaa9-f3a8-4e28-b959-f6585f65b6b1	Start a workout routine	I want to get in better shape and feel more energetic.	2025-08-30 00:00:00+00	f	in_progress	2025-06-07 18:36:20.43694+00	2025-06-07 18:36:20.43694+00	\N	fitness
-111e36b5-3a31-4079-a5c8-8ead7454723b	6929aaa9-f3a8-4e28-b959-f6585f65b6b1	Improve time management	I want to be more productive and focused.	2025-08-20 00:00:00+00	f	in_progress	2025-06-07 18:36:40.687889+00	2025-06-07 18:36:40.687889+00	\N	self-growth
-c4c10327-612e-4a10-a744-853e80c41a49	6e137217-71a9-439b-a579-4bcd1a729af9	Learn to draw digitally	Practice digital drawing to improve my art skills.	2025-09-15 00:00:00+00	f	in_progress	2025-06-07 19:15:43.098632+00	2025-06-07 19:15:43.098632+00	\N	hobby
-ac557757-04c4-428d-a616-655ecda8b969	6e137217-71a9-439b-a579-4bcd1a729af9	Memorize 50 new English words	Improve my vocabulary by learning 50 words.	2025-08-28 00:00:00+00	f	in_progress	2025-06-07 19:15:54.292575+00	2025-06-07 19:15:54.292576+00	\N	language
-30a43be9-a3fe-43c9-b536-25cb0ee96c1b	6e137217-71a9-439b-a579-4bcd1a729af9	Organize my workspace	Declutter and optimize my desk for better focus.	2025-08-15 00:00:00+00	t	in_progress	2025-06-07 19:16:06.481473+00	2025-06-07 19:16:06.481473+00	\N	personal
-70679b66-1611-48c0-9bcb-0558b6d28965	79758f94-70d8-4a11-b05f-793fcb57e093	Pass German A2 Exam by October	I need to pass the A2 level to apply for residency.	2025-10-01 00:00:00+00	f	in_progress	2025-06-07 19:30:59.472305+00	2025-06-07 19:30:59.472306+00	\N	language
-7e8e87bc-1b4c-44e9-832c-6e29617642d8	79758f94-70d8-4a11-b05f-793fcb57e093	Fix posture and reduce back pain	Improve daily posture and reduce pain from long work hours.	2025-09-01 00:00:00+00	f	in_progress	2025-06-07 19:31:11.050676+00	2025-06-07 19:31:11.050676+00	\N	health
-a9528f6b-3895-4cab-af6c-62a93ef1b83e	79758f94-70d8-4a11-b05f-793fcb57e093	Make a personal online portfolio	To showcase my projects and resume to employers.	2025-08-25 00:00:00+00	f	in_progress	2025-06-07 19:31:50.507042+00	2025-06-07 19:31:50.507042+00	\N	career
-b438fcc1-9526-4e3c-8bd2-039bc7e71e7b	a03b3300-0d14-454e-8112-7b3eada90ae9	Write and publish a blog post about AI in education	Share my insights and experience with using ChatGPT in learning.	2025-08-12 00:00:00+00	f	in_progress	2025-06-07 19:54:52.5664+00	2025-06-07 19:54:52.5664+00	\N	career
-513f748c-0dc9-4b04-a8f0-f33ea5892151	a03b3300-0d14-454e-8112-7b3eada90ae9	Build a basic to-do app with Go	Get comfortable with backend development in Go by making a simple web app.	2025-08-20 00:00:00+00	f	in_progress	2025-06-07 19:54:58.449098+00	2025-06-07 19:54:58.449098+00	\N	career
-f3984ee6-5f7b-47b0-a88c-c684e10eae43	a03b3300-0d14-454e-8112-7b3eada90ae9	Switch to a healthier morning routine	Establish better habits for energy and focus.	2025-08-05 00:00:00+00	t	in_progress	2025-06-07 19:55:06.226955+00	2025-06-07 19:55:06.226955+00	\N	wellness
-\.
-
-
---
--- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
 COPY public.refresh_tokens (id, created_at, updated_at, deleted_at, user_id, token, expires_at) FROM stdin;
 8e83419d-3de8-43d9-9049-7db8bb6b41b8	2025-05-25 20:29:47.015105+00	2025-05-25 20:29:47.015105+00	\N	f399a996-1567-4fc0-a86a-92774494ca44	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDg4MDk3ODcsInJvbGUiOiJ1c2VyIiwidXNlcl9pZCI6ImYzOTlhOTk2LTE1NjctNGZjMC1hODZhLTkyNzc0NDk0Y2E0NCJ9.IdZXB5j0f0RAZdGYZpMDBpJWGC5beTXq9DnebYnWJlQ	2025-06-01 20:29:47.014294+00
 d71aebfa-e488-4d36-92e6-78eb80063c4b	2025-06-04 19:20:41.718314+00	2025-06-04 19:20:41.718314+00	\N	56e89866-3a90-4f97-8461-34b24f842da4	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDk2Njk2NDEsInJvbGUiOiJ1c2VyIiwidXNlcl9pZCI6IjU2ZTg5ODY2LTNhOTAtNGY5Ny04NDYxLTM0YjI0Zjg0MmRhNCJ9.fYonuSfqC0uX5z6JHSeyU9DpV_XPtVXLu8V8ynoxaTM	2025-06-11 19:20:41.717942+00
@@ -278,10 +215,33 @@ f3d2dbe9-b840-47c2-81e6-c22fb38fec39	2025-06-07 19:53:42.570954+00	\N	\N	a03b330
 a2ab6dcb-fc98-4f8a-a670-034be67b28cd	2025-06-07 20:06:17.345392+00	\N	\N	092b44d9-e9d7-4a40-a59f-d868d193dd0d	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDk5MzE1NzcsInJvbGUiOiJ1c2VyIiwidXNlcl9pZCI6IjA5MmI0NGQ5LWU5ZDctNGE0MC1hNTlmLWQ4NjhkMTkzZGQwZCJ9.bmD9fDRv817-AFgsDitKvYr4PRoPFwDWRVGJoeT17Qk	2025-06-14 20:06:17.344972+00
 \.
 
+COPY public.attachments (id, post_id, file_url, file_type, created_at, deleted_at, user_id, attachment_type) FROM stdin;
+e23914f0-75d8-4519-8ebb-d1114b6c3254	\N	http://localhost:9000/ipromise/4478dce2-4b15-413b-8813-639e8170fb5f.png	image/png	2025-06-06 12:47:36.940883+00	\N	7e4a119f-4121-424e-af44-a9e97cbae049	avatar
+4d77930b-b331-4f6d-b138-0d597f15d3b0	23ad69f9-8c1f-45e1-bdb6-86ae97f0a2d2	http://localhost:9000/ipromise/490e1f2c-3323-414b-b0e1-2cbb80ed173d.jpeg	image/jpeg	2025-06-07 16:15:30.660681+00	\N	\N	post_image
+e430a0b7-03ac-4aa9-8139-0928a31e4dd4	741d9f45-74da-4da2-b40e-06b325c5342f	http://localhost:9000/ipromise/151b108a-054a-43ca-bbdd-f2df0566ea86.jpeg	image/jpeg	2025-06-07 16:20:17.666089+00	\N	\N	post_image
+d12fa1b9-29ba-43c2-bbe5-4b6990a1f0fd	60333cb2-3eac-4c88-b1ab-187788f3a753	http://localhost:9000/ipromise/b3f04097-83e5-4fd8-873c-8d9c48c76338.jpeg	image/jpeg	2025-06-07 16:23:59.439292+00	\N	\N	post_image
+e31356b1-00d7-4fe9-81e7-21e1ea39a141	31f82a0d-869c-4ea9-8c72-152d229893cf	http://localhost:9000/ipromise/c16494e9-842f-4c57-b270-257a05282b87.png	image/png	2025-06-07 16:49:02.689124+00	\N	\N	post_image
+ea0b6ca3-7b06-44ef-889e-97bb687eb6f3	223da9a0-82b1-4745-9a4a-5b657d47299e	http://localhost:9000/ipromise/a1af8183-b41a-4069-9c4a-f47bc02ec65d.jpg	image/jpeg	2025-06-07 18:31:21.425609+00	\N	\N	post_image
+67da62a4-f159-4e0d-94b5-05ddf10d7b72	a3f8de46-d113-48a1-b569-a20561d328f5	http://localhost:9000/ipromise/2e04b9e8-805f-419e-8825-091950d86313.jpeg	image/jpeg	2025-06-07 18:33:11.6177+00	\N	\N	post_image
+e3cb3985-9f10-44fe-ae61-9f70deea6d8a	b3621746-9032-46c1-9e9c-072c55b709a7	http://localhost:9000/ipromise/c10f2317-0330-40ee-ba63-25c9240416bd.png	image/png	2025-06-07 18:42:48.861851+00	\N	\N	post_image
+2fe0f1b5-6ed0-4b65-98c8-4bc305f231e1	5931007c-9050-44ae-90af-0c9732651ff3	http://localhost:9000/ipromise/6c27818a-f165-4c87-91ce-4972b81b14dc.jpg	image/jpeg	2025-06-07 19:11:55.902955+00	\N	\N	post_image
+199d8280-ba24-46a6-8e52-a6c37e821697	660c8c08-468b-4a0d-a37d-fe58d7d0b075	http://localhost:9000/ipromise/6ff6a754-e644-4230-9f69-dbb63111636b.jpg	image/jpeg	2025-06-07 19:20:10.473915+00	\N	\N	post_image
+656e329d-421f-45fc-addd-3a0ae4091cd0	c4e4435b-e210-481c-9603-880796a0b7df	http://localhost:9000/ipromise/6b328193-df3f-4e0f-b70e-881df4f5d348.png	image/png	2025-06-07 19:22:43.05936+00	\N	\N	post_image
+01cedf4a-459f-4f5f-ac1a-d95e3ee1a565	6a82001d-b416-4515-913e-5b6e3f57fbdf	http://localhost:9000/ipromise/afc95188-62eb-4ffa-b314-88aa5e601815.jpg	image/jpeg	2025-06-07 19:23:48.4721+00	\N	\N	post_image
+\.
 
---
--- Data for Name: user_badges; Type: TABLE DATA; Schema: public; Owner: postgres
---
+
+COPY public.badges (id, code, title, description, icon_url, created_at) FROM stdin;
+4769b089-f1c3-4cb6-88af-7f53614d1e6d	post_1	First post	You created your first post!	http://localhost:9000/ipromise/1stlevel.png	2025-05-18 15:08:17.169147+00
+4fe90924-2c53-4882-b404-e27d066ef682	post_50	50 posts	50 posts! You're a legend!	http://localhost:9000/ipromise/4rthlevel.png	2025-05-18 15:08:17.169147+00
+5db810f1-1a7f-4022-9ca1-85b3b727db56	friends_5	5 friends	5 friends! You're not alone anymore!	http://localhost:9000/ipromise/2ndlevel.png	2025-05-18 15:08:17.169147+00
+6eb08fda-7fae-42fc-a7e9-8c2aa4df7d35	friends_15	15 friends	15 friends! You're the life of the party	http://localhost:9000/ipromise/4rthlevel.png	2025-05-18 15:08:17.169147+00
+712e8ca2-37e2-46eb-98e6-1615f66d0fd7	friends_1	First friend	You made your first friend!	http://localhost:9000/ipromise/1stlevel.png	2025-05-18 15:08:17.169147+00
+a725e609-3804-43d6-ada5-f17e92458f6c	promise_5	5 promises	You've already made 5 promises!	http://localhost:9000/ipromise/2ndlevel.png	2025-05-18 15:08:17.169147+00
+d67d0bd3-06ad-4f4c-bf43-09ebcb3240a0	post_10	10 posts	You published 10 posts!	http://localhost:9000/ipromise/2ndlevel.png	2025-05-18 15:08:17.169147+00
+f0963252-7299-43e2-8849-6cce3b3ea52a	promise_1	First promise	Your first promise is created!	http://localhost:9000/ipromise/1stlevel.png	2025-05-18 15:08:17.169147+00
+f926bd1b-370b-40b0-854a-51a036c346e2	promise_15	15 promises	15 promises! You're a motivator!	http://localhost:9000/ipromise/4rthlevel.png	2025-05-18 15:08:17.169147+00
+\.
 
 COPY public.user_badges (id, user_id, badge_id, awarded_at) FROM stdin;
 c06e8d84-b12d-4720-a069-80745cbb60bf	d943512c-a462-4f9e-8881-13dc2b9b59e1	f0963252-7299-43e2-8849-6cce3b3ea52a	2025-06-04 21:57:11.880183+00
@@ -306,21 +266,3 @@ b6a5f323-936e-4561-aa56-22698db7f7e6	a03b3300-0d14-454e-8112-7b3eada90ae9	4769b0
 \.
 
 
---
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.users (id, created_at, updated_at, deleted_at, username, email, password, role, avatar_url, bio) FROM stdin;
-f399a996-1567-4fc0-a86a-92774494ca44	2025-05-25 20:28:15.427525+00	2025-05-25 20:28:15.427525+00	\N	johndoe	johndoe@example.com	$2a$10$5Ai8T0Vueev0ll6cKobWhOhkWG/Hca/tYuiLFzoz0tj44ZXScvMPa	user
-a03b3300-0d14-454e-8112-7b3eada90ae9	2025-05-25 20:28:41.77735+00	2025-05-25 20:28:41.77735+00	\N	janedoe	janedoe@example.com	$2a$10$POkvoB2up.f0tFVShVuSyOIgSteS5A3/YKbw3yWU6Hm37w1bO7ztS	user
-6929aaa9-f3a8-4e28-b959-f6585f65b6b1	2025-05-25 20:28:47.413388+00	2025-05-25 20:28:47.413388+00	\N	alexsmith	alexsmith@example.com	$2a$10$2uPDDCCPZ6nNqV.k7yqxZO3bZRncpWd0y/Cp1F0birRwibcfCoNqK	user
-d440ff73-81ae-4a7c-b7cb-3336e3b24a4c	2025-05-25 20:28:51.592047+00	2025-05-25 20:28:51.592047+00	\N	emilyjones	emilyjones@example.com	$2a$10$KTUBOvC1hurqcGSJJ8IqNuKf/BAhK2HMZjwWoEzrawIz81l1P3G1K	user
-092b44d9-e9d7-4a40-a59f-d868d193dd0d	2025-05-25 20:28:56.632514+00	2025-05-25 20:28:56.632514+00	\N	michaelbrown	michaelbrown@example.com	$2a$10$RnPMerRGCDnb9E7Wq6hRmuIqSjVmjLf7ZISrsKK2J9k62WOhmitFq	user
-3b0ebec9-3805-490b-987f-4c6e7286319e	2025-05-25 20:29:02.859366+00	2025-05-25 20:29:02.859366+00	\N	sarahlee	sarahlee@example.com	$2a$10$a6TS0FN4IIc1i35ZjgX6WOvuPlI.E6dTyuRzEDOQ8/lojTAbtd3hq	user
-ae884ed2-075a-4ed2-9dde-736921d80e9f	2025-05-25 20:29:07.36962+00	2025-05-25 20:29:07.36962+00	\N	davidclark	davidclark@example.com	$2a$10$ETRwUmBOQxkYgukM6X0DA.I1F5UpGGyT1C0DgwsB8DpRjnzcdwmI6	user
-a203c89a-3ab9-42b2-ae92-0c979d8425de	2025-05-25 20:29:11.983565+00	2025-05-25 20:29:11.983565+00	\N	nataliewilson	nataliewilson@example.com	$2a$10$B2PzfU7hK0oETWeZ2aTXSeSO4ClexCTT9HJNUDjmF/xkzkp6WuAtC	user
-6e137217-71a9-439b-a579-4bcd1a729af9	2025-05-25 20:29:16.99026+00	2025-05-25 20:29:16.99026+00	\N	danielmartin	danielmartin@example.com	$2a$10$.4yRj.ICdkXJHNehph5fRu4A5MeNtBULMWpEvEZ/DaEZKphc9vOrK	user
-79758f94-70d8-4a11-b05f-793fcb57e093	2025-05-25 20:29:20.474495+00	2025-05-25 20:29:20.474495+00	\N	lauragarcia	lauragarcia@example.com	$2a$10$iQdfkkzgZOOvZRSUEYDuze1m/7xvsr6jli3JJHxfvBKOYVp8OsLQy	user
-56e89866-3a90-4f97-8461-34b24f842da4	2025-06-04 19:20:34.356125+00	2025-06-04 19:20:34.356125+00	\N	emanuelneuer	emanuelneuer@example.com	$2a$10$KyEdttw7eTelHj7p3bwCzuW40AJbpkM4eCS1M0gPQsmcNMO0ztwGy	user
-d943512c-a462-4f9e-8881-13dc2b9b59e1	2025-06-04 21:33:46.271911+00	2025-06-04 22:02:19.235879+00	\N	raxarbek	raxarbek@example.com	$2a$10$2gPsgmsSPVyix/xroKyBousthYebDTd.7WXhunCh4sDx0gCXelPZu	user
-\.

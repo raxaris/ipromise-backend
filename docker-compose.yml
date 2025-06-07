@@ -63,6 +63,23 @@ services:
     volumes:
       - redis_data:/data
 
+
+  seed:
+    container_name: ipromise-seed
+    image: postgres:16
+    depends_on:
+      - db
+      - backend
+    restart: on-failure
+    volumes:
+      - ./docker/seed/01_seed_data.sql:/docker-entrypoint-initdb.d/01_seed_data.sql
+    entrypoint: [ "/bin/sh", "-c", "sleep 15 && /usr/bin/psql -h db -U $POSTGRES_USER -d $POSTGRES_DB -f /docker-entrypoint-initdb.d/01_seed_data.sql" ]
+    environment:
+      - PGPASSWORD=123
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=ipromisego
+
+
 volumes:
   postgres_data:
   minio_data:
