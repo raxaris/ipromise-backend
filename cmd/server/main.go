@@ -88,7 +88,7 @@ func main() {
 	authService := services.NewAuthService(userRepo, tokenRepo)
 	userService := services.NewUserService(userRepo)
 	attachmentService := services.NewAttachmentService(attachmentRepo, storage)
-	profileService := services.NewProfileService(userRepo, badgeRepo, promiseRepo, followerRepo)
+	profileService := services.NewProfileService(userRepo, badgeRepo, promiseRepo, followerRepo, attachmentService)
 	predictionService := services.NewPredictionService(predictionRepo, openaiClient)
 	promiseService := services.NewPromiseService(promiseRepo, microtaskRepo, followerRepo, userRepo, postRepo, predictionService)
 	microtaskService := services.NewMicrotaskService(microtaskRepo, promiseRepo)

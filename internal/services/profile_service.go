@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"strings"
 
 	"github.com/google/uuid"
@@ -17,13 +19,15 @@ type ProfileService interface {
 	GetMyProfile(ctx context.Context, userID uuid.UUID) (*dto.MyProfileResponse, error)
 	GetPublicProfile(ctx context.Context, viewerID uuid.UUID, username string) (*dto.PublicProfileResponse, error)
 	UpdateProfile(ctx context.Context, userID uuid.UUID, req dto.UpdateProfileRequest) error
+	UpdateProfileWithForm(ctx context.Context, userID uuid.UUID, form dto.UpdateProfileFormRequest) error
 }
 
 type profileService struct {
-	userRepo     user.UserRepository
-	badgeRepo    badge.BadgeRepository
-	promiseRepo  promise.PromiseRepository
-	followerRepo follower.FollowerRepository
+	userRepo          user.UserRepository
+	badgeRepo         badge.BadgeRepository
+	promiseRepo       promise.PromiseRepository
+	followerRepo      follower.FollowerRepository
+	attachmentService AttachmentService
 }
 
 func NewProfileService(
@@ -31,12 +35,14 @@ func NewProfileService(
 	badgeRepo badge.BadgeRepository,
 	promiseRepo promise.PromiseRepository,
 	followerRepo follower.FollowerRepository,
+	attachmentService AttachmentService,
 ) ProfileService {
 	return &profileService{
-		userRepo:     userRepo,
-		badgeRepo:    badgeRepo,
-		promiseRepo:  promiseRepo,
-		followerRepo: followerRepo,
+		userRepo:          userRepo,
+		badgeRepo:         badgeRepo,
+		promiseRepo:       promiseRepo,
+		followerRepo:      followerRepo,
+		attachmentService: attachmentService,
 	}
 }
 
@@ -161,6 +167,66 @@ func (s *profileService) UpdateProfile(ctx context.Context, userID uuid.UUID, re
 		if bio != "" {
 			user.Bio = bio
 		}
+	}
+
+	return s.userRepo.UpdateUser(ctx, user)
+}
+
+func (s *profileService) UpdateProfileWithForm(
+	ctx context.Context,
+	userID uuid.UUID,
+	form dto.UpdateProfileFormRequest,
+) error {
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if form.Username != nil {
+		username := strings.TrimSpace(*form.Username)
+		if username != "" && username != user.Username {
+			exists, err := s.userRepo.IsUsernameExists(ctx, username)
+			if err != nil {
+				return err
+			}
+			if exists {
+				return errors.New("this username already taken")
+			}
+			user.Username = username
+		}
+	}
+
+	if form.Bio != nil {
+		bio := strings.TrimSpace(*form.Bio)
+		if bio != "" {
+			user.Bio = bio
+		}
+	}
+
+	if form.Avatar != nil {
+		f, err := form.Avatar.Open()
+		if err != nil {
+			return fmt.Errorf("cannot open avatar: %w", err)
+		}
+		defer f.Close()
+
+		data, err := io.ReadAll(f)
+		if err != nil {
+			return fmt.Errorf("cannot read avatar: %w", err)
+		}
+
+		uploaded, err := s.attachmentService.UploadAvatar(
+			ctx,
+			userID,
+			data,
+			form.Avatar.Filename,
+			form.Avatar.Header.Get("Content-Type"),
+		)
+		if err != nil {
+			return err
+		}
+
+		user.AvatarURL = uploaded.FileURL
 	}
 
 	return s.userRepo.UpdateUser(ctx, user)

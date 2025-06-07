@@ -1,16 +1,16 @@
 COPY public.users (id, created_at, updated_at, deleted_at, username, email, password, role, avatar_url, bio) FROM stdin;
-f399a996-1567-4fc0-a86a-92774494ca44	2025-05-25 20:28:15.427525+00	2025-05-25 20:28:15.427525+00	\N	johndoe	johndoe@example.com	$2a$10$5Ai8T0Vueev0ll6cKobWhOhkWG/Hca/tYuiLFzoz0tj44ZXScvMPa	user
-a03b3300-0d14-454e-8112-7b3eada90ae9	2025-05-25 20:28:41.77735+00	2025-05-25 20:28:41.77735+00	\N	janedoe	janedoe@example.com	$2a$10$POkvoB2up.f0tFVShVuSyOIgSteS5A3/YKbw3yWU6Hm37w1bO7ztS	user
-6929aaa9-f3a8-4e28-b959-f6585f65b6b1	2025-05-25 20:28:47.413388+00	2025-05-25 20:28:47.413388+00	\N	alexsmith	alexsmith@example.com	$2a$10$2uPDDCCPZ6nNqV.k7yqxZO3bZRncpWd0y/Cp1F0birRwibcfCoNqK	user
-d440ff73-81ae-4a7c-b7cb-3336e3b24a4c	2025-05-25 20:28:51.592047+00	2025-05-25 20:28:51.592047+00	\N	emilyjones	emilyjones@example.com	$2a$10$KTUBOvC1hurqcGSJJ8IqNuKf/BAhK2HMZjwWoEzrawIz81l1P3G1K	user
-092b44d9-e9d7-4a40-a59f-d868d193dd0d	2025-05-25 20:28:56.632514+00	2025-05-25 20:28:56.632514+00	\N	michaelbrown	michaelbrown@example.com	$2a$10$RnPMerRGCDnb9E7Wq6hRmuIqSjVmjLf7ZISrsKK2J9k62WOhmitFq	user
-3b0ebec9-3805-490b-987f-4c6e7286319e	2025-05-25 20:29:02.859366+00	2025-05-25 20:29:02.859366+00	\N	sarahlee	sarahlee@example.com	$2a$10$a6TS0FN4IIc1i35ZjgX6WOvuPlI.E6dTyuRzEDOQ8/lojTAbtd3hq	user
-ae884ed2-075a-4ed2-9dde-736921d80e9f	2025-05-25 20:29:07.36962+00	2025-05-25 20:29:07.36962+00	\N	davidclark	davidclark@example.com	$2a$10$ETRwUmBOQxkYgukM6X0DA.I1F5UpGGyT1C0DgwsB8DpRjnzcdwmI6	user
-a203c89a-3ab9-42b2-ae92-0c979d8425de	2025-05-25 20:29:11.983565+00	2025-05-25 20:29:11.983565+00	\N	nataliewilson	nataliewilson@example.com	$2a$10$B2PzfU7hK0oETWeZ2aTXSeSO4ClexCTT9HJNUDjmF/xkzkp6WuAtC	user
-6e137217-71a9-439b-a579-4bcd1a729af9	2025-05-25 20:29:16.99026+00	2025-05-25 20:29:16.99026+00	\N	danielmartin	danielmartin@example.com	$2a$10$.4yRj.ICdkXJHNehph5fRu4A5MeNtBULMWpEvEZ/DaEZKphc9vOrK	user
-79758f94-70d8-4a11-b05f-793fcb57e093	2025-05-25 20:29:20.474495+00	2025-05-25 20:29:20.474495+00	\N	lauragarcia	lauragarcia@example.com	$2a$10$iQdfkkzgZOOvZRSUEYDuze1m/7xvsr6jli3JJHxfvBKOYVp8OsLQy	user
-56e89866-3a90-4f97-8461-34b24f842da4	2025-06-04 19:20:34.356125+00	2025-06-04 19:20:34.356125+00	\N	emanuelneuer	emanuelneuer@example.com	$2a$10$KyEdttw7eTelHj7p3bwCzuW40AJbpkM4eCS1M0gPQsmcNMO0ztwGy	user
-d943512c-a462-4f9e-8881-13dc2b9b59e1	2025-06-04 21:33:46.271911+00	2025-06-04 22:02:19.235879+00	\N	raxarbek	raxarbek@example.com	$2a$10$2gPsgmsSPVyix/xroKyBousthYebDTd.7WXhunCh4sDx0gCXelPZu	user
+f399a996-1567-4fc0-a86a-92774494ca44	2025-05-25 20:28:15.427525+00	2025-05-25 20:28:15.427525+00	\N	johndoe	johndoe@example.com	$2a$10$5Ai8T0Vueev0ll6cKobWhOhkWG/Hca/tYuiLFzoz0tj44ZXScvMPa	user    \N  \N
+a03b3300-0d14-454e-8112-7b3eada90ae9	2025-05-25 20:28:41.77735+00	2025-05-25 20:28:41.77735+00	\N	janedoe	janedoe@example.com	$2a$10$POkvoB2up.f0tFVShVuSyOIgSteS5A3/YKbw3yWU6Hm37w1bO7ztS	user    \N  \N
+6929aaa9-f3a8-4e28-b959-f6585f65b6b1	2025-05-25 20:28:47.413388+00	2025-05-25 20:28:47.413388+00	\N	alexsmith	alexsmith@example.com	$2a$10$2uPDDCCPZ6nNqV.k7yqxZO3bZRncpWd0y/Cp1F0birRwibcfCoNqK	user    \N  \N
+d440ff73-81ae-4a7c-b7cb-3336e3b24a4c	2025-05-25 20:28:51.592047+00	2025-05-25 20:28:51.592047+00	\N	emilyjones	emilyjones@example.com	$2a$10$KTUBOvC1hurqcGSJJ8IqNuKf/BAhK2HMZjwWoEzrawIz81l1P3G1K	user    \N  \N
+092b44d9-e9d7-4a40-a59f-d868d193dd0d	2025-05-25 20:28:56.632514+00	2025-05-25 20:28:56.632514+00	\N	michaelbrown	michaelbrown@example.com	$2a$10$RnPMerRGCDnb9E7Wq6hRmuIqSjVmjLf7ZISrsKK2J9k62WOhmitFq	user    \N  \N
+3b0ebec9-3805-490b-987f-4c6e7286319e	2025-05-25 20:29:02.859366+00	2025-05-25 20:29:02.859366+00	\N	sarahlee	sarahlee@example.com	$2a$10$a6TS0FN4IIc1i35ZjgX6WOvuPlI.E6dTyuRzEDOQ8/lojTAbtd3hq	user    \N  \N
+ae884ed2-075a-4ed2-9dde-736921d80e9f	2025-05-25 20:29:07.36962+00	2025-05-25 20:29:07.36962+00	\N	davidclark	davidclark@example.com	$2a$10$ETRwUmBOQxkYgukM6X0DA.I1F5UpGGyT1C0DgwsB8DpRjnzcdwmI6	user    \N  \N
+a203c89a-3ab9-42b2-ae92-0c979d8425de	2025-05-25 20:29:11.983565+00	2025-05-25 20:29:11.983565+00	\N	nataliewilson	nataliewilson@example.com	$2a$10$B2PzfU7hK0oETWeZ2aTXSeSO4ClexCTT9HJNUDjmF/xkzkp6WuAtC	user    \N  \N
+6e137217-71a9-439b-a579-4bcd1a729af9	2025-05-25 20:29:16.99026+00	2025-05-25 20:29:16.99026+00	\N	danielmartin	danielmartin@example.com	$2a$10$.4yRj.ICdkXJHNehph5fRu4A5MeNtBULMWpEvEZ/DaEZKphc9vOrK	user    \N  \N
+79758f94-70d8-4a11-b05f-793fcb57e093	2025-05-25 20:29:20.474495+00	2025-05-25 20:29:20.474495+00	\N	lauragarcia	lauragarcia@example.com	$2a$10$iQdfkkzgZOOvZRSUEYDuze1m/7xvsr6jli3JJHxfvBKOYVp8OsLQy	user    \N  \N
+56e89866-3a90-4f97-8461-34b24f842da4	2025-06-04 19:20:34.356125+00	2025-06-04 19:20:34.356125+00	\N	emanuelneuer	emanuelneuer@example.com	$2a$10$KyEdttw7eTelHj7p3bwCzuW40AJbpkM4eCS1M0gPQsmcNMO0ztwGy	user    \N  \N
+d943512c-a462-4f9e-8881-13dc2b9b59e1	2025-06-04 21:33:46.271911+00	2025-06-04 22:02:19.235879+00	\N	raxarbek	raxarbek@example.com	$2a$10$2gPsgmsSPVyix/xroKyBousthYebDTd.7WXhunCh4sDx0gCXelPZu	user    \N  \N
 \.
 
 COPY public.promises (id, user_id, title, description, deadline, is_private, status, created_at, updated_at, deleted_at, category) FROM stdin;

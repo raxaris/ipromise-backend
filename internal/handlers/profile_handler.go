@@ -84,7 +84,7 @@ func (h *ProfileHandler) GetPublicProfile(c *gin.Context) {
 // @Failure 400 {object} map[string]string "error: Неверные данные"
 // @Failure 401 {object} map[string]string "error: Неавторизован"
 // @Failure 500 {object} map[string]string "error: Ошибка сервера"
-// @Router /profile [patch]
+// @Router /profile/me [patch]
 func (h *ProfileHandler) UpdateProfileWithAvatar(c *gin.Context) {
 	var form dto.UpdateProfileFormRequest
 	if err := c.ShouldBind(&form); err != nil {
@@ -98,39 +98,7 @@ func (h *ProfileHandler) UpdateProfileWithAvatar(c *gin.Context) {
 		return
 	}
 
-	var avatarURL *string
-	if form.Avatar != nil {
-		file, err := form.Avatar.Open()
-		if err != nil {
-			utils.RespondWithError(c, http.StatusBadRequest, "Ошибка при открытии аватара")
-			return
-		}
-		defer file.Close()
-
-		fileBytes := make([]byte, form.Avatar.Size)
-		_, _ = file.Read(fileBytes)
-
-		uploaded, err := h.attachmentService.UploadAvatar(
-			c.Request.Context(),
-			userID,
-			fileBytes,
-			form.Avatar.Filename,
-			form.Avatar.Header.Get("Content-Type"),
-		)
-		if err != nil {
-			utils.RespondWithMappedError(c, err)
-			return
-		}
-		avatarURL = &uploaded.FileURL
-	}
-
-	updateData := dto.UpdateProfileRequest{
-		Username:  form.Username,
-		Bio:       form.Bio,
-		AvatarURL: avatarURL,
-	}
-
-	if err := h.profileService.UpdateProfile(c.Request.Context(), userID, updateData); err != nil {
+	if err := h.profileService.UpdateProfileWithForm(c.Request.Context(), userID, form); err != nil {
 		utils.RespondWithMappedError(c, err)
 		return
 	}
