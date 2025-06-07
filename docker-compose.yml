@@ -1,7 +1,6 @@
-version: "3.9"
-
 services:
   db:
+    container_name: ipromise-db
     image: postgres:16
     restart: always
     environment:
@@ -12,9 +11,10 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/init:/docker-entrypoint-initdb.d
 
   backend:
+    container_name: ipromise-backend
     build: .
     ports:
       - "8080:8080"
@@ -30,8 +30,8 @@ services:
     command: ["/bin/sh", "-c", "sleep 5 && /bin/ipromise-backend"]
 
   pgadmin:
+    container_name: ipromise-pgadmin
     image: dpage/pgadmin4
-    container_name: pgadmin
     restart: always
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
@@ -42,8 +42,8 @@ services:
       - db
 
   minio:
+    container_name: ipromise-minio
     image: minio/minio
-    container_name: minio
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -55,6 +55,7 @@ services:
       - minio_data:/data
 
   redis:
+    container_name: ipromise-redis
     image: redis:7
     restart: always
     ports:

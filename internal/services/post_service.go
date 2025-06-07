@@ -72,15 +72,38 @@ func (s *postService) CreatePostWithAttachments(
 	content string,
 	attachments []*multipart.FileHeader,
 ) error {
+	if promiseID != nil {
+		promise, err := s.promiseRepo.GetPromiseByID(ctx, *promiseID)
+		if err != nil {
+			return err
+		}
+		if promise.UserID != userID {
+			return errors.New("you are not the owner of this promise")
+		}
+	}
+
+	microtask, err := s.microtaskRepo.GetMicrotaskByID(ctx, microtaskID)
+	if err != nil {
+		return err
+	}
+	if promiseID != nil && microtask.PromiseID != *promiseID {
+		return errors.New("microtask does not belong to the specified promise")
+	}
+
+	promise, err := s.promiseRepo.GetPromiseByID(ctx, microtask.PromiseID)
+	if err != nil {
+		return err
+	}
+	if promise.UserID != userID {
+		return errors.New("you are not the owner of the microtask")
+	}
+
 	post := &models.Post{
 		ID:          uuid.New(),
 		UserID:      userID,
-		PromiseID:   uuid.Nil,
+		PromiseID:   microtask.PromiseID,
 		MicrotaskID: microtaskID,
 		Content:     content,
-	}
-	if promiseID != nil {
-		post.PromiseID = *promiseID
 	}
 
 	if err := s.postRepo.CreatePost(ctx, post); err != nil {

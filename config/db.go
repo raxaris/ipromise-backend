@@ -5,18 +5,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/raxaris/ipromise-backend/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func ConnectDB() *gorm.DB {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Ошибка загрузки .env файла")
-	}
-
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		os.Getenv("DB_HOST"),
@@ -26,12 +20,14 @@ func ConnectDB() *gorm.DB {
 		os.Getenv("DB_PORT"),
 	)
 
-	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: false,
+	})
 	if err != nil {
-		log.Fatal("Ошибка подключения к БД: ", err)
+		log.Fatal("Error connecting to DB: ", err)
 	}
 
-	fmt.Println("✅ Успешное подключение к БД!")
+	fmt.Println("✅ DB successfully connected!")
 
 	models.MigrateDB(database)
 

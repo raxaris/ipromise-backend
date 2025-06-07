@@ -4,24 +4,20 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-)
-
-// Определяем роли
-const (
-	RoleUser      = "user"
-	RoleModerator = "moderator"
-	RoleAdmin     = "admin"
+	"time"
 )
 
 type User struct {
-	gorm.Model `swaggerignore:"true"`
-	ID         uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	Username   string    `gorm:"unique;not null"`
-	Email      string    `gorm:"unique;not null"`
-	Password   string    `gorm:"not null" json:"-"`
-	Role       string    `gorm:"type:varchar(15);default:'user'" json:"role"`
-	AvatarURL  string    `gorm:"size:255"`
-	Bio        string    `gorm:"size:160" json:"bio"`
+	ID        uuid.UUID      `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	Username  string         `gorm:"type:varchar(50);unique;not null" json:"username"`
+	Email     string         `gorm:"type:varchar(100);unique;not null" json:"email"`
+	Password  string         `gorm:"type:text;not null" json:"-"`
+	Role      string         `gorm:"type:varchar(15);not null;default:'user'" json:"role"`
+	AvatarURL string         `gorm:"type:text"`
+	Bio       string         `gorm:"type:varchar(160)" json:"bio"`
+	CreatedAt time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime"`
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
 func (u *User) HashPassword() error {

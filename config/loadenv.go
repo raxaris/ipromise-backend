@@ -13,16 +13,16 @@ var OpenAIApiKey string
 func LoadEnv() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("❌ Ошибка загрузки .env файла")
+		log.Fatal("❌ Failed to load .env file")
 	}
 
 	JWTSecret = os.Getenv("JWT_SECRET")
 	if JWTSecret == "" {
-		log.Fatal("❌ Переменная окружения JWT_SECRET не установлена! Приложение не может работать без нее.")
+		log.Fatal("❌ Environment variable JWT_SECRET is not set! The application cannot run without it.")
 	}
 
 	OpenAIApiKey = os.Getenv("OPENAI_API_KEY")
 	if OpenAIApiKey == "" {
-		log.Fatal("❌ Переменная окружения OPENAI_API_KEY не установлена! GPT-функционал не будет работать.")
+		log.Fatal("❌ Environment variable OPENAI_API_KEY is not set! GPT functionality will not work.")
 	}
 }
