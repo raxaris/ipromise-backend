@@ -91,7 +91,8 @@ services:
         sleep 5 &&
         mc alias set local http://minio:9000 minio minio123 &&
         mc mb --ignore-existing local/ipromise &&
-        mc cp -r /seed/* local/ipromise/"
+        mc cp -r /seed/* local/ipromise/
+        mc anonymous set download local/ipromise"
     volumes:
       - ./docker/minio/bootstrap/ipromise:/seed:ro
 
