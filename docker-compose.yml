@@ -80,6 +80,20 @@ services:
     environment:
       - PGPASSWORD=123
 
+  minio-seed:
+    container_name: ipromise-minio-seed
+    profiles: [ "init" ]
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        sleep 5 &&
+        mc alias set local http://minio:9000 minio minio123 &&
+        mc mb --ignore-existing local/ipromise &&
+        mc cp -r /seed/* local/ipromise/"
+    volumes:
+      - ./docker/minio/bootstrap/ipromise:/seed:ro
 
 
 volumes:
