@@ -1,116 +1,121 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/models"
-	"github.com/raxaris/ipromise-backend/internal/repositories"
+	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 )
 
-// Ошибки
-var (
-	ErrUserNotFound     = errors.New("пользователь не найден")
-	ErrUsernameTaken    = errors.New("это имя пользователя уже занято")
-	ErrEmailTaken       = errors.New("этот email уже используется")
-	ErrNotAllowedToEdit = errors.New("у вас нет прав для редактирования этого пользователя")
-)
+type UserService interface {
+	CreateUser(ctx context.Context, user *models.User) error
+	GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error)
+	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
+	UpdateUser(ctx context.Context, requesterID, userID uuid.UUID, req dto.UpdateUserRequest, isAdmin bool) error
+	DeleteUser(ctx context.Context, userID uuid.UUID) error
+	ListAllUsers(ctx context.Context) ([]models.User, error)
+}
 
-// CreateUser – создание пользователя
-func CreateUser(username, email, password string) (*models.User, error) {
-	// Убираем пробелы
-	username = strings.TrimSpace(username)
-	email = strings.TrimSpace(email)
+type userService struct {
+	userRepo user.UserRepository
+}
 
-	// Проверяем уникальность email и username
-	if repositories.IsEmailExists(email) {
-		return nil, ErrEmailTaken
-	}
-	if repositories.IsUsernameExists(username) {
-		return nil, ErrUsernameTaken
-	}
+func NewUserService(userRepo user.UserRepository) UserService {
+	return &userService{userRepo: userRepo}
+}
 
-	// Проверяем длину username (не менее 3 символов)
-	if len(username) < 3 {
-		return nil, errors.New("имя пользователя должно содержать минимум 3 символа")
-	}
+func (s *userService) CreateUser(ctx context.Context, user *models.User) error {
+	// Trim input
+	user.Email = strings.TrimSpace(user.Email)
+	user.Username = strings.TrimSpace(user.Username)
 
-	user := &models.User{
-		ID:       uuid.New(),
-		Username: username,
-		Email:    email,
-		Password: password,
+	// Валидация
+	if len(user.Username) < 3 {
+		return errors.New("Username must be at least 3 characters long")
 	}
 
-	// Хешируем пароль
+	// Проверка на уникальность
+	emailExists, err := s.userRepo.IsEmailExists(ctx, user.Email)
+	if err != nil {
+		return err
+	}
+	if emailExists {
+		return errors.New("Email already taken")
+	}
+
+	usernameExists, err := s.userRepo.IsUsernameExists(ctx, user.Username)
+	if err != nil {
+		return err
+	}
+	if usernameExists {
+		return errors.New("Username already taken")
+	}
+
+	// Хеширование пароля
 	if err := user.HashPassword(); err != nil {
-		return nil, err
+		return err
 	}
 
-	// Создаём пользователя в БД
-	err := repositories.CreateUser(user)
-	return user, err
+	// Присваиваем ID
+	user.ID = uuid.New()
+
+	return s.userRepo.CreateUser(ctx, user)
 }
 
-// GetAllUsers – получение всех пользователей
-func GetAllUsers() ([]models.User, error) {
-	return repositories.GetAllUsers()
+func (s *userService) GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	return s.userRepo.GetUserByID(ctx, id)
 }
 
-// GetUserByID – получение пользователя по ID
-func GetUserByID(userID uuid.UUID) (*models.User, error) {
-	user, err := repositories.GetUserByID(userID)
+func (s *userService) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
+	return s.userRepo.GetUserByUsername(ctx, username)
+}
+
+func (s *userService) UpdateUser(ctx context.Context, requesterID, userID uuid.UUID, req dto.UpdateUserRequest, isAdmin bool) error {
+	existingUser, err := s.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
-		return nil, ErrUserNotFound
-	}
-	return user, nil
-}
-
-// GetUserByUsername – получение пользователя по username
-func GetUserByUsername(username string) (*models.User, error) {
-	user, err := repositories.GetUserByUsername(username)
-	if err != nil {
-		return nil, ErrUserNotFound
-	}
-	return user, nil
-}
-
-// UpdateUser – обновление пользователя
-func UpdateUser(requesterID uuid.UUID, userID uuid.UUID, req *dto.UpdateUserRequest, isAdmin bool) error {
-	// Получаем существующего пользователя
-	existingUser, err := repositories.GetUserByID(userID)
-	if err != nil {
-		return ErrUserNotFound
+		return err
 	}
 
-	// Проверяем, имеет ли пользователь право редактировать
 	if requesterID != userID && !isAdmin {
-		return ErrNotAllowedToEdit
+		return errors.New("Not enough permission")
 	}
 
-	// Проверяем уникальность username, если его меняют
 	if req.Username != nil {
-		newUsername := strings.TrimSpace(*req.Username)
-		if newUsername != existingUser.Username {
-			if repositories.IsUsernameExists(newUsername) {
-				return ErrUsernameTaken
+		newName := strings.TrimSpace(*req.Username)
+		if newName != existingUser.Username {
+			exists, err := s.userRepo.IsUsernameExists(ctx, newName)
+			if err != nil {
+				return err
 			}
-			existingUser.Username = newUsername
+			if exists {
+				return errors.New("Username already taken")
+			}
+			existingUser.Username = newName
 		}
 	}
 
-	// Админ может менять роль
+	if req.AvatarURL != nil {
+		trimmed := strings.TrimSpace(*req.AvatarURL)
+		if len(trimmed) > 0 {
+			existingUser.AvatarURL = trimmed
+		}
+	}
+
 	if isAdmin && req.Role != nil {
 		existingUser.Role = *req.Role
 	}
 
-	// Обновляем пользователя в БД
-	return repositories.UpdateUser(existingUser)
+	return s.userRepo.UpdateUser(ctx, existingUser)
 }
 
-// DeleteUser – удаление пользователя
-func DeleteUser(userID uuid.UUID) error {
-	return repositories.DeleteUser(userID)
+func (s *userService) DeleteUser(ctx context.Context, userID uuid.UUID) error {
+	return s.userRepo.DeleteUser(ctx, userID)
+}
+
+func (s *userService) ListAllUsers(ctx context.Context) ([]models.User, error) {
+	return s.userRepo.GetAllUsers(ctx)
 }

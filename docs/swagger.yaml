@@ -1,21 +1,89 @@
 basePath: /
 definitions:
-  dto.CreatePromiseRequest:
+  dto.AttachmentResponse:
     properties:
-      deadline:
-        description: Можно передавать только для основного промиса
+      file_type:
+        type: string
+      file_url:
+        type: string
+      id:
+        type: string
+    type: object
+  dto.BadgeResponse:
+    properties:
+      code:
         type: string
       description:
         type: string
-      parent_id:
-        description: Если null, это основное обещание
+      icon_url:
         type: string
-      status:
+      id:
         type: string
       title:
         type: string
+    type: object
+  dto.CreateMicrotaskInput:
+    properties:
+      order:
+        type: integer
+      steps_planned:
+        type: integer
+      title:
+        type: string
     required:
-    - status
+    - title
+    type: object
+  dto.CreateMicrotaskRequest:
+    properties:
+      order:
+        type: integer
+      steps_planned:
+        type: integer
+      title:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - steps_planned
+    - title
+    type: object
+  dto.CreatePromiseRequest:
+    properties:
+      category:
+        type: string
+      deadline:
+        type: string
+      description:
+        maxLength: 2000
+        type: string
+      is_private:
+        type: boolean
+      title:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - deadline
+    - title
+    type: object
+  dto.CreatePromiseWithMicrotasksRequest:
+    properties:
+      category:
+        type: string
+      deadline:
+        type: string
+      description:
+        type: string
+      is_private:
+        type: boolean
+      microtasks:
+        items:
+          $ref: '#/definitions/dto.CreateMicrotaskInput'
+        type: array
+      title:
+        type: string
+    required:
+    - deadline
     - title
     type: object
   dto.LoginRequest:
@@ -28,12 +96,228 @@ definitions:
     - email
     - password
     type: object
+  dto.MicrotaskProgress:
+    properties:
+      completion_ratio:
+        type: number
+      id:
+        type: string
+      order:
+        type: integer
+      posts_count:
+        type: integer
+      status:
+        type: string
+      steps_planned:
+        type: integer
+      title:
+        type: string
+    type: object
+  dto.MicrotaskResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      order:
+        type: integer
+      promise_id:
+        type: string
+      status:
+        type: string
+      steps_planned:
+        type: integer
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.MyProfileResponse:
+    properties:
+      avatar_url:
+        type: string
+      badges_count:
+        type: integer
+      bio:
+        type: string
+      email:
+        type: string
+      followers_count:
+        type: integer
+      following_count:
+        type: integer
+      id:
+        description: UUID юзера
+        type: string
+      promises_count:
+        type: integer
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.PostLiteResponse:
+    properties:
+      attachments:
+        items:
+          $ref: '#/definitions/dto.AttachmentResponse'
+        type: array
+      author_id:
+        type: string
+      avatar_url:
+        type: string
+      comments:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_liked_by_me:
+        type: boolean
+      is_private:
+        type: boolean
+      is_your_friend:
+        type: boolean
+      likes:
+        type: integer
+      microtask_id:
+        type: string
+      microtask_title:
+        type: string
+      promise_id:
+        type: string
+      promise_title:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.PostWithRepliesTreeResponse:
+    properties:
+      attachments:
+        items:
+          $ref: '#/definitions/dto.AttachmentResponse'
+        type: array
+      author_id:
+        type: string
+      avatar_url:
+        type: string
+      comments:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_liked_by_me:
+        type: boolean
+      is_private:
+        type: boolean
+      is_your_friend:
+        type: boolean
+      likes:
+        type: integer
+      microtask_id:
+        type: string
+      microtask_title:
+        type: string
+      promise_id:
+        type: string
+      promise_title:
+        type: string
+      replies:
+        items:
+          $ref: '#/definitions/dto.PostWithRepliesTreeResponse'
+        type: array
+      username:
+        type: string
+    type: object
+  dto.PredictionResponse:
+    properties:
+      advice:
+        type: string
+      promise_id:
+        type: string
+      success_rate:
+        type: number
+    type: object
+  dto.PromiseResponse:
+    properties:
+      created_at:
+        type: string
+      deadline:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_private:
+        type: boolean
+      status:
+        type: string
+      title:
+        type: string
+      username:
+        description: можно добавить позже
+        type: string
+    type: object
+  dto.PromiseWithMicrotasksProgressResponse:
+    properties:
+      deadline:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_private:
+        type: boolean
+      microtasks:
+        items:
+          $ref: '#/definitions/dto.MicrotaskProgress'
+        type: array
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.PublicProfileResponse:
+    properties:
+      avatar_url:
+        type: string
+      badges_count:
+        type: integer
+      bio:
+        type: string
+      followers_count:
+        type: integer
+      following_count:
+        type: integer
+      id:
+        type: string
+      is_following:
+        type: boolean
+      promises_count:
+        type: integer
+      username:
+        type: string
+    type: object
   dto.RefreshTokenRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
+    type: object
+  dto.ReorderMicrotasksMapRequest:
+    properties:
+      orders:
+        additionalProperties:
+          type: integer
+        type: object
+    required:
+    - orders
     type: object
   dto.SignupRequest:
     properties:
@@ -52,53 +336,99 @@ definitions:
     - password
     - username
     type: object
+  dto.UpdateMicrotaskRequest:
+    properties:
+      status:
+        enum:
+        - pending
+        - in_progress
+        - completed
+        type: string
+      title:
+        maxLength: 255
+        minLength: 1
+        type: string
+    type: object
+  dto.UpdatePostRequest:
+    properties:
+      content:
+        type: string
+    required:
+    - content
+    type: object
   dto.UpdatePromiseRequest:
     properties:
       deadline:
-        description: Только для основного обещания
         type: string
       description:
+        maxLength: 2000
         type: string
-      status:
-        type: string
+      is_private:
+        type: boolean
       title:
+        maxLength: 100
+        minLength: 1
         type: string
     type: object
   dto.UpdateUserRequest:
     properties:
+      avatar_url:
+        description: Новый аватар
+        type: string
       role:
-        description: Только для админов
+        description: Только для админа
+        type: string
+      username:
+        maxLength: 30
+        minLength: 3
+        type: string
+    type: object
+  dto.UserLiteResponse:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      id:
         type: string
       username:
         type: string
     type: object
-  models.Promise:
+  models.Badge:
     properties:
-      deadline:
+      code:
+        type: string
+      createdAt:
         type: string
       description:
         type: string
+      iconURL:
+        type: string
       id:
-        type: string
-      parentID:
-        description: NULL, если это основной Promise
-        type: string
-      status:
         type: string
       title:
         type: string
-      userID:
+    type: object
+  utils.ErrorResponse:
+    properties:
+      code:
+        example: 404
+        type: integer
+      message:
+        example: user not found
+        type: string
+      status:
+        example: error
         type: string
     type: object
-  models.User:
+  utils.SuccessResponse:
     properties:
-      email:
-        type: string
-      id:
-        type: string
-      role:
-        type: string
-      username:
+      code:
+        example: 200
+        type: integer
+      data: {}
+      status:
+        example: success
         type: string
     type: object
 host: localhost:8080
@@ -108,49 +438,33 @@ info:
   title: iPromise API
   version: "1.0"
 paths:
-  /admin/promises/{id}:
-    delete:
-      description: Позволяет администратору удалить обещание по ID
+  /admin/badges:
+    post:
+      consumes:
+      - application/json
+      description: Админ может создать новый бейдж вручную
       parameters:
-      - description: ID обещания
-        in: path
-        name: id
+      - description: Данные бейджа
+        in: body
+        name: input
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/models.Badge'
+      produces:
+      - application/json
       responses:
-        "200":
-          description: 'message: Обещание удалено'
+        "201":
+          description: 'message: Бейдж создан'
           schema:
             additionalProperties:
               type: string
             type: object
         "400":
-          description: 'error: Ошибка при удалении обещания'
+          description: 'error: Некорректные данные'
           schema:
             additionalProperties:
               type: string
             type: object
-        "403":
-          description: 'error: У вас нет прав на удаление обещания'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Удаление обещания
-      tags:
-      - admin
-  /admin/users/:
-    get:
-      description: Возвращает список всех зарегистрированных пользователей
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.User'
-            type: array
         "500":
           description: 'error: Ошибка сервера'
           schema:
@@ -159,9 +473,84 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Получение всех пользователей
+      summary: Создать новый бейдж
       tags:
-      - admin
+      - badges
+  /admin/badges/{username}/{code}:
+    post:
+      description: Админ вручную назначает бейдж по коду
+      parameters:
+      - description: Имя пользователя
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: Код бейджа
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Бейдж назначен'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Пользователь или бейдж не найден'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Назначить бейдж пользователю
+      tags:
+      - badges
+  /attachments/{id}:
+    delete:
+      description: Удаляет вложение из MinIO и базы данных
+      parameters:
+      - description: ID вложения
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Удалено'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Неверный ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить вложение по ID
+      tags:
+      - attachments
   /auth/login:
     post:
       consumes:
@@ -195,13 +584,43 @@ paths:
             additionalProperties:
               type: string
             type: object
-        "500":
-          description: 'error: Ошибка сервера'
+      summary: Авторизация пользователя
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Удаляет Refresh Token из хранилища
+      parameters:
+      - description: Refresh Token
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Вы успешно вышли из системы'
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Авторизация пользователя
+        "400":
+          description: 'error: Ошибка валидации'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Недействительный Refresh-токен'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Выход из системы
       tags:
       - auth
   /auth/refresh:
@@ -237,12 +656,6 @@ paths:
             additionalProperties:
               type: string
             type: object
-        "500":
-          description: 'error: Ошибка сервера'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
       summary: Обновление Access Token
       tags:
       - auth
@@ -262,13 +675,13 @@ paths:
       - application/json
       responses:
         "201":
-          description: 'message: Пользователь успешно зарегистрирован'
+          description: 'message: Пользователь зарегистрирован'
           schema:
             additionalProperties:
               type: string
             type: object
         "400":
-          description: 'error: Неверные данные запроса'
+          description: 'error: Неверные данные'
           schema:
             additionalProperties:
               type: string
@@ -279,34 +692,1395 @@ paths:
             additionalProperties:
               type: string
             type: object
-        "500":
-          description: 'error: Внутренняя ошибка сервера'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
       summary: Регистрация нового пользователя
       tags:
-      - Auth
-  /promises:
+      - auth
+  /badges:
     get:
-      description: Возвращает список всех обещаний
+      description: Возвращает список всех доступных бейджей системы
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Promise'
+              $ref: '#/definitions/dto.BadgeResponse'
             type: array
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить все бейджи
+      tags:
+      - badges
+  /badges/{username}:
+    get:
+      description: Возвращает список бейджей по username
+      parameters:
+      - description: Имя пользователя
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.BadgeResponse'
+            type: array
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить бейджи пользователя
+      tags:
+      - badges
+  /badges/me:
+    get:
+      description: Возвращает список бейджей, полученных текущим авторизованным пользователем
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.BadgeResponse'
+            type: array
+        "401":
+          description: 'error: Требуется авторизация'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       security:
       - BearerAuth: []
-      summary: Получение всех обещаний
+      summary: Получить бейджи текущего пользователя
       tags:
-      - promises
+      - badges
+  /follow/{username}:
+    delete:
+      description: Удаляет подписку на указанного пользователя
+      parameters:
+      - description: Username, от кого отписаться
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Unfollowed successfully'
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: 'error: Не подписан на этого пользователя или пытаешься отписаться
+            от себя'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отписаться от пользователя
+      tags:
+      - follow
+    post:
+      description: Авторизованный пользователь отправляет запрос на подписку другому
+        пользователю
+      parameters:
+      - description: Username, кому отправить запрос
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Follow request sent'
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: 'error: Уже подписан или нельзя подписаться на себя'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отправить запрос на подписку
+      tags:
+      - follow
+  /follow/{username}/accept:
+    post:
+      description: Подтверждает входящий запрос на подписку от указанного пользователя
+      parameters:
+      - description: Username отправителя запроса
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Follow request accepted'
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: 'error: Нет ожидающего запроса от пользователя'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Принять запрос на подписку
+      tags:
+      - follow
+  /follow/{username}/decline:
+    post:
+      description: Отклоняет входящий запрос на подписку от указанного пользователя
+      parameters:
+      - description: Username отправителя запроса
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Follow request declined'
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: 'error: Нет ожидающего запроса от пользователя'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отклонить запрос на подписку
+      tags:
+      - follow
+  /follow/recommended:
+    get:
+      description: Возвращает список пользователей с общими друзьями, затем случайных
+      parameters:
+      - description: Максимум пользователей
+        in: query
+        name: limit
+        type: integer
+      - description: Дата (RFC3339) для пагинации
+        in: query
+        name: after
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserLiteResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Рекомендуемые друзья
+      tags:
+      - follow
+  /follow/requests:
+    get:
+      description: Возвращает список пользователей, которые отправили запрос на добавление
+        в друзья (ожидают подтверждения)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserLiteResponse'
+                  type: array
+              type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить входящие заявки в друзья
+      tags:
+      - follow
+  /follow/requests/{username}/cancel:
+    delete:
+      description: Удаляет запрос на подписку, если он ещё не принят (status = "pending")
+      parameters:
+      - description: Username пользователя, которому был отправлен запрос
+        in: path
+        name: username
+        required: true
+        type: string
+      responses:
+        "200":
+          description: 'message: Запрос отменён'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Неверный формат'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отменить запрос на подписку
+      tags:
+      - follows
+  /follow/requests/sent:
+    get:
+      description: Возвращает список пользователей, которым текущий пользователь отправил
+        follow-запросы
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserLiteResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отправленные заявки в друзья
+      tags:
+      - follow
+  /friends/{username}:
+    get:
+      description: Возвращает список пользователей, у которых с данным пользователем
+        установлена взаимная подписка (дружба)
+      parameters:
+      - description: Username пользователя, чьих друзей получить
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список взаимных друзей
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserLiteResponse'
+                  type: array
+              type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить список друзей (взаимных подписок)
+      tags:
+      - follow
+  /microtasks/{id}:
+    delete:
+      description: Удаляет микротаск (soft delete)
+      parameters:
+      - description: ID микротаска
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Микротаск удалён'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Ошибка ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Нет прав'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить микротаск
+      tags:
+      - microtasks
+    patch:
+      consumes:
+      - application/json
+      description: Позволяет изменить заголовок и/или статус микротаска
+      parameters:
+      - description: ID микротаска
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Обновляемые данные
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateMicrotaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Микротаск обновлён'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Ошибка запроса'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Нет доступа'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить микротаск
+      tags:
+      - microtasks
+  /microtasks/{microtask_id}/posts:
+    get:
+      description: Возвращает все корневые посты, связанные с микротаском
+      parameters:
+      - description: ID микротаска
+        in: path
+        name: microtask_id
+        required: true
+        type: string
+      - description: Максимальное количество
+        in: query
+        name: limit
+        type: integer
+      - description: Дата (RFC3339) для пагинации
+        in: query
+        name: after
+        type: string
+      - description: ID поста для пагинации
+        in: query
+        name: after_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PostWithRepliesTreeResponse'
+            type: array
+        "400":
+          description: 'error: Неверный ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Нет доступа'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить посты по микротаску
+      tags:
+      - posts
+  /posts:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Создаёт корневой пост с вложениями
+      parameters:
+      - description: ID промиса (опционально)
+        in: formData
+        name: promise_id
+        type: string
+      - description: ID микротаска
+        in: formData
+        name: microtask_id
+        required: true
+        type: string
+      - description: Контент поста
+        in: formData
+        name: content
+        required: true
+        type: string
+      - description: Вложения (можно несколько)
+        in: formData
+        name: attachments
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: Пост создан'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Ошибка валидации'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать пост
+      tags:
+      - posts
+  /posts/{id}:
+    delete:
+      description: Удаляет пост по ID (soft delete)
+      parameters:
+      - description: ID поста
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Пост удалён'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Неверный ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Нет прав'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить пост
+      tags:
+      - posts
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет содержимое поста
+      parameters:
+      - description: ID поста
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Новое содержимое
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePostRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Пост обновлён'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Неверный формат'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Нет прав'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить пост
+      tags:
+      - posts
+  /posts/{id}/attachments:
+    get:
+      description: Возвращает список вложенных файлов у поста
+      parameters:
+      - description: ID поста
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.AttachmentResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить вложения поста
+      tags:
+      - attachments
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает файлы, сохраняет в MinIO и БД, возвращает массив с URL-ами
+      parameters:
+      - description: ID поста
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Файлы (можно несколько)
+        in: formData
+        name: attachments
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/dto.AttachmentResponse'
+            type: array
+        "400":
+          description: 'error: Неверный ID или формат'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Загрузить вложения к посту
+      tags:
+      - attachments
+  /posts/{id}/comments:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Создаёт комментарий к корневому посту или другому комментарию
+      parameters:
+      - description: ID родительского поста
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Контент комментария
+        in: formData
+        name: content
+        required: true
+        type: string
+      - description: Вложения (можно несколько)
+        in: formData
+        name: attachments
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: Комментарий создан'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Ошибка валидации'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать комментарий к посту
+      tags:
+      - posts
+  /posts/{id}/full:
+    get:
+      description: Возвращает пост, все его реплаи, автора, вложения и лайки
+      parameters:
+      - description: ID поста
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PostWithRepliesTreeResponse'
+        "400":
+          description: 'error: Неверный ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Пост не найден'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить пост с деревом комментариев
+      tags:
+      - posts
+  /posts/{id}/like:
+    post:
+      description: Ставит лайк посту. Если уже лайкнут — ошибка
+      parameters:
+      - description: ID поста
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: 'message: Пост лайкнут'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Некорректный ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Лайкнуть пост
+      tags:
+      - likes
+  /posts/{id}/replies:
+    get:
+      description: Возвращает список дочерних постов (реплаев)
+      parameters:
+      - description: ID родительского поста
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Максимальное количество
+        in: query
+        name: limit
+        type: integer
+      - description: Дата (RFC3339) для пагинации
+        in: query
+        name: after
+        type: string
+      - description: ID поста для пагинации
+        in: query
+        name: after_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PostWithRepliesTreeResponse'
+            type: array
+        "400":
+          description: 'error: Неверный ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить комментарии к посту
+      tags:
+      - posts
+  /posts/{id}/unlike:
+    post:
+      description: Удаляет лайк пользователя с поста. Если лайка не было — ошибка
+      parameters:
+      - description: ID поста
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: 'message: Лайк удалён'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Некорректный ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Убрать лайк с поста
+      tags:
+      - likes
+  /posts/feed:
+    get:
+      description: Посты от тех, на кого подписан пользователь
+      parameters:
+      - description: Максимум постов
+        in: query
+        name: limit
+        type: integer
+      - description: Дата (RFC3339)
+        in: query
+        name: after
+        type: string
+      - description: ID последнего поста
+        in: query
+        name: after_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PostLiteResponse'
+            type: array
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Лента подписок (лайт)
+      tags:
+      - posts
+  /posts/feed/tree:
+    get:
+      description: Посты с реплаями от пользователей, на которых подписан текущий
+      parameters:
+      - description: Максимум постов
+        in: query
+        name: limit
+        type: integer
+      - description: Дата (RFC3339)
+        in: query
+        name: after
+        type: string
+      - description: ID последнего поста
+        in: query
+        name: after_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PostWithRepliesTreeResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Лента подписок (с деревом)
+      tags:
+      - posts
+  /posts/public:
+    get:
+      description: Публичная лента постов без дерева комментариев
+      parameters:
+      - description: Максимум постов
+        in: query
+        name: limit
+        type: integer
+      - description: Дата (RFC3339) для пагинации
+        in: query
+        name: after
+        type: string
+      - description: ID последнего поста
+        in: query
+        name: after_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PostLiteResponse'
+            type: array
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Публичные посты (лайт)
+      tags:
+      - posts
+  /posts/public/tree:
+    get:
+      description: Публичная лента постов с комментариями
+      parameters:
+      - description: Максимум постов
+        in: query
+        name: limit
+        type: integer
+      - description: Дата (RFC3339)
+        in: query
+        name: after
+        type: string
+      - description: ID последнего поста
+        in: query
+        name: after_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PostWithRepliesTreeResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Публичные посты (с деревом)
+      tags:
+      - posts
+  /posts/user/{username}:
+    get:
+      description: Получает все посты пользователя по username, включая комментарии
+        (если приватные – только для владельца)
+      parameters:
+      - description: Имя пользователя (username)
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: Максимум постов
+        in: query
+        name: limit
+        type: integer
+      - description: Дата (RFC3339) для пагинации
+        in: query
+        name: after
+        type: string
+      - description: ID последнего поста
+        in: query
+        name: after_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PostWithRepliesTreeResponse'
+            type: array
+        "400":
+          description: 'error: Некорректный username'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Посты пользователя (с деревом)
+      tags:
+      - posts
+  /profile:
+    patch:
+      consumes:
+      - multipart/form-data
+      description: Обновляет имя, био и аватар пользователя одним multipart-запросом
+      parameters:
+      - description: Новое имя пользователя
+        in: formData
+        name: username
+        type: string
+      - description: Описание профиля
+        in: formData
+        name: bio
+        type: string
+      - description: Аватарка пользователя
+        in: formData
+        name: avatar
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Профиль обновлён'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Неверные данные'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить профиль с аватаркой
+      tags:
+      - profile
+  /profile/{username}:
+    get:
+      description: Возвращает публичный профиль по username (с расширенной статистикой,
+        если взаимная подписка)
+      parameters:
+      - description: Имя пользователя
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PublicProfileResponse'
+        "404":
+          description: 'error: Пользователь не найден'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить публичный профиль пользователя
+      tags:
+      - profile
+  /profile/me:
+    get:
+      description: Возвращает расширенный профиль текущего пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MyProfileResponse'
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить свой профиль
+      tags:
+      - profile
+  /promises:
     post:
       consumes:
       - application/json
-      description: Позволяет пользователю создать новое обещание
+      description: Пользователь создаёт новое обещание
       parameters:
       - description: Данные обещания
         in: body
@@ -318,13 +2092,66 @@ paths:
       - application/json
       responses:
         "201":
-          description: 'message: Обещание успешно создано'
+          description: 'message: Обещание создано'
           schema:
             additionalProperties:
               type: string
             type: object
         "400":
-          description: 'error: Ошибка валидации'
+          description: 'error: Неверный формат данных'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Внутренняя ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать обещание
+      tags:
+      - promises
+  /promises/{id}:
+    delete:
+      description: Удаляет обещание, если пользователь является владельцем
+      parameters:
+      - description: ID обещания
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Обещание удалено'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Неверный формат ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Нет прав'
           schema:
             additionalProperties:
               type: string
@@ -337,24 +2164,72 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Создание нового обещания
+      summary: Удалить обещание
       tags:
       - promises
-  /promises/{id}:
-    put:
-      description: Позволяет обновить информацию о обещании
+    get:
+      description: Возвращает конкретное обещание (если оно публичное, пользователь
+        — владелец или подписчик)
+      parameters:
+      - description: ID обещания (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PromiseResponse'
+        "400":
+          description: 'error: Некорректный ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Нет доступа'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Обещание не найдено'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить обещание по ID
+      tags:
+      - promises
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет название, описание или дедлайн обещания
       parameters:
       - description: ID обещания
         in: path
         name: id
         required: true
         type: string
-      - description: Данные для обновления
+      - description: Обновлённые данные
         in: body
         name: input
         required: true
         schema:
           $ref: '#/definitions/dto.UpdatePromiseRequest'
+      produces:
+      - application/json
       responses:
         "200":
           description: 'message: Обещание обновлено'
@@ -363,28 +2238,419 @@ paths:
               type: string
             type: object
         "400":
-          description: 'error: Ошибка валидации'
+          description: 'error: Неверные данные'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
           schema:
             additionalProperties:
               type: string
             type: object
         "403":
-          description: 'error: Нет прав на редактирование'
+          description: 'error: Нет доступа'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
           schema:
             additionalProperties:
               type: string
             type: object
       security:
       - BearerAuth: []
-      summary: Обновление обещания
+      summary: Обновить обещание
       tags:
       - promises
-  /user:
-    delete:
-      description: Удаляет аккаунт текущего пользователя
+  /promises/{id}/prediction:
+    get:
+      description: Возвращает сохранённое предсказание без повторной генерации
+      parameters:
+      - description: ID Promise
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
-          description: 'message: Аккаунт удалён'
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PredictionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить существующее предсказание по Promise
+      tags:
+      - prediction
+    post:
+      description: Вызывает AI и сохраняет новое предсказание
+      parameters:
+      - description: ID Promise
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PredictionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Сгенерировать или обновить предсказание
+      tags:
+      - prediction
+  /promises/{promise_id}/microtasks:
+    get:
+      description: Возвращает все микротаски, прикреплённые к заданному промису
+      parameters:
+      - description: ID промиса
+        in: path
+        name: promise_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.MicrotaskResponse'
+            type: array
+        "400":
+          description: 'error: Ошибка ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Приватный промис'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить список микротасков промиса
+      tags:
+      - microtasks
+    post:
+      consumes:
+      - application/json
+      description: Добавляет микротаск к определённому промису
+      parameters:
+      - description: ID промиса
+        in: path
+        name: promise_id
+        required: true
+        type: string
+      - description: Данные микротаска
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateMicrotaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: Микротаск создан'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Ошибка запроса'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Нет прав доступа'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать микротаск
+      tags:
+      - microtasks
+  /promises/{promise_id}/microtasks/reorder:
+    patch:
+      consumes:
+      - application/json
+      description: Массовое переупорядочивание микротасков внутри промиса
+      parameters:
+      - description: ID промиса
+        in: path
+        name: promise_id
+        required: true
+        type: string
+      - description: Порядок микротасков
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ReorderMicrotasksMapRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Микротаски упорядочены'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Неверный ввод'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Нет доступа'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить порядок микротасков
+      tags:
+      - microtasks
+  /promises/{promise_id}/posts:
+    get:
+      description: Возвращает все посты, относящиеся к данному промису
+      parameters:
+      - description: ID промиса
+        in: path
+        name: promise_id
+        required: true
+        type: string
+      - description: Максимум постов
+        in: query
+        name: limit
+        type: integer
+      - description: Дата (RFC3339) пагинации
+        in: query
+        name: after
+        type: string
+      - description: ID последнего поста
+        in: query
+        name: after_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PostWithRepliesTreeResponse'
+            type: array
+        "400":
+          description: 'error: Неверный ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Неавторизован'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Нет доступа'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить посты по промису
+      tags:
+      - posts
+  /promises/full:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новое обещание и вложенные микротаски (при необходимости)
+        одним запросом
+      parameters:
+      - description: Данные обещания и микротасков
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePromiseWithMicrotasksRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: Обещание создано'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Неверные данные'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать обещание с микротасками
+      tags:
+      - promises
+  /promises/public:
+    get:
+      description: Возвращает все публичные обещания от всех пользователей
+      parameters:
+      - description: Лимит
+        in: query
+        name: limit
+        type: integer
+      - description: Дата и время (RFC3339) для пагинации
+        in: query
+        name: after
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PromiseResponse'
+            type: array
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Публичные обещания (все)
+      tags:
+      - promises
+  /promises/user/{username}:
+    get:
+      description: Возвращает список обещаний в профиле пользователя (с учётом приватности)
+      parameters:
+      - description: Username пользователя
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: Лимит
+        in: query
+        name: limit
+        type: integer
+      - description: Дата (RFC3339) для пагинации
+        in: query
+        name: after
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PromiseResponse'
+            type: array
+        "401":
+          description: 'error: Неавторизован'
           schema:
             additionalProperties:
               type: string
@@ -396,53 +2662,88 @@ paths:
               type: string
             type: object
         "500":
-          description: 'error: Ошибка удаления'
+          description: 'error: Ошибка сервера'
           schema:
             additionalProperties:
               type: string
             type: object
       security:
       - BearerAuth: []
-      summary: Удаление аккаунта
+      summary: Обещания пользователя по username
       tags:
-      - users
-  /user/me:
+      - promises
+  /promises/user/{username}/progress:
     get:
-      description: Возвращает данные текущего пользователя
+      description: Возвращает список всех обещаний указанного пользователя с вложенными
+        микротасками и данными о прогрессе (кол-во постов, запланированные шаги, процент
+        выполнения).
+      parameters:
+      - description: Username пользователя
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            items:
+              $ref: '#/definitions/dto.PromiseWithMicrotasksProgressResponse'
+            type: array
+        "400":
+          description: 'error: Неверный username'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "404":
           description: 'error: Пользователь не найден'
           schema:
             additionalProperties:
               type: string
             type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       security:
       - BearerAuth: []
-      summary: Получение информации о себе
+      summary: Получить все обещания пользователя с прогрессом по микротаскам
       tags:
-      - users
-    put:
-      description: Позволяет изменить username (доступно только самому пользователю)
+      - promises
+  /users/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет профиль пользователя (username, role), доступно владельцу
+        или админу
       parameters:
-      - description: Данные для обновления
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Новые данные пользователя
         in: body
         name: input
         required: true
         schema:
           $ref: '#/definitions/dto.UpdateUserRequest'
+      produces:
+      - application/json
       responses:
         "200":
-          description: 'message: Данные пользователя обновлены'
+          description: 'message: Профиль обновлен'
           schema:
             additionalProperties:
               type: string
             type: object
         "400":
-          description: 'error: Ошибка валидации'
+          description: 'error: Неверный формат данных'
           schema:
             additionalProperties:
               type: string
@@ -461,96 +2762,41 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Обновление профиля пользователя
+      summary: Обновить пользователя
       tags:
       - users
-  /users/{id}:
+  /users/{username}:
     get:
-      description: Возвращает данные пользователя по ID
-      parameters:
-      - description: ID пользователя
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.User'
-        "400":
-          description: 'error: Неверный формат ID'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: 'error: Пользователь не найден'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Получение пользователя по ID
-      tags:
-      - users
-  /users/{user_id}/promises:
-    get:
-      description: Возвращает список обещаний, созданных пользователем
-      parameters:
-      - description: ID пользователя
-        in: path
-        name: user_id
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.Promise'
-            type: array
-        "400":
-          description: 'error: Неверный формат ID пользователя'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: 'error: Ошибка получения обещаний'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Получение обещаний пользователя
-      tags:
-      - promises
-  /users/username/{username}:
-    get:
-      description: Возвращает данные пользователя по username
+      description: Возвращает краткую информацию о пользователе (id, username, role)
       parameters:
       - description: Имя пользователя
         in: path
         name: username
         required: true
         type: string
+      produces:
+      - application/json
       responses:
         "200":
-          description: OK
+          description: Пользователь найден
           schema:
-            $ref: '#/definitions/models.User'
+            additionalProperties: true
+            type: object
         "404":
           description: 'error: Пользователь не найден'
           schema:
             additionalProperties:
               type: string
             type: object
+        "500":
+          description: 'error: Ошибка сервера'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       security:
       - BearerAuth: []
-      summary: Получение пользователя по username
+      summary: Получить пользователя по username
       tags:
       - users
 securityDefinitions:

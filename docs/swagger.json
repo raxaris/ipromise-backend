@@ -9,30 +9,38 @@
     "host": "localhost:8080",
     "basePath": "/",
     "paths": {
-        "/admin/promises/{id}": {
-            "delete": {
+        "/admin/badges": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Позволяет администратору удалить обещание по ID",
-                "tags": [
-                    "admin"
+                "description": "Админ может создать новый бейдж вручную",
+                "consumes": [
+                    "application/json"
                 ],
-                "summary": "Удаление обещания",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "badges"
+                ],
+                "summary": "Создать новый бейдж",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "ID обещания",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "description": "Данные бейджа",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Badge"
+                        }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "message: Обещание удалено",
+                    "201": {
+                        "description": "message: Бейдж создан",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -41,7 +49,7 @@
                         }
                     },
                     "400": {
-                        "description": "error: Ошибка при удалении обещания",
+                        "description": "error: Некорректные данные",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -49,8 +57,8 @@
                             }
                         }
                     },
-                    "403": {
-                        "description": "error: У вас нет прав на удаление обещания",
+                    "500": {
+                        "description": "error: Ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -61,25 +69,108 @@
                 }
             }
         },
-        "/admin/users/": {
-            "get": {
+        "/admin/badges/{username}/{code}": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает список всех зарегистрированных пользователей",
-                "tags": [
-                    "admin"
+                "description": "Админ вручную назначает бейдж по коду",
+                "produces": [
+                    "application/json"
                 ],
-                "summary": "Получение всех пользователей",
+                "tags": [
+                    "badges"
+                ],
+                "summary": "Назначить бейдж пользователю",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя пользователя",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Код бейджа",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "message: Бейдж назначен",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.User"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь или бейдж не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/attachments/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет вложение из MinIO и базы данных",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attachments"
+                ],
+                "summary": "Удалить вложение по ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID вложения",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Удалено",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
@@ -146,9 +237,55 @@
                                 "type": "string"
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "description": "Удаляет Refresh Token из хранилища",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Выход из системы",
+                "parameters": [
+                    {
+                        "description": "Refresh Token",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Вы успешно вышли из системы",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
                     },
-                    "500": {
-                        "description": "error: Ошибка сервера",
+                    "400": {
+                        "description": "error: Ошибка валидации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Недействительный Refresh-токен",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -210,15 +347,6 @@
                                 "type": "string"
                             }
                         }
-                    },
-                    "500": {
-                        "description": "error: Ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
                     }
                 }
             }
@@ -233,7 +361,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Auth"
+                    "auth"
                 ],
                 "summary": "Регистрация нового пользователя",
                 "parameters": [
@@ -249,7 +377,7 @@
                 ],
                 "responses": {
                     "201": {
-                        "description": "message: Пользователь успешно зарегистрирован",
+                        "description": "message: Пользователь зарегистрирован",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -258,7 +386,7 @@
                         }
                     },
                     "400": {
-                        "description": "error: Неверные данные запроса",
+                        "description": "error: Неверные данные",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -268,6 +396,2239 @@
                     },
                     "409": {
                         "description": "error: Email или имя пользователя уже занято",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/badges": {
+            "get": {
+                "description": "Возвращает список всех доступных бейджей системы",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "badges"
+                ],
+                "summary": "Получить все бейджи",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.BadgeResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/badges/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список бейджей, полученных текущим авторизованным пользователем",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "badges"
+                ],
+                "summary": "Получить бейджи текущего пользователя",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.BadgeResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Требуется авторизация",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/badges/{username}": {
+            "get": {
+                "description": "Возвращает список бейджей по username",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "badges"
+                ],
+                "summary": "Получить бейджи пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя пользователя",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.BadgeResponse"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/follow/recommended": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список пользователей с общими друзьями, затем случайных",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "follow"
+                ],
+                "summary": "Рекомендуемые друзья",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Максимум пользователей",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата (RFC3339) для пагинации",
+                        "name": "after",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.UserLiteResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/follow/requests": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список пользователей, которые отправили запрос на добавление в друзья (ожидают подтверждения)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "follow"
+                ],
+                "summary": "Получить входящие заявки в друзья",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.UserLiteResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "error: Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/follow/requests/sent": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список пользователей, которым текущий пользователь отправил follow-запросы",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "follow"
+                ],
+                "summary": "Отправленные заявки в друзья",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.UserLiteResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/follow/requests/{username}/cancel": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет запрос на подписку, если он ещё не принят (status = \"pending\")",
+                "tags": [
+                    "follows"
+                ],
+                "summary": "Отменить запрос на подписку",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username пользователя, которому был отправлен запрос",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Запрос отменён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный формат",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/follow/{username}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Авторизованный пользователь отправляет запрос на подписку другому пользователю",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "follow"
+                ],
+                "summary": "Отправить запрос на подписку",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username, кому отправить запрос",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Follow request sent",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "error: Уже подписан или нельзя подписаться на себя",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "error: Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет подписку на указанного пользователя",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "follow"
+                ],
+                "summary": "Отписаться от пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username, от кого отписаться",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Unfollowed successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "error: Не подписан на этого пользователя или пытаешься отписаться от себя",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "error: Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/follow/{username}/accept": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Подтверждает входящий запрос на подписку от указанного пользователя",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "follow"
+                ],
+                "summary": "Принять запрос на подписку",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username отправителя запроса",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Follow request accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "error: Нет ожидающего запроса от пользователя",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "error: Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/follow/{username}/decline": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Отклоняет входящий запрос на подписку от указанного пользователя",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "follow"
+                ],
+                "summary": "Отклонить запрос на подписку",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username отправителя запроса",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Follow request declined",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "error: Нет ожидающего запроса от пользователя",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "error: Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/friends/{username}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список пользователей, у которых с данным пользователем установлена взаимная подписка (дружба)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "follow"
+                ],
+                "summary": "Получить список друзей (взаимных подписок)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username пользователя, чьих друзей получить",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список взаимных друзей",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.UserLiteResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "error: Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/microtasks/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет микротаск (soft delete)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "microtasks"
+                ],
+                "summary": "Удалить микротаск",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID микротаска",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Микротаск удалён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Ошибка ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Нет прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Позволяет изменить заголовок и/или статус микротаска",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "microtasks"
+                ],
+                "summary": "Обновить микротаск",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID микротаска",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Обновляемые данные",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateMicrotaskRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Микротаск обновлён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Ошибка запроса",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Нет доступа",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/microtasks/{microtask_id}/posts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает все корневые посты, связанные с микротаском",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Получить посты по микротаску",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID микротаска",
+                        "name": "microtask_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Максимальное количество",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата (RFC3339) для пагинации",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID поста для пагинации",
+                        "name": "after_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PostWithRepliesTreeResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Нет доступа",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создаёт корневой пост с вложениями",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Создать пост",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID промиса (опционально)",
+                        "name": "promise_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID микротаска",
+                        "name": "microtask_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Контент поста",
+                        "name": "content",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Вложения (можно несколько)",
+                        "name": "attachments",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "message: Пост создан",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Ошибка валидации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/feed": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Посты от тех, на кого подписан пользователь",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Лента подписок (лайт)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Максимум постов",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата (RFC3339)",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID последнего поста",
+                        "name": "after_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PostLiteResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/feed/tree": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Посты с реплаями от пользователей, на которых подписан текущий",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Лента подписок (с деревом)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Максимум постов",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата (RFC3339)",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID последнего поста",
+                        "name": "after_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PostWithRepliesTreeResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/public": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Публичная лента постов без дерева комментариев",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Публичные посты (лайт)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Максимум постов",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата (RFC3339) для пагинации",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID последнего поста",
+                        "name": "after_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PostLiteResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/public/tree": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Публичная лента постов с комментариями",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Публичные посты (с деревом)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Максимум постов",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата (RFC3339)",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID последнего поста",
+                        "name": "after_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PostWithRepliesTreeResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/user/{username}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Получает все посты пользователя по username, включая комментарии (если приватные – только для владельца)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Посты пользователя (с деревом)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя пользователя (username)",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Максимум постов",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата (RFC3339) для пагинации",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID последнего поста",
+                        "name": "after_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PostWithRepliesTreeResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Некорректный username",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет пост по ID (soft delete)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Удалить пост",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID поста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Пост удалён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Нет прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет содержимое поста",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Обновить пост",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID поста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новое содержимое",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdatePostRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Пост обновлён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный формат",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Нет прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}/attachments": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список вложенных файлов у поста",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attachments"
+                ],
+                "summary": "Получить вложения поста",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID поста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.AttachmentResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Загружает файлы, сохраняет в MinIO и БД, возвращает массив с URL-ами",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attachments"
+                ],
+                "summary": "Загрузить вложения к посту",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID поста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Файлы (можно несколько)",
+                        "name": "attachments",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.AttachmentResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный ID или формат",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}/comments": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создаёт комментарий к корневому посту или другому комментарию",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Создать комментарий к посту",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID родительского поста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Контент комментария",
+                        "name": "content",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Вложения (можно несколько)",
+                        "name": "attachments",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "message: Комментарий создан",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Ошибка валидации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}/full": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает пост, все его реплаи, автора, вложения и лайки",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Получить пост с деревом комментариев",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID поста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PostWithRepliesTreeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пост не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}/like": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Ставит лайк посту. Если уже лайкнут — ошибка",
+                "tags": [
+                    "likes"
+                ],
+                "summary": "Лайкнуть пост",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID поста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Пост лайкнут",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Некорректный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}/replies": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список дочерних постов (реплаев)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Получить комментарии к посту",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID родительского поста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Максимальное количество",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата (RFC3339) для пагинации",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID поста для пагинации",
+                        "name": "after_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PostWithRepliesTreeResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}/unlike": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет лайк пользователя с поста. Если лайка не было — ошибка",
+                "tags": [
+                    "likes"
+                ],
+                "summary": "Убрать лайк с поста",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID поста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Лайк удалён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Некорректный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/profile": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет имя, био и аватар пользователя одним multipart-запросом",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Обновить профиль с аватаркой",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Новое имя пользователя",
+                        "name": "username",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Описание профиля",
+                        "name": "bio",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Аватарка пользователя",
+                        "name": "avatar",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Профиль обновлён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверные данные",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает расширенный профиль текущего пользователя",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Получить свой профиль",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MyProfileResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/{username}": {
+            "get": {
+                "description": "Возвращает публичный профиль по username (с расширенной статистикой, если взаимная подписка)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Получить публичный профиль пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя пользователя",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PublicProfileResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/promises": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Пользователь создаёт новое обещание",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "promises"
+                ],
+                "summary": "Создать обещание",
+                "parameters": [
+                    {
+                        "description": "Данные обещания",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreatePromiseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "message: Обещание создано",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный формат данных",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -287,37 +2648,14 @@
                 }
             }
         },
-        "/promises": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Возвращает список всех обещаний",
-                "tags": [
-                    "promises"
-                ],
-                "summary": "Получение всех обещаний",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Promise"
-                            }
-                        }
-                    }
-                }
-            },
+        "/promises/full": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Позволяет пользователю создать новое обещание",
+                "description": "Создаёт новое обещание и вложенные микротаски (при необходимости) одним запросом",
                 "consumes": [
                     "application/json"
                 ],
@@ -327,21 +2665,21 @@
                 "tags": [
                     "promises"
                 ],
-                "summary": "Создание нового обещания",
+                "summary": "Создать обещание с микротасками",
                 "parameters": [
                     {
-                        "description": "Данные обещания",
-                        "name": "input",
+                        "description": "Данные обещания и микротасков",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreatePromiseRequest"
+                            "$ref": "#/definitions/dto.CreatePromiseWithMicrotasksRequest"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "message: Обещание успешно создано",
+                        "description": "message: Обещание создано",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -350,7 +2688,198 @@
                         }
                     },
                     "400": {
-                        "description": "error: Ошибка валидации",
+                        "description": "error: Неверные данные",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/promises/public": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает все публичные обещания от всех пользователей",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "promises"
+                ],
+                "summary": "Публичные обещания (все)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Лимит",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата и время (RFC3339) для пагинации",
+                        "name": "after",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PromiseResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/promises/user/{username}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список обещаний в профиле пользователя (с учётом приватности)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "promises"
+                ],
+                "summary": "Обещания пользователя по username",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username пользователя",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Лимит",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата (RFC3339) для пагинации",
+                        "name": "after",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PromiseResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/promises/user/{username}/progress": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список всех обещаний указанного пользователя с вложенными микротасками и данными о прогрессе (кол-во постов, запланированные шаги, процент выполнения).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "promises"
+                ],
+                "summary": "Получить все обещания пользователя с прогрессом по микротаскам",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username пользователя",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PromiseWithMicrotasksProgressResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный username",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Пользователь не найден",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -371,17 +2900,162 @@
             }
         },
         "/promises/{id}": {
-            "put": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Позволяет обновить информацию о обещании",
+                "description": "Возвращает конкретное обещание (если оно публичное, пользователь — владелец или подписчик)",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "promises"
                 ],
-                "summary": "Обновление обещания",
+                "summary": "Получить обещание по ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID обещания (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PromiseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "error: Некорректный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Нет доступа",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Обещание не найдено",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет обещание, если пользователь является владельцем",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "promises"
+                ],
+                "summary": "Удалить обещание",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID обещания",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Обещание удалено",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный формат ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Нет прав",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет название, описание или дедлайн обещания",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "promises"
+                ],
+                "summary": "Обновить обещание",
                 "parameters": [
                     {
                         "type": "string",
@@ -391,7 +3065,7 @@
                         "required": true
                     },
                     {
-                        "description": "Данные для обновления",
+                        "description": "Обновлённые данные",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -411,7 +3085,16 @@
                         }
                     },
                     "400": {
-                        "description": "error: Ошибка валидации",
+                        "description": "error: Неверные данные",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -420,41 +3103,7 @@
                         }
                     },
                     "403": {
-                        "description": "error: Нет прав на редактирование",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/user": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Удаляет аккаунт текущего пользователя",
-                "tags": [
-                    "users"
-                ],
-                "summary": "Удаление аккаунта",
-                "responses": {
-                    "200": {
-                        "description": "message: Аккаунт удалён",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "error: Пользователь не найден",
+                        "description": "error: Нет доступа",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -463,7 +3112,7 @@
                         }
                     },
                     "500": {
-                        "description": "error: Ошибка удаления",
+                        "description": "error: Ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -474,27 +3123,57 @@
                 }
             }
         },
-        "/user/me": {
+        "/promises/{id}/prediction": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает данные текущего пользователя",
-                "tags": [
-                    "users"
+                "description": "Возвращает сохранённое предсказание без повторной генерации",
+                "produces": [
+                    "application/json"
                 ],
-                "summary": "Получение информации о себе",
+                "tags": [
+                    "prediction"
+                ],
+                "summary": "Получить существующее предсказание по Promise",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID Promise",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/dto.PredictionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
-                        "description": "error: Пользователь не найден",
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -504,20 +3183,417 @@
                     }
                 }
             },
-            "put": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Позволяет изменить username (доступно только самому пользователю)",
+                "description": "Вызывает AI и сохраняет новое предсказание",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "prediction"
+                ],
+                "summary": "Сгенерировать или обновить предсказание",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID Promise",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PredictionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/promises/{promise_id}/microtasks": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает все микротаски, прикреплённые к заданному промису",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "microtasks"
+                ],
+                "summary": "Получить список микротасков промиса",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID промиса",
+                        "name": "promise_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.MicrotaskResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Ошибка ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Приватный промис",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Добавляет микротаск к определённому промису",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "microtasks"
+                ],
+                "summary": "Создать микротаск",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID промиса",
+                        "name": "promise_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные микротаска",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateMicrotaskRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "message: Микротаск создан",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Ошибка запроса",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Нет прав доступа",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/promises/{promise_id}/microtasks/reorder": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Массовое переупорядочивание микротасков внутри промиса",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "microtasks"
+                ],
+                "summary": "Обновить порядок микротасков",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID промиса",
+                        "name": "promise_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Порядок микротасков",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ReorderMicrotasksMapRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Микротаски упорядочены",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный ввод",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Нет доступа",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/promises/{promise_id}/posts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает все посты, относящиеся к данному промису",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Получить посты по промису",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID промиса",
+                        "name": "promise_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Максимум постов",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата (RFC3339) пагинации",
+                        "name": "after",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID последнего поста",
+                        "name": "after_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PostWithRepliesTreeResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Неверный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Неавторизован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Нет доступа",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет профиль пользователя (username, role), доступно владельцу или админу",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "users"
                 ],
-                "summary": "Обновление профиля пользователя",
+                "summary": "Обновить пользователя",
                 "parameters": [
                     {
-                        "description": "Данные для обновления",
+                        "type": "string",
+                        "description": "ID пользователя",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новые данные пользователя",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -528,7 +3604,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "message: Данные пользователя обновлены",
+                        "description": "message: Профиль обновлен",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -537,7 +3613,7 @@
                         }
                     },
                     "400": {
-                        "description": "error: Ошибка валидации",
+                        "description": "error: Неверный формат данных",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -566,18 +3642,21 @@
                 }
             }
         },
-        "/users/username/{username}": {
+        "/users/{username}": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает данные пользователя по username",
+                "description": "Возвращает краткую информацию о пользователе (id, username, role)",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "users"
                 ],
-                "summary": "Получение пользователя по username",
+                "summary": "Получить пользователя по username",
                 "parameters": [
                     {
                         "type": "string",
@@ -589,105 +3668,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Пользователь найден",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "404": {
                         "description": "error: Пользователь не найден",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/users/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Возвращает данные пользователя по ID",
-                "tags": [
-                    "users"
-                ],
-                "summary": "Получение пользователя по ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ID пользователя",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.User"
-                        }
-                    },
-                    "400": {
-                        "description": "error: Неверный формат ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "error: Пользователь не найден",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/users/{user_id}/promises": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Возвращает список обещаний, созданных пользователем",
-                "tags": [
-                    "promises"
-                ],
-                "summary": "Получение обещаний пользователя",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ID пользователя",
-                        "name": "user_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Promise"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "error: Неверный формат ID пользователя",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -696,7 +3684,7 @@
                         }
                     },
                     "500": {
-                        "description": "error: Ошибка получения обещаний",
+                        "description": "error: Ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -709,26 +3697,128 @@
         }
     },
     "definitions": {
-        "dto.CreatePromiseRequest": {
+        "dto.AttachmentResponse": {
             "type": "object",
-            "required": [
-                "status",
-                "title"
-            ],
             "properties": {
-                "deadline": {
-                    "description": "Можно передавать только для основного промиса",
+                "file_type": {
+                    "type": "string"
+                },
+                "file_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.BadgeResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
                     "type": "string"
                 },
                 "description": {
                     "type": "string"
                 },
-                "parent_id": {
-                    "description": "Если null, это основное обещание",
+                "icon_url": {
                     "type": "string"
                 },
-                "status": {
+                "id": {
                     "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateMicrotaskInput": {
+            "type": "object",
+            "required": [
+                "title"
+            ],
+            "properties": {
+                "order": {
+                    "type": "integer"
+                },
+                "steps_planned": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateMicrotaskRequest": {
+            "type": "object",
+            "required": [
+                "steps_planned",
+                "title"
+            ],
+            "properties": {
+                "order": {
+                    "type": "integer"
+                },
+                "steps_planned": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                }
+            }
+        },
+        "dto.CreatePromiseRequest": {
+            "type": "object",
+            "required": [
+                "deadline",
+                "title"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "deadline": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                },
+                "is_private": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                }
+            }
+        },
+        "dto.CreatePromiseWithMicrotasksRequest": {
+            "type": "object",
+            "required": [
+                "deadline",
+                "title"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "deadline": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "is_private": {
+                    "type": "boolean"
+                },
+                "microtasks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CreateMicrotaskInput"
+                    }
                 },
                 "title": {
                     "type": "string"
@@ -750,6 +3840,320 @@
                 }
             }
         },
+        "dto.MicrotaskProgress": {
+            "type": "object",
+            "properties": {
+                "completion_ratio": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "posts_count": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "steps_planned": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.MicrotaskResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "promise_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "steps_planned": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.MyProfileResponse": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "badges_count": {
+                    "type": "integer"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "followers_count": {
+                    "type": "integer"
+                },
+                "following_count": {
+                    "type": "integer"
+                },
+                "id": {
+                    "description": "UUID юзера",
+                    "type": "string"
+                },
+                "promises_count": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.PostLiteResponse": {
+            "type": "object",
+            "properties": {
+                "attachments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AttachmentResponse"
+                    }
+                },
+                "author_id": {
+                    "type": "string"
+                },
+                "avatar_url": {
+                    "type": "string"
+                },
+                "comments": {
+                    "type": "integer"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_liked_by_me": {
+                    "type": "boolean"
+                },
+                "is_private": {
+                    "type": "boolean"
+                },
+                "is_your_friend": {
+                    "type": "boolean"
+                },
+                "likes": {
+                    "type": "integer"
+                },
+                "microtask_id": {
+                    "type": "string"
+                },
+                "microtask_title": {
+                    "type": "string"
+                },
+                "promise_id": {
+                    "type": "string"
+                },
+                "promise_title": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.PostWithRepliesTreeResponse": {
+            "type": "object",
+            "properties": {
+                "attachments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AttachmentResponse"
+                    }
+                },
+                "author_id": {
+                    "type": "string"
+                },
+                "avatar_url": {
+                    "type": "string"
+                },
+                "comments": {
+                    "type": "integer"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_liked_by_me": {
+                    "type": "boolean"
+                },
+                "is_private": {
+                    "type": "boolean"
+                },
+                "is_your_friend": {
+                    "type": "boolean"
+                },
+                "likes": {
+                    "type": "integer"
+                },
+                "microtask_id": {
+                    "type": "string"
+                },
+                "microtask_title": {
+                    "type": "string"
+                },
+                "promise_id": {
+                    "type": "string"
+                },
+                "promise_title": {
+                    "type": "string"
+                },
+                "replies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.PostWithRepliesTreeResponse"
+                    }
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.PredictionResponse": {
+            "type": "object",
+            "properties": {
+                "advice": {
+                    "type": "string"
+                },
+                "promise_id": {
+                    "type": "string"
+                },
+                "success_rate": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.PromiseResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "deadline": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_private": {
+                    "type": "boolean"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "username": {
+                    "description": "можно добавить позже",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.PromiseWithMicrotasksProgressResponse": {
+            "type": "object",
+            "properties": {
+                "deadline": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_private": {
+                    "type": "boolean"
+                },
+                "microtasks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MicrotaskProgress"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.PublicProfileResponse": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "badges_count": {
+                    "type": "integer"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "followers_count": {
+                    "type": "integer"
+                },
+                "following_count": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_following": {
+                    "type": "boolean"
+                },
+                "promises_count": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.RefreshTokenRequest": {
             "type": "object",
             "required": [
@@ -758,6 +4162,20 @@
             "properties": {
                 "refresh_token": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.ReorderMicrotasksMapRequest": {
+            "type": "object",
+            "required": [
+                "orders"
+            ],
+            "properties": {
+                "orders": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
                 }
             }
         },
@@ -785,29 +4203,83 @@
                 }
             }
         },
+        "dto.UpdateMicrotaskRequest": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "in_progress",
+                        "completed"
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                }
+            }
+        },
+        "dto.UpdatePostRequest": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.UpdatePromiseRequest": {
             "type": "object",
             "properties": {
                 "deadline": {
-                    "description": "Только для основного обещания",
                     "type": "string"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 2000
                 },
-                "status": {
-                    "type": "string"
+                "is_private": {
+                    "type": "boolean"
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
                 }
             }
         },
         "dto.UpdateUserRequest": {
             "type": "object",
             "properties": {
+                "avatar_url": {
+                    "description": "Новый аватар",
+                    "type": "string"
+                },
                 "role": {
-                    "description": "Только для админов",
+                    "description": "Только для админа",
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "minLength": 3
+                }
+            }
+        },
+        "dto.UserLiteResponse": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "id": {
                     "type": "string"
                 },
                 "username": {
@@ -815,47 +4287,57 @@
                 }
             }
         },
-        "models.Promise": {
+        "models.Badge": {
             "type": "object",
             "properties": {
-                "deadline": {
+                "code": {
+                    "type": "string"
+                },
+                "createdAt": {
                     "type": "string"
                 },
                 "description": {
                     "type": "string"
                 },
+                "iconURL": {
+                    "type": "string"
+                },
                 "id": {
-                    "type": "string"
-                },
-                "parentID": {
-                    "description": "NULL, если это основной Promise",
-                    "type": "string"
-                },
-                "status": {
                     "type": "string"
                 },
                 "title": {
                     "type": "string"
-                },
-                "userID": {
-                    "type": "string"
                 }
             }
         },
-        "models.User": {
+        "utils.ErrorResponse": {
             "type": "object",
             "properties": {
-                "email": {
-                    "type": "string"
+                "code": {
+                    "type": "integer",
+                    "example": 404
                 },
-                "id": {
-                    "type": "string"
+                "message": {
+                    "type": "string",
+                    "example": "user not found"
                 },
-                "role": {
-                    "type": "string"
+                "status": {
+                    "type": "string",
+                    "example": "error"
+                }
+            }
+        },
+        "utils.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 200
                 },
-                "username": {
-                    "type": "string"
+                "data": {},
+                "status": {
+                    "type": "string",
+                    "example": "success"
                 }
             }
         }

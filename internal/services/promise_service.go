@@ -1,169 +1,363 @@
 package services
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"github.com/raxaris/ipromise-backend/internal/dto"
+	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
+	"github.com/raxaris/ipromise-backend/internal/repositories/post"
+	"github.com/raxaris/ipromise-backend/internal/repositories/user"
+	"gorm.io/gorm"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/models"
-	"github.com/raxaris/ipromise-backend/internal/repositories"
+	"github.com/raxaris/ipromise-backend/internal/repositories/follower"
+	"github.com/raxaris/ipromise-backend/internal/repositories/promise"
 )
 
-// Ошибки
-var (
-	ErrNotAllowedToUpdate = errors.New("вы не можете редактировать это обещание")
-	ErrInvalidStatus      = errors.New("нельзя изменить статус на этот")
-	ErrPromiseNotFound    = errors.New("обещание не найдено")
-	ErrInvalidTitle       = errors.New("заголовок обещания не может быть пустым или короче 3 символов")
-)
+type PromiseService interface {
+	CreatePromise(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseRequest) error
+	CreatePromiseWithMicrotasks(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseWithMicrotasksRequest) error
+	GetUserPromisesWithMicrotasksProgress(ctx context.Context, viewerID uuid.UUID, username string, limit int, after *time.Time) ([]dto.PromiseWithMicrotasksProgressResponse, error)
+	GetPromiseByID(ctx context.Context, viewerID uuid.UUID, promiseID uuid.UUID) (*models.Promise, error)
+	UpdatePromise(ctx context.Context, userID uuid.UUID, promiseID uuid.UUID, title, description *string, deadline *time.Time, isPrivate *bool) error
+	DeletePromise(ctx context.Context, userID uuid.UUID, promiseID uuid.UUID) error
 
-// CreatePromise – создание нового обещания (юзер/админ)
-func CreatePromise(userID uuid.UUID, req dto.CreatePromiseRequest) error {
-	// Убираем пробелы в заголовке и описании
-	req.Title = strings.TrimSpace(req.Title)
-	req.Description = strings.TrimSpace(req.Description)
+	ListProfilePromises(ctx context.Context, viewerID uuid.UUID, profileUserID uuid.UUID, limit int, afterCreatedAt *time.Time) ([]models.Promise, error)
+	ListFeedPromises(ctx context.Context, viewerID uuid.UUID, limit int, afterCreatedAt *time.Time) ([]models.Promise, error)
+	ListPublicPromises(ctx context.Context, limit int, afterCreatedAt *time.Time) ([]models.Promise, error)
+}
 
-	// Проверяем корректность заголовка
-	if len(req.Title) < 5 {
-		return ErrInvalidTitle
+type promiseService struct {
+	promiseRepo       promise.PromiseRepository
+	microtaskRepo     microtask.MicrotaskRepository
+	followerRepo      follower.FollowerRepository
+	userRepo          user.UserRepository
+	postRepo          post.PostRepository
+	predictionService PredictionService
+}
+
+func NewPromiseService(promiseRepo promise.PromiseRepository, microtaskRepo microtask.MicrotaskRepository, followerRepo follower.FollowerRepository, userRepo user.UserRepository, postRepo post.PostRepository, predictionService PredictionService) PromiseService {
+	return &promiseService{
+		promiseRepo:       promiseRepo,
+		followerRepo:      followerRepo,
+		microtaskRepo:     microtaskRepo,
+		userRepo:          userRepo,
+		postRepo:          postRepo,
+		predictionService: predictionService,
+	}
+}
+
+func (s *promiseService) CreatePromise(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseRequest) error {
+	if err := validatePromiseInput(&req.Title, &req.Description, &req.Deadline); err != nil {
+		return err
 	}
 
-	// Создаём новый объект обещания
-	promise := models.Promise{
+	newPromise := &models.Promise{
 		ID:          uuid.New(),
 		UserID:      userID,
-		ParentID:    req.ParentID,
 		Title:       req.Title,
 		Description: req.Description,
+		Deadline:    req.Deadline,
+		Category:    req.Category,
 		IsPrivate:   req.IsPrivate,
+		Status:      "in_progress",
 	}
 
-	// Если это основное обещание (нет ParentID)
-	if req.ParentID == nil {
-		promise.Status = "pending" // Основное обещание всегда создаётся со статусом "pending"
+	return s.promiseRepo.CreatePromise(ctx, newPromise)
+}
 
-		// Проверяем, указан ли дедлайн
-		if req.Deadline != nil {
-			promise.Deadline = *req.Deadline
-		} else {
-			return errors.New("основное обещание должно иметь дедлайн")
+//func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseWithMicrotasksRequest) error {
+//	newPromise := &models.Promise{
+//		ID:          uuid.New(),
+//		UserID:      userID,
+//		Title:       req.Title,
+//		Description: req.Description,
+//		Deadline:    req.Deadline,
+//		Category:    req.Category,
+//		IsPrivate:   req.IsPrivate,
+//		Status:      "in_progress",
+//	}
+//
+//	prediction, err := s.predictionService.CreateOrReplacePrediction(ctx, newPromise)
+//	if err != nil {
+//		return err
+//	}
+//
+//	if prediction.SuccessRate < 25 {
+//		return fmt.Errorf("Success rate too low: %.0f%%. Advice: %s", prediction.SuccessRate, prediction.Advice)
+//	}
+//
+//	if err := s.promiseRepo.CreatePromise(ctx, newPromise); err != nil {
+//		return err
+//	}
+//
+//	if len(req.Microtasks) > 0 {
+//		var microtasks []models.Microtask
+//		for i, m := range req.Microtasks {
+//			fmt.Println("Microtasks: ", m)
+//			microtasks = append(microtasks, models.Microtask{
+//				ID:             uuid.New(),
+//				PromiseID:      newPromise.ID,
+//				Title:          m.Title,
+//				Status:         "in progress",
+//				StepsPlanned:   m.StepsPlanned,
+//				MicrotaskOrder: i,
+//			})
+//		}
+//
+//		if err := s.microtaskRepo.CreateManyMicrotasks(ctx, microtasks); err != nil {
+//			return err
+//		}
+//	}
+//
+//	return nil
+//}
+
+func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseWithMicrotasksRequest) error {
+	return s.promiseRepo.WithTransaction(ctx, func(tx *gorm.DB) error {
+		newPromise := &models.Promise{
+			ID:          uuid.New(),
+			UserID:      userID,
+			Title:       req.Title,
+			Description: req.Description,
+			Deadline:    req.Deadline,
+			Category:    req.Category,
+			IsPrivate:   req.IsPrivate,
+			Status:      "in_progress",
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		}
-	} else {
-		// Если это прогресс (обновление обещания)
-		parentPromise, err := repositories.GetPromiseByID(*req.ParentID)
+
+		if err := tx.WithContext(ctx).Create(newPromise).Error; err != nil {
+			return err
+		}
+
+		prediction, err := s.predictionService.CreateOrReplacePredictionTx(ctx, tx, newPromise)
 		if err != nil {
-			return errors.New("родительское обещание не найдено")
+			return err
 		}
 
-		// Наследуем дедлайн у родителя
-		promise.Deadline = parentPromise.Deadline
-
-		// Прогресс может быть либо "in_progress", либо "completed"
-		if req.Status != "in_progress" && req.Status != "completed" {
-			return errors.New("прогресс должен быть 'in_progress' или 'completed'")
+		if prediction.SuccessRate < 25 {
+			return fmt.Errorf("success rate too low: %.0f%%. Advice: %s", prediction.SuccessRate, prediction.Advice)
 		}
 
-		promise.Status = req.Status
-	}
-
-	// Создаём обещание в БД
-	return repositories.CreatePromise(&promise)
-}
-
-// GetAllPublicPromises – получает только публичные обещания
-func GetAllPublicPromises() ([]models.Promise, error) {
-	return repositories.GetPublicPromises()
-}
-
-// GetPromiseByID – получает обещание по ID (проверка приватности)
-func GetPromiseByID(promiseID uuid.UUID) (*models.Promise, error) {
-	promise, err := repositories.GetPromiseByID(promiseID)
-	if err != nil {
-		return nil, errors.New("обещание не найдено")
-	}
-
-	// Если обещание приватное – вернуть ошибку
-	if promise.IsPrivate {
-		return nil, errors.New("обещание приватное")
-	}
-
-	return promise, nil
-}
-
-// GetAllPromises – получение всех обещаний
-func GetAllPromises() ([]models.Promise, error) {
-	return repositories.GetAllPromises()
-}
-
-// GetPromiseByUserID – получение обещаний пользователя
-func GetPromiseByUserID(userID uuid.UUID) ([]models.Promise, error) {
-	return repositories.GetPromisesByUserID(userID)
-}
-
-// UpdatePromise – обновление обещания (с учетом ролей)
-func UpdatePromise(userID uuid.UUID, promiseID string, updateData dto.UpdatePromiseRequest, isAdmin bool) error {
-	// Преобразуем promiseID в UUID
-	promiseUUID, err := uuid.Parse(promiseID)
-	if err != nil {
-		return errors.New("Неверный формат ID обещания")
-	}
-
-	// Получаем текущее обещание
-	existingPromise, err := repositories.GetPromiseByID(promiseUUID)
-	if err != nil {
-		return ErrPromiseNotFound
-	}
-
-	// 1️⃣ Проверяем, имеет ли право пользователь редактировать обещание
-	if existingPromise.UserID != userID && !isAdmin {
-		return ErrNotAllowedToUpdate
-	}
-
-	// 3️⃣ Нельзя менять `Deadline`, если это прогресс
-	if existingPromise.ParentID != nil && updateData.Deadline != nil {
-		return errors.New("Нельзя менять дедлайн у прогресса")
-	}
-
-	// 4️⃣ Проверяем корректность изменения статуса
-	validTransitions := map[string]map[string]bool{
-		"pending":     {"in_progress": true, "completed": true},
-		"in_progress": {"completed": true},
-		"completed":   {},
-	}
-
-	allowedNextStatuses, ok := validTransitions[existingPromise.Status]
-	if !ok || (updateData.Status != nil && !allowedNextStatuses[*updateData.Status]) {
-		return ErrInvalidStatus
-	}
-
-	// ✅ Всё в порядке – обновляем данные
-	if updateData.Title != nil {
-		existingPromise.Title = *updateData.Title
-	}
-	if updateData.Description != nil {
-		existingPromise.Description = *updateData.Description
-	}
-	if updateData.Status != nil {
-		existingPromise.Status = *updateData.Status
-	}
-	if updateData.IsPrivate != nil {
-		if existingPromise.ParentID != nil {
-			return errors.New("нельзя менять приватность у обновления прогресса")
+		if len(req.Microtasks) > 0 {
+			var microtasks []models.Microtask
+			for i, m := range req.Microtasks {
+				microtasks = append(microtasks, models.Microtask{
+					ID:             uuid.New(),
+					PromiseID:      newPromise.ID,
+					Title:          m.Title,
+					Status:         "in progress",
+					StepsPlanned:   m.StepsPlanned,
+					MicrotaskOrder: i,
+					CreatedAt:      time.Now(),
+					UpdatedAt:      time.Now(),
+				})
+			}
+			if err := s.microtaskRepo.CreateManyMicrotasksTx(ctx, tx, microtasks); err != nil {
+				return err
+			}
 		}
-		existingPromise.IsPrivate = *updateData.IsPrivate
-	}
-	// Сохраняем обновления
-	return repositories.UpdatePromise(existingPromise)
+		return nil
+	})
 }
 
-// DeletePromise – удаление обещания (только для админа/модератора)
-func DeletePromise(promiseID string) error {
-	// Преобразуем в UUID
-	promiseUUID, err := uuid.Parse(promiseID)
+func (s *promiseService) GetPromiseByID(ctx context.Context, viewerID, promiseID uuid.UUID) (*models.Promise, error) {
+	existingPromise, err := s.promiseRepo.GetPromiseByID(ctx, promiseID)
 	if err != nil {
-		return errors.New("неверный формат ID обещания")
+		return nil, err
+	}
+	if viewerID == existingPromise.UserID || !existingPromise.IsPrivate {
+		return existingPromise, nil
+	}
+	isFollowing, err := s.followerRepo.IsFollowing(ctx, viewerID, existingPromise.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if isFollowing {
+		return existingPromise, nil
+	}
+	return nil, errors.New("обещание недоступно")
+}
+
+func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Context, viewerID uuid.UUID, username string, limit int, after *time.Time) ([]dto.PromiseWithMicrotasksProgressResponse, error) {
+	existingUser, err := s.userRepo.GetUserByUsername(ctx, username)
+	if err != nil {
+		return nil, err
 	}
 
-	return repositories.DeletePromise(promiseUUID)
+	var promises []models.Promise
+
+	if viewerID == existingUser.ID {
+		promises, err = s.promiseRepo.ListAllPromisesByUserID(ctx, existingUser.ID, limit, after)
+	} else {
+		isFollowing, err := s.followerRepo.IsFollowing(ctx, viewerID, existingUser.ID)
+		if err != nil {
+			return nil, err
+		}
+		if isFollowing {
+			promises, err = s.promiseRepo.ListAllPromisesByUserID(ctx, existingUser.ID, limit, after)
+		} else {
+			promises, err = s.promiseRepo.ListPublicPromisesByUserID(ctx, existingUser.ID, limit, after)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var result []dto.PromiseWithMicrotasksProgressResponse
+
+	for _, promise := range promises {
+		microtasks, err := s.microtaskRepo.ListMicrotasksByPromiseID(ctx, promise.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		mtResponses := make([]dto.MicrotaskProgress, 0) // ✅ всегда будет []
+
+		for _, mt := range microtasks {
+			postCount, err := s.postRepo.CountRootPostsByMicrotaskID(ctx, mt.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			var percent float64 = 0
+			if mt.StepsPlanned > 0 {
+				percent = float64(postCount) / float64(mt.StepsPlanned) * 100
+			}
+
+			mtResponses = append(mtResponses, dto.MicrotaskProgress{
+				ID:              mt.ID.String(),
+				Title:           mt.Title,
+				StepsPlanned:    mt.StepsPlanned,
+				PostsCount:      postCount,
+				ProgressPercent: percent,
+				Status:          mt.Status,
+				Order:           mt.MicrotaskOrder,
+			})
+		}
+
+		result = append(result, dto.PromiseWithMicrotasksProgressResponse{
+			ID:          promise.ID.String(),
+			Title:       promise.Title,
+			Description: promise.Description,
+			Deadline:    promise.Deadline,
+			IsPrivate:   promise.IsPrivate,
+			Status:      promise.Status,
+			Microtasks:  mtResponses,
+		})
+	}
+
+	return result, nil
+}
+
+func (s *promiseService) UpdatePromise(ctx context.Context, userID, promiseID uuid.UUID, title, description *string, deadline *time.Time, isPrivate *bool) error {
+	existing, err := s.promiseRepo.GetPromiseByID(ctx, promiseID)
+	if err != nil {
+		return err
+	}
+	if err := checkOwnership(userID, existing); err != nil {
+		return err
+	}
+
+	// Валидация входных данных
+	if err := validatePromiseInput(title, description, deadline); err != nil {
+		return err
+	}
+
+	if title != nil {
+		existing.Title = strings.TrimSpace(*title)
+	}
+	if description != nil {
+		existing.Description = strings.TrimSpace(*description)
+	}
+	if deadline != nil {
+		existing.Deadline = *deadline
+	}
+	if isPrivate != nil {
+		existing.IsPrivate = *isPrivate
+	}
+
+	return s.promiseRepo.UpdatePromise(ctx, existing)
+}
+
+func (s *promiseService) DeletePromise(ctx context.Context, userID, promiseID uuid.UUID) error {
+	existingPromise, err := s.promiseRepo.GetPromiseByID(ctx, promiseID)
+	if err != nil {
+		return err
+	}
+	if err := checkOwnership(userID, existingPromise); err != nil {
+		return err
+	}
+	return s.promiseRepo.DeletePromise(ctx, promiseID)
+}
+
+func (s *promiseService) ListProfilePromises(ctx context.Context, viewerID, profileUserID uuid.UUID, limit int, afterCreatedAt *time.Time) ([]models.Promise, error) {
+	if viewerID == profileUserID {
+		return s.promiseRepo.ListAllPromisesByUserID(ctx, profileUserID, limit, afterCreatedAt)
+	}
+	isFollowing, err := s.followerRepo.IsFollowing(ctx, viewerID, profileUserID)
+	if err != nil {
+		return nil, err
+	}
+	if isFollowing {
+		return s.promiseRepo.ListAllPromisesByUserID(ctx, profileUserID, limit, afterCreatedAt)
+	}
+	return s.promiseRepo.ListPublicPromisesByUserID(ctx, profileUserID, limit, afterCreatedAt)
+}
+
+func (s *promiseService) ListFeedPromises(ctx context.Context, viewerID uuid.UUID, limit int, afterCreatedAt *time.Time) ([]models.Promise, error) {
+	following, err := s.followerRepo.ListFollowing(ctx, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	var userIDs []uuid.UUID
+	for _, follow := range following {
+		userIDs = append(userIDs, follow.FollowingID)
+	}
+	if len(userIDs) == 0 {
+		return []models.Promise{}, nil
+	}
+	return s.promiseRepo.ListFeedPromises(ctx, userIDs, limit, afterCreatedAt)
+}
+
+func (s *promiseService) ListPublicPromises(ctx context.Context, limit int, afterCreatedAt *time.Time) ([]models.Promise, error) {
+	return s.promiseRepo.ListPublicPromises(ctx, limit, afterCreatedAt)
+}
+
+func validatePromiseInput(title, description *string, deadline *time.Time) error {
+	if title != nil {
+		trimmed := strings.TrimSpace(*title)
+		if trimmed == "" {
+			return errors.New("название не может быть пустым")
+		}
+		if len(trimmed) > 100 {
+			return errors.New("название слишком длинное (макс 100 символов)")
+		}
+	}
+
+	if description != nil {
+		trimmed := strings.TrimSpace(*description)
+		if len(trimmed) > 2000 {
+			return errors.New("описание слишком длинное (макс 2000 символов)")
+		}
+	}
+
+	if deadline != nil && time.Now().After(*deadline) {
+		return errors.New("дедлайн не может быть в прошлом")
+	}
+
+	return nil
+}
+
+func checkOwnership(userID uuid.UUID, promise *models.Promise) error {
+	if promise.UserID != userID {
+		return errors.New("вы не владелец этого обещания")
+	}
+	return nil
 }

@@ -1,76 +1,49 @@
 package handlers
 
 import (
+	"github.com/raxaris/ipromise-backend/internal/utils"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/raxaris/ipromise-backend/config"
 	"github.com/raxaris/ipromise-backend/internal/dto"
-	"github.com/raxaris/ipromise-backend/internal/models"
 	"github.com/raxaris/ipromise-backend/internal/services"
 )
 
-// SignupHandler регистрирует нового пользователя
+type AuthHandler struct {
+	authService services.AuthService
+}
+
+func NewAuthHandler(authService services.AuthService) *AuthHandler {
+	return &AuthHandler{authService: authService}
+}
+
+// Signup godoc
 // @Summary Регистрация нового пользователя
 // @Description Создаёт нового пользователя по email, имени и паролю
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Param input body dto.SignupRequest true "Данные для регистрации пользователя"
-// @Success 201 {object} map[string]string "message: Пользователь успешно зарегистрирован"
-// @Failure 400 {object} map[string]string "error: Неверные данные запроса"
+// @Success 201 {object} map[string]string "message: Пользователь зарегистрирован"
+// @Failure 400 {object} map[string]string "error: Неверные данные"
 // @Failure 409 {object} map[string]string "error: Email или имя пользователя уже занято"
-// @Failure 500 {object} map[string]string "error: Внутренняя ошибка сервера"
 // @Router /auth/signup [post]
-func SignupHandler(c *gin.Context) {
+func (h *AuthHandler) Signup(c *gin.Context) {
 	var req dto.SignupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// Проверяем, совпадает ли пароль и подтверждение пароля
-	if req.Password != req.ConfirmPassword {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Пароли не совпадают"})
+	if err := h.authService.Signup(c.Request.Context(), req); err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// Проверяем, существует ли уже email или username
-	var existingUser models.User
-	if err := config.DB.Where("email = ? OR username = ?", req.Email, req.Username).First(&existingUser).Error; err == nil {
-		if existingUser.Email == req.Email {
-			c.JSON(http.StatusConflict, gin.H{"error": "Email уже используется"})
-		} else {
-			c.JSON(http.StatusConflict, gin.H{"error": "Username уже используется"})
-		}
-		return
-	}
-	// Создаем пользователя **с паролем**
-	user := models.User{
-		ID:       uuid.New(),
-		Username: req.Username,
-		Email:    req.Email,
-		Password: req.Password, // Добавляем пароль
-	}
-
-	// Теперь хешируем его внутри структуры
-	if err := user.HashPassword(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка хеширования пароля"})
-		return
-	}
-
-	// Сохраняем в БД
-	if err := config.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка создания пользователя"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "Пользователь успешно зарегистрирован"})
+	utils.RespondWithSuccess(c, http.StatusCreated, "User signed up successfully")
 }
 
-// LoginHandler аутентифицирует пользователя
+// Login godoc
 // @Summary Авторизация пользователя
 // @Description Логин по email и паролю, выдаёт JWT токены
 // @Tags auth
@@ -80,55 +53,29 @@ func SignupHandler(c *gin.Context) {
 // @Success 200 {object} map[string]string "access_token: токен, refresh_token: токен"
 // @Failure 400 {object} map[string]string "error: Ошибка валидации"
 // @Failure 401 {object} map[string]string "error: Неверный email или пароль"
-// @Failure 500 {object} map[string]string "error: Ошибка сервера"
 // @Router /auth/login [post]
-func LoginHandler(c *gin.Context) {
+func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	var user models.User
-	if err := config.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный email или пароль"})
-		return
-	}
-
-	if !user.CheckPassword(req.Password) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный email или пароль"})
-		return
-	}
-
-	accessToken, err := services.GenerateAccessToken(user.ID.String(), user.Role)
+	access, refresh, err := h.authService.Login(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации Access-токена"})
+		utils.RespondWithError(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	refreshToken, err := services.GenerateRefreshToken(user.ID.String(), user.Role)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации Refresh-токена"})
-		return
-	}
+	c.SetCookie("access_token", access, 24*3600, "/", "", false, true)
 
-	// Сохраняем Refresh Token в БД
-	refreshTokenEntry := models.RefreshToken{
-		ID:        uuid.New(),
-		UserID:    user.ID,
-		Token:     refreshToken,
-		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
-	}
-
-	if err := config.DB.Create(&refreshTokenEntry).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сохранения Refresh-токена"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken})
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{
+		"access_token":  access,
+		"refresh_token": refresh,
+	})
 }
 
-// RefreshTokenHandler обновляет Access Token
+// Refresh godoc
 // @Summary Обновление Access Token
 // @Description Использует Refresh Token для выдачи нового Access Token
 // @Tags auth
@@ -138,37 +85,45 @@ func LoginHandler(c *gin.Context) {
 // @Success 200 {object} map[string]string "access_token: новый access-токен"
 // @Failure 400 {object} map[string]string "error: Ошибка валидации"
 // @Failure 401 {object} map[string]string "error: Недействительный Refresh-токен"
-// @Failure 500 {object} map[string]string "error: Ошибка сервера"
 // @Router /auth/refresh [post]
-func RefreshTokenHandler(c *gin.Context) {
+func (h *AuthHandler) Refresh(c *gin.Context) {
 	var req dto.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// Проверяем `refresh_token` через сервис
-	refreshToken, err := services.ValidateRefreshTokenFromDB(config.DB, req.RefreshToken)
+	newAccess, err := h.authService.Refresh(c.Request.Context(), req.RefreshToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Недействительный или истёкший Refresh-токен"})
+		utils.RespondWithError(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	// Находим пользователя по `UserID`
-	user, err := services.GetUserByID(refreshToken.UserID)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не найден"})
+	utils.RespondWithSuccess(c, http.StatusOK, gin.H{"access_token": newAccess})
+}
+
+// Logout godoc
+// @Summary Выход из системы
+// @Description Удаляет Refresh Token из хранилища
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body dto.RefreshTokenRequest true "Refresh Token"
+// @Success 200 {object} map[string]string "message: Вы успешно вышли из системы"
+// @Failure 400 {object} map[string]string "error: Ошибка валидации"
+// @Failure 401 {object} map[string]string "error: Недействительный Refresh-токен"
+// @Router /auth/logout [post]
+func (h *AuthHandler) Logout(c *gin.Context) {
+	var req dto.RefreshTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// Генерируем новый `access_token` с `role`
-	newAccessToken, err := services.GenerateAccessToken(user.ID.String(), user.Role)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации нового Access-токена"})
+	if err := h.authService.Logout(c.Request.Context(), req.RefreshToken); err != nil {
+		utils.RespondWithError(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token": newAccessToken,
-	})
+	utils.RespondWithSuccess(c, http.StatusOK, "You successfully logged out")
 }

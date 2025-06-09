@@ -2,15 +2,15 @@ package models
 
 import (
 	"github.com/google/uuid"
-	"time"
-
 	"gorm.io/gorm"
+	"time"
 )
 
 type RefreshToken struct {
-	gorm.Model `swaggerignore:"true"`
-	ID         uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	UserID     uuid.UUID `gorm:"type:uuid;not null;index"`
-	Token      string    `gorm:"unique;not null"`
-	ExpiresAt  time.Time `gorm:"not null"`
+	ID        uuid.UUID      `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	UserID    uuid.UUID      `gorm:"type:uuid;not null;index;constraint:OnDelete:CASCADE"`
+	Token     string         `gorm:"type:text;unique;not null"`
+	ExpiresAt time.Time      `gorm:"not null"`
+	CreatedAt time.Time      `gorm:"autoCreateTime"`
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }

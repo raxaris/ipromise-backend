@@ -1,7 +1,6 @@
-version: "3.9"
-
 services:
   db:
+    container_name: ipromise-db
     image: postgres:16
     restart: always
     environment:
@@ -12,22 +11,27 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d
 
   backend:
+    container_name: ipromise-backend
     build: .
     ports:
       - "8080:8080"
     depends_on:
       - db
+      - redis
     env_file:
       - .env
     environment:
-      - DB_HOST=db  # Меняем localhost на db (название контейнера)
+      - DB_HOST=db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     command: ["/bin/sh", "-c", "sleep 5 && /bin/ipromise-backend"]
 
   pgadmin:
+    container_name: ipromise-pgadmin
     image: dpage/pgadmin4
-    container_name: pgadmin
     restart: always
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
@@ -37,6 +41,63 @@ services:
     depends_on:
       - db
 
+  minio:
+    container_name: ipromise-minio
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  redis:
+    container_name: ipromise-redis
+    image: redis:7
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+
+  seed:
+    container_name: ipromise-seed
+    profiles: ["init"]
+    image: postgres:16
+    depends_on:
+      - db
+      - backend
+    restart: no
+    volumes:
+      - ./docker/seed/01_seed_data.sql:/docker-entrypoint-initdb.d/01_seed_data.sql
+    entrypoint: >
+      /bin/sh -c "sleep 15 &&
+      psql -h db -U postgres -d ipromisego -f /docker-entrypoint-initdb.d/01_seed_data.sql"
+    environment:
+      - PGPASSWORD=123
+
+  minio-seed:
+    container_name: ipromise-minio-seed
+    profiles: [ "init" ]
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        sleep 5 &&
+        mc alias set local http://minio:9000 minio minio123 &&
+        mc mb --ignore-existing local/ipromise &&
+        mc cp -r /seed/* local/ipromise/
+        mc anonymous set download local/ipromise"
+    volumes:
+      - ./docker/minio/bootstrap/ipromise:/seed:ro
+
 
 volumes:
   postgres_data:
+  minio_data:
+  redis_data:

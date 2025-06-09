@@ -2,34 +2,65 @@ package dto
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type CreatePromiseRequest struct {
-	ParentID    *uuid.UUID `json:"parent_id,omitempty"` // Если null, это основное обещание
-	Title       string     `json:"title" binding:"required"`
-	Description string     `json:"description"`
-	Deadline    *time.Time `json:"deadline,omitempty"` // Можно передавать только для основного промиса
-	Status      string     `json:"status" binding:"required"`
-	IsPrivate   bool       `json:"is_private"`
+	Title       string    `json:"title" binding:"required,min=1,max=100"`
+	Description string    `json:"description" binding:"max=2000"`
+	Deadline    time.Time `json:"deadline" binding:"required"`
+	Category    string    `json:"category"`
+	IsPrivate   bool      `json:"is_private"`
+}
+
+type CreatePromiseWithMicrotasksRequest struct {
+	Title       string                 `json:"title" binding:"required"`
+	Description string                 `json:"description"`
+	Deadline    time.Time              `json:"deadline" binding:"required"`
+	Category    string                 `json:"category"`
+	IsPrivate   bool                   `json:"is_private"`
+	Microtasks  []CreateMicrotaskInput `json:"microtasks"`
+}
+
+type CreateMicrotaskInput struct {
+	Title        string `json:"title" binding:"required"`
+	StepsPlanned int    `json:"steps_planned"`
+	Order        int    `json:"order"`
 }
 
 type UpdatePromiseRequest struct {
-	Title       *string    `json:"title,omitempty"`
-	Description *string    `json:"description,omitempty"`
-	Status      *string    `json:"status,omitempty"`
-	Deadline    *time.Time `json:"deadline,omitempty"`   // Только для основного обещания
-	IsPrivate   *bool      `json:"is_private,omitempty"` // 🔹 Добавлено
+	Title       *string    `json:"title" binding:"omitempty,min=1,max=100"`
+	Description *string    `json:"description" binding:"omitempty,max=2000"`
+	Deadline    *time.Time `json:"deadline" binding:"omitempty"`
+	IsPrivate   *bool      `json:"is_private" binding:"omitempty"`
+}
+
+type PromiseWithMicrotasksProgressResponse struct {
+	ID          string              `json:"id"`
+	Title       string              `json:"title"`
+	Description string              `json:"description"`
+	Deadline    time.Time           `json:"deadline"`
+	IsPrivate   bool                `json:"is_private"`
+	Status      string              `json:"status"`
+	Microtasks  []MicrotaskProgress `json:"microtasks"`
+}
+
+type MicrotaskProgress struct {
+	ID              string  `json:"id"`
+	Title           string  `json:"title"`
+	StepsPlanned    int     `json:"steps_planned"`
+	PostsCount      int64   `json:"posts_count"`
+	ProgressPercent float64 `json:"completion_ratio"`
+	Status          string  `json:"status"`
+	Order           int     `json:"order"`
 }
 
 type PromiseResponse struct {
-	ID          uuid.UUID  `json:"id"`
-	UserID      uuid.UUID  `json:"user_id"`
-	ParentID    *uuid.UUID `json:"parent_id,omitempty"`
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	Deadline    time.Time  `json:"deadline"`
-	Status      string     `json:"status"`
-	CreatedAt   time.Time  `json:"created_at"`
+	ID          string    `json:"id"`
+	Username    string    `json:"username"` // можно добавить позже
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Deadline    time.Time `json:"deadline"`
+	IsPrivate   bool      `json:"is_private"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
 }

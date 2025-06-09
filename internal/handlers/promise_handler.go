@@ -1,212 +1,347 @@
 package handlers
 
 import (
-	"github.com/raxaris/ipromise-backend/internal/models"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/services"
+	"github.com/raxaris/ipromise-backend/internal/utils"
+	"net/http"
+	"strings"
 )
 
-// CreatePromiseHandler создаёт новое обещание
-// @Summary Создание нового обещания
-// @Description Позволяет пользователю создать новое обещание
+type PromiseHandler struct {
+	promiseService services.PromiseService
+	userService    services.UserService
+}
+
+func NewPromiseHandler(promiseService services.PromiseService, userService services.UserService) *PromiseHandler {
+	return &PromiseHandler{
+		promiseService: promiseService,
+		userService:    userService,
+	}
+}
+
+// CreatePromise godoc
+// @Summary Создать обещание
+// @Description Пользователь создаёт новое обещание
 // @Tags promises
 // @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param input body dto.CreatePromiseRequest true "Данные обещания"
-// @Success 201 {object} map[string]string "message: Обещание успешно создано"
-// @Failure 400 {object} map[string]string "error: Ошибка валидации"
-// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Success 201 {object} map[string]string "message: Обещание создано"
+// @Failure 400 {object} map[string]string "error: Неверный формат данных"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 500 {object} map[string]string "error: Внутренняя ошибка сервера"
 // @Router /promises [post]
-func CreatePromiseHandler(c *gin.Context) {
+func (h *PromiseHandler) CreatePromise(c *gin.Context) {
 	var req dto.CreatePromiseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 
-	// Получаем user_id из контекста
-	userID, _ := uuid.Parse(c.GetString("user_id"))
-
-	// Создаём обещание
-	err := services.CreatePromise(userID, req)
+	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Обещание успешно создано"})
+	err = h.promiseService.CreatePromise(c.Request.Context(), userID, &req)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusCreated, "Promise created")
 }
 
-// GetAllPromisesHandler получает все обещания
-// @Summary Получение всех обещаний
-// @Description Возвращает список всех обещаний
+// CreatePromiseWithMicrotasks godoc
+// @Summary Создать обещание с микротасками
+// @Description Создаёт новое обещание и вложенные микротаски (при необходимости) одним запросом
 // @Tags promises
 // @Security BearerAuth
-// @Success 200 {array} models.Promise
-// @Router /promises [get]
-func GetAllPromisesHandler(c *gin.Context) {
-	isAdmin := c.GetString("role") == "admin"
-
-	var promises []models.Promise
-	var err error
-
-	if isAdmin {
-		promises, err = services.GetAllPromises()
-	} else {
-		promises, err = services.GetAllPublicPromises() // 🔹 Только публичные обещания
+// @Accept json
+// @Produce json
+// @Param request body dto.CreatePromiseWithMicrotasksRequest true "Данные обещания и микротасков"
+// @Success 201 {object} map[string]string "message: Обещание создано"
+// @Failure 400 {object} map[string]string "error: Неверные данные"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /promises/full [post]
+func (h *PromiseHandler) CreatePromiseWithMicrotasks(c *gin.Context) {
+	var req dto.CreatePromiseWithMicrotasksRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid request")
+		return
 	}
 
+	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
+		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, promises)
-}
-
-func GetPromiseByIDHandler(c *gin.Context) {
-	userID, _ := uuid.Parse(c.GetString("user_id"))
-	isAdmin := c.GetString("role") == "admin"
-	promiseID, err := uuid.Parse(c.Param("id"))
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID обещания"})
-		return
-	}
-
-	promise, err := services.GetPromiseByID(promiseID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Обещание не найдено"})
-		return
-	}
-
-	// ✅ Проверяем доступ: владелец или админ могут видеть обещание
-	if promise.IsPrivate && promise.UserID != userID && !isAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Это приватное обещание"})
-		return
-	}
-
-	c.JSON(http.StatusOK, promise)
-}
-
-// GetUserPromisesHandler получает список обещаний пользователя
-// @Summary Получение обещаний пользователя
-// @Description Возвращает список обещаний пользователя по его ID
-// @Tags promises
-// @Security BearerAuth
-// @Param id path string true "ID пользователя"
-// @Success 200 {array} models.Promise
-// @Failure 400 {object} map[string]string "error: Неверный формат ID пользователя"
-// @Failure 404 {object} map[string]string "error: Пользователь не найден"
-// @Failure 500 {object} map[string]string "error: Ошибка получения обещаний"
-// @Router /users/{id}/promises [get]
-func GetUserPromisesHandler(c *gin.Context) {
-	requestedUserID, err := uuid.Parse(c.Param("id")) // ID пользователя, чьи обещания запрашиваются
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
-		return
-	}
-
-	currentUserID, _ := uuid.Parse(c.GetString("user_id")) // ID текущего пользователя
-	isAdmin := c.GetString("role") == "admin"
-
-	// Получаем обещания пользователя
-	promises, err := services.GetPromiseByUserID(requestedUserID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
-		return
-	}
-
-	// Если запрашивает не владелец и не админ – скрываем приватные обещания
-	if requestedUserID != currentUserID && !isAdmin {
-		var filteredPromises []models.Promise
-		for _, promise := range promises {
-			if !promise.IsPrivate {
-				filteredPromises = append(filteredPromises, promise)
-			}
+	if err := h.promiseService.CreatePromiseWithMicrotasks(c.Request.Context(), userID, &req); err != nil {
+		if strings.HasPrefix(err.Error(), "Success rate too low") {
+			utils.RespondWithError(c, http.StatusBadRequest, err.Error())
+		} else {
+			utils.RespondWithError(c, http.StatusInternalServerError, "Failed to create promise")
 		}
-		promises = filteredPromises
-	}
-
-	c.JSON(http.StatusOK, promises)
-}
-
-// GetAllPublicPromisesHandler – получение всех публичных обещаний
-func GetAllPublicPromisesHandler(c *gin.Context) {
-	promises, err := services.GetAllPublicPromises()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения обещаний"})
 		return
 	}
 
-	c.JSON(http.StatusOK, promises)
+	utils.RespondWithSuccess(c, http.StatusCreated, "Promise created successfully")
 }
 
-// UpdatePromiseHandler обновляет обещание (автор или админ)
-// @Summary Обновление обещания
-// @Description Позволяет обновить информацию о обещании
+// GetPromiseByID godoc
+// @Summary Получить обещание по ID
+// @Description Возвращает конкретное обещание (если оно публичное, пользователь — владелец или подписчик)
 // @Tags promises
 // @Security BearerAuth
+// @Produce json
+// @Param id path string true "ID обещания (UUID)"
+// @Success 200 {object} dto.PromiseResponse
+// @Failure 400 {object} map[string]string "error: Некорректный ID"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 403 {object} map[string]string "error: Нет доступа"
+// @Failure 404 {object} map[string]string "error: Обещание не найдено"
+// @Router /promises/{id} [get]
+func (h *PromiseHandler) GetPromiseByID(c *gin.Context) {
+	promiseIDStr := c.Param("id")
+	promiseID, err := uuid.Parse(promiseIDStr)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid ID format")
+		return
+	}
+
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	promise, err := h.promiseService.GetPromiseByID(c.Request.Context(), viewerID, promiseID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	// Преобразуем в DTO
+	res := dto.PromiseResponse{
+		ID:          promise.ID.String(),
+		Title:       promise.Title,
+		Description: promise.Description,
+		Deadline:    promise.Deadline,
+		IsPrivate:   promise.IsPrivate,
+		Status:      promise.Status,
+		CreatedAt:   promise.CreatedAt,
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, res)
+}
+
+// GetUserPromisesWithProgress godoc
+// @Summary Получить все обещания пользователя с прогрессом по микротаскам
+// @Description Возвращает список всех обещаний указанного пользователя с вложенными микротасками и данными о прогрессе (кол-во постов, запланированные шаги, процент выполнения).
+// @Tags promises
+// @Security BearerAuth
+// @Produce json
+// @Param username path string true "Username пользователя"
+// @Success 200 {array} dto.PromiseWithMicrotasksProgressResponse
+// @Failure 400 {object} map[string]string "error: Неверный username"
+// @Failure 404 {object} map[string]string "error: Пользователь не найден"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /promises/user/{username}/progress [get]
+func (h *PromiseHandler) GetUserPromisesWithProgress(c *gin.Context) {
+	username := c.Param("username")
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	limit, after := utils.ParsePaginationParams(c)
+
+	result, err := h.promiseService.GetUserPromisesWithMicrotasksProgress(
+		c.Request.Context(),
+		viewerID,
+		username,
+		limit,
+		after,
+	)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, result)
+}
+
+// UpdatePromise godoc
+// @Summary Обновить обещание
+// @Description Обновляет название, описание или дедлайн обещания
+// @Tags promises
+// @Security BearerAuth
+// @Accept json
+// @Produce json
 // @Param id path string true "ID обещания"
-// @Param input body dto.UpdatePromiseRequest true "Данные для обновления"
+// @Param input body dto.UpdatePromiseRequest true "Обновлённые данные"
 // @Success 200 {object} map[string]string "message: Обещание обновлено"
-// @Failure 400 {object} map[string]string "error: Ошибка валидации"
-// @Failure 403 {object} map[string]string "error: Нет прав на редактирование"
-// @Router /promises/{id} [put]
-func UpdatePromiseHandler(c *gin.Context) {
+// @Failure 400 {object} map[string]string "error: Неверные данные"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 403 {object} map[string]string "error: Нет доступа"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /promises/{id} [patch]
+func (h *PromiseHandler) UpdatePromise(c *gin.Context) {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	promiseIDStr := c.Param("id")
+	promiseID, err := uuid.Parse(promiseIDStr)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid ID format")
+		return
+	}
+
 	var req dto.UpdatePromiseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithError(c, http.StatusBadRequest, "Malformed request body")
 		return
 	}
 
-	// Получаем ID пользователя
-	userID, _ := uuid.Parse(c.GetString("user_id"))
-	promiseID := c.Param("id")
-	isAdmin := c.GetString("role") == "admin"
-
-	// Обновляем обещание через сервис
-	err := services.UpdatePromise(userID, promiseID, req, isAdmin)
+	err = h.promiseService.UpdatePromise(c.Request.Context(), userID, promiseID, req.Title, req.Description, req.Deadline, req.IsPrivate)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Обещание обновлено"})
+	utils.RespondWithSuccess(c, http.StatusOK, "Promise updated")
 }
 
-// DeletePromiseHandler удаляет обещание (только для админов)
-// @Summary Удаление обещания
-// @Description Позволяет администратору удалить обещание по ID
-// @Tags admin
+// DeletePromise godoc
+// @Summary Удалить обещание
+// @Description Удаляет обещание, если пользователь является владельцем
+// @Tags promises
 // @Security BearerAuth
+// @Produce json
 // @Param id path string true "ID обещания"
 // @Success 200 {object} map[string]string "message: Обещание удалено"
-// @Failure 403 {object} map[string]string "error: У вас нет прав на удаление обещания"
-// @Failure 400 {object} map[string]string "error: Ошибка при удалении обещания"
-// @Router /admin/promises/{id} [delete]
-func DeletePromiseHandler(c *gin.Context) {
-	// Проверяем, является ли пользователь админом
-	isAdmin := c.GetString("role") == "admin"
-	if !isAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав на удаление обещания"})
-		return
-	}
-
-	// ID обещания для удаления
-	promiseID := c.Param("id")
-
-	// Вызываем сервис удаления
-	err := services.DeletePromise(promiseID)
+// @Failure 400 {object} map[string]string "error: Неверный формат ID"
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 403 {object} map[string]string "error: Нет прав"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /promises/{id} [delete]
+func (h *PromiseHandler) DeletePromise(c *gin.Context) {
+	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.RespondWithMappedError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Обещание удалено"})
+	promiseIDStr := c.Param("id")
+	promiseID, err := uuid.Parse(promiseIDStr)
+	if err != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid ID format")
+		return
+	}
+
+	err = h.promiseService.DeletePromise(c.Request.Context(), userID, promiseID)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, "Promise deleted")
+}
+
+// ListProfilePromises godoc
+// @Summary Обещания пользователя по username
+// @Description Возвращает список обещаний в профиле пользователя (с учётом приватности)
+// @Tags promises
+// @Security BearerAuth
+// @Produce json
+// @Param username path string true "Username пользователя"
+// @Param limit query int false "Лимит"
+// @Param after query string false "Дата (RFC3339) для пагинации"
+// @Success 200 {array} dto.PromiseResponse
+// @Failure 401 {object} map[string]string "error: Неавторизован"
+// @Failure 404 {object} map[string]string "error: Пользователь не найден"
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /promises/user/{username} [get]
+func (h *PromiseHandler) ListProfilePromises(c *gin.Context) {
+	viewerID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	username := c.Param("username")
+	profileUser, err := h.userService.GetUserByUsername(c.Request.Context(), username)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	limit, after := utils.ParsePaginationParams(c)
+
+	promises, err := h.promiseService.ListProfilePromises(c.Request.Context(), viewerID, profileUser.ID, limit, after)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, promises)
+}
+
+// ListFeedPromises godoc
+// @Summary Лента обещаний
+// @Description Возвращает обещания от фолловеров текущего пользователя
+// @Tags promises
+// @Security BearerAuth
+// @Produce json
+// @Param limit query int false "Лимит"
+// @Param after query string false "Дата и время, начиная с которого загружать обещания (формат RFC3339)"
+func (h *PromiseHandler) ListFeedPromises(c *gin.Context) {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	limit, after := utils.ParsePaginationParams(c)
+
+	promises, err := h.promiseService.ListFeedPromises(c.Request.Context(), userID, limit, after)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, promises)
+}
+
+// ListPublicPromises godoc
+// @Summary Публичные обещания (все)
+// @Description Возвращает все публичные обещания от всех пользователей
+// @Tags promises
+// @Security BearerAuth
+// @Produce json
+// @Param limit query int false "Лимит"
+// @Param after query string false "Дата и время (RFC3339) для пагинации"
+// @Success 200 {array} dto.PromiseResponse
+// @Failure 500 {object} map[string]string "error: Ошибка сервера"
+// @Router /promises/public [get]
+func (h *PromiseHandler) ListPublicPromises(c *gin.Context) {
+	limit, after := utils.ParsePaginationParams(c)
+
+	promises, err := h.promiseService.ListPublicPromises(c.Request.Context(), limit, after)
+	if err != nil {
+		utils.RespondWithMappedError(c, err)
+		return
+	}
+
+	utils.RespondWithSuccess(c, http.StatusOK, promises)
 }

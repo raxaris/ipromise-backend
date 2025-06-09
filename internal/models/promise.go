@@ -1,31 +1,22 @@
 package models
 
 import (
+	"gorm.io/gorm"
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type Promise struct {
-	gorm.Model  `swaggerignore:"true"`
-	ID          uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	UserID      uuid.UUID  `gorm:"type:uuid;not null;index"`
-	ParentID    *uuid.UUID `gorm:"type:uuid;index"` // NULL, если это основной Promise
-	Title       string     `gorm:"type:varchar(255);not null"`
-	Description string     `gorm:"type:text"`
-	Deadline    time.Time  `gorm:"not null"`
-	Status      string     `gorm:"type:varchar(20);default:pending"`
-	IsPrivate   bool       `gorm:"default:false" json:"is_private"`
-}
-
-func (p *Promise) BeforeCreate(tx *gorm.DB) (err error) {
-	if p.ParentID != nil {
-		var parent Promise
-		if err := tx.First(&parent, "id = ?", p.ParentID).Error; err != nil {
-			return err // Ошибка, если родительского обещания нет
-		}
-		p.Deadline = parent.Deadline // Наследуем дедлайн от родителя
-	}
-	return nil
+	ID          uuid.UUID      `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	UserID      uuid.UUID      `gorm:"type:uuid;not null;index;constraint:OnDelete:CASCADE"`
+	Title       string         `gorm:"type:varchar(255);not null"`
+	Description string         `gorm:"type:text"`
+	Deadline    time.Time      `gorm:"not null"`
+	IsPrivate   bool           `gorm:"not null;default:false"`
+	Status      string         `gorm:"type:varchar(20);not null"`
+	Category    string         `gorm:"type:varchar(30)"`
+	CreatedAt   time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt   time.Time      `gorm:"autoUpdateTime"`
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
 }
