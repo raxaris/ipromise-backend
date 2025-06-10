@@ -3,8 +3,10 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/raxaris/ipromise-backend/internal/dto"
+	"github.com/raxaris/ipromise-backend/internal/models"
 	"github.com/raxaris/ipromise-backend/internal/repositories/follower"
 	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 	"gorm.io/gorm"
@@ -28,12 +30,16 @@ type FollowerService interface {
 }
 
 type followerService struct {
-	followerRepo follower.FollowerRepository
-	userRepo     user.UserRepository
+	followerRepo        follower.FollowerRepository
+	userRepo            user.UserRepository
+	notificationService NotificationService
 }
 
-func NewFollowerService(followerRepo follower.FollowerRepository, userRepo user.UserRepository) FollowerService {
-	return &followerService{followerRepo: followerRepo, userRepo: userRepo}
+func NewFollowerService(followerRepo follower.FollowerRepository, userRepo user.UserRepository, notificationService NotificationService) FollowerService {
+	return &followerService{
+		followerRepo:        followerRepo,
+		userRepo:            userRepo,
+		notificationService: notificationService}
 }
 
 func (s *followerService) RequestFollow(ctx context.Context, followerID, followingID uuid.UUID) error {
@@ -41,7 +47,6 @@ func (s *followerService) RequestFollow(ctx context.Context, followerID, followi
 		return errors.New("cannot follow yourself")
 	}
 
-	// Проверка: есть ли уже запись вообще
 	existing, err := s.followerRepo.GetFollowRecord(ctx, followerID, followingID)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
@@ -57,7 +62,21 @@ func (s *followerService) RequestFollow(ctx context.Context, followerID, followi
 		}
 	}
 
-	return s.followerRepo.RequestFollow(ctx, followerID, followingID)
+	if err := s.followerRepo.RequestFollow(ctx, followerID, followingID); err != nil {
+		return err
+	}
+
+	user, err := s.userRepo.GetUserByID(ctx, followerID)
+	if err == nil {
+		notification := &models.Notification{
+			Type:      "follow_request",
+			Message:   fmt.Sprintf("👤 %s wants to follow you", user.Username),
+			RelatedID: &followerID,
+		}
+		_ = s.notificationService.SendNotification(ctx, followingID, notification)
+	}
+
+	return nil
 }
 
 func (s *followerService) AcceptFollowRequest(ctx context.Context, userID, fromUserID uuid.UUID) error {
@@ -75,7 +94,21 @@ func (s *followerService) AcceptFollowRequest(ctx context.Context, userID, fromU
 	if !found {
 		return errors.New("no pending request from this user")
 	}
-	return s.followerRepo.AcceptFollowRequest(ctx, fromUserID, userID)
+	if err := s.followerRepo.AcceptFollowRequest(ctx, fromUserID, userID); err != nil {
+		return err
+	}
+
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err == nil {
+		notification := &models.Notification{
+			Type:      "follow_accepted",
+			Message:   fmt.Sprintf("✅ %s accepted your follow request.", user.Username),
+			RelatedID: &userID,
+		}
+		_ = s.notificationService.SendNotification(ctx, fromUserID, notification)
+	}
+
+	return nil
 }
 
 func (s *followerService) DeclineFollowRequest(ctx context.Context, userID, fromUserID uuid.UUID) error {
@@ -93,7 +126,14 @@ func (s *followerService) DeclineFollowRequest(ctx context.Context, userID, from
 	if !found {
 		return errors.New("no pending request from this user")
 	}
-	return s.followerRepo.DeclineFollowRequest(ctx, fromUserID, userID)
+
+	if err := s.followerRepo.DeclineFollowRequest(ctx, fromUserID, userID); err != nil {
+		return err
+	}
+
+	_ = s.notificationService.DeleteByTypeAndRelatedID(ctx, userID, "follow_request", fromUserID)
+
+	return nil
 }
 
 func (s *followerService) Unfollow(ctx context.Context, followerID, followingID uuid.UUID) error {
@@ -109,26 +149,35 @@ func (s *followerService) Unfollow(ctx context.Context, followerID, followingID 
 		return errors.New("you are not following this user")
 	}
 
-	return s.followerRepo.Unfollow(ctx, followerID, followingID)
+	if err := s.followerRepo.Unfollow(ctx, followerID, followingID); err != nil {
+		return err
+	}
+
+	_ = s.notificationService.DeleteByTypeAndRelatedID(ctx, followingID, "follow_accepted", followerID)
+
+	return nil
 }
 
 func (s *followerService) CancelFollowRequest(ctx context.Context, followerID, followingID uuid.UUID) error {
-	// 1. Получаем текущую запись
 	follow, err := s.followerRepo.GetFollowRecord(ctx, followerID, followingID)
 	if err != nil {
 		return err
 	}
 	if follow == nil {
-		return errors.New("запрос на подписку не найден")
+		return errors.New("follow request not found")
 	}
 
-	// 2. Проверяем, что статус — pending
 	if follow.Status != "pending" {
-		return errors.New("запрос уже принят или отклонён и не может быть отменён")
+		return errors.New("the request has already been accepted or declined and cannot be canceled")
 	}
 
-	// 3. Удаляем
-	return s.followerRepo.CancelFollowRequest(ctx, followerID, followingID)
+	if err := s.followerRepo.CancelFollowRequest(ctx, followerID, followingID); err != nil {
+		return err
+	}
+
+	_ = s.notificationService.DeleteByTypeAndRelatedID(ctx, followingID, "follow_request", followerID)
+
+	return nil
 }
 
 func (s *followerService) IsFollowing(ctx context.Context, followerID, followingID uuid.UUID) (bool, error) {

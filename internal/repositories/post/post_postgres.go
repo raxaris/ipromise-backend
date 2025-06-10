@@ -383,7 +383,8 @@ func (r *postRepository) ListUserPostsWithReplies(
 		WHERE users.username = ? AND posts.parent_id IS NULL
 		AND (promises.is_private = FALSE OR promises.user_id = ?)`
 
-	args := []interface{}{username, viewerID, limit}
+	args := []interface{}{username, viewerID}
+
 	if afterCreatedAt != nil && afterID != nil {
 		baseQuery += `
 			AND ((posts.created_at < ?) OR (posts.created_at = ? AND posts.id < ?))`
@@ -393,6 +394,8 @@ func (r *postRepository) ListUserPostsWithReplies(
 	baseQuery += `
 		ORDER BY posts.created_at DESC, posts.id DESC
 		LIMIT ?`
+
+	args = append(args, limit)
 
 	err := r.db.WithContext(ctx).Raw(baseQuery, args...).Scan(&rootPosts).Error
 	if err != nil {

@@ -27,7 +27,6 @@ func RespondWithError(c *gin.Context, code int, message string) {
 func RespondWithSuccess(c *gin.Context, code int, data interface{}) {
 	var wrapped interface{}
 
-	// Если просто строка — оборачиваем в {"message": "..."}
 	if msg, ok := data.(string); ok {
 		wrapped = gin.H{"message": msg}
 	} else {

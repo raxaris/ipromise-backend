@@ -59,7 +59,7 @@ func main() {
 
 	// CORS Middleware
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5500"},
+		AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5500", "http://192.168.1.69:5173"},
 		AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -67,7 +67,7 @@ func main() {
 		MaxAge:           24 * time.Hour,
 	}))
 
-	// 📦 Репозитории
+	//Repos
 	userRepo := user.NewUserRepository(db)
 	tokenRepo := token.NewTokenRepository(db)
 	promiseRepo := promise.NewPromiseRepository(db)
@@ -80,11 +80,12 @@ func main() {
 	predictionRepo := prediction.NewPredictionRepository(db)
 	notificationRepo := notification.NewNotificationRepository(db)
 
-	// Маппер
+	//Mappers
 	postMapper := mappers.NewPostMapper(userRepo, likeRepo, attachmentRepo, microtaskRepo, promiseRepo, postRepo, followerRepo)
 	notificationMapper := mappers.NewNotificationMapper()
 
-	// 🧠 Сервисы
+	//Services
+	notificationService := services.NewNotificationService(notificationRepo, notificationCache, notificationHub, notificationMapper)
 	authService := services.NewAuthService(userRepo, tokenRepo)
 	userService := services.NewUserService(userRepo)
 	attachmentService := services.NewAttachmentService(attachmentRepo, storage)
@@ -92,14 +93,13 @@ func main() {
 	predictionService := services.NewPredictionService(predictionRepo, openaiClient)
 	promiseService := services.NewPromiseService(promiseRepo, microtaskRepo, followerRepo, userRepo, postRepo, predictionService)
 	microtaskService := services.NewMicrotaskService(microtaskRepo, promiseRepo)
-	postService := services.NewPostService(postRepo, microtaskRepo, postMapper, followerRepo, promiseRepo, attachmentService)
-	badgeService := services.NewBadgeService(badgeRepo)
+	postService := services.NewPostService(postRepo, microtaskRepo, postMapper, followerRepo, promiseRepo, attachmentService, notificationService, userRepo)
+	badgeService := services.NewBadgeService(badgeRepo, notificationService)
 	adminService := services.NewAdminService(userRepo, postRepo, microtaskRepo, promiseRepo)
-	followerService := services.NewFollowerService(followerRepo, userRepo)
-	notificationService := services.NewNotificationService(notificationRepo, notificationCache, notificationHub, notificationMapper)
+	followerService := services.NewFollowerService(followerRepo, userRepo, notificationService)
 	likeService := services.NewLikeService(likeRepo, postRepo, userRepo, notificationService)
 
-	// 🤝 Хендлеры
+	//Handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
 	profileHandler := handlers.NewProfileHandler(profileService, attachmentService)
@@ -114,7 +114,7 @@ func main() {
 	predictionHandler := handlers.NewPredictionHandler(predictionService, promiseService)
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
 
-	// 📌 Swagger UI
+	//Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Watcher

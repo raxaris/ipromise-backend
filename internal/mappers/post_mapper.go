@@ -124,7 +124,6 @@ func (pm *PostMapper) BuildPostTree(
 	replies []*models.Post,
 	viewerID uuid.UUID,
 ) (*dto.PostWithRepliesTreeResponse, error) {
-	// Кешируем все replies по parentID
 	childrenMap := make(map[uuid.UUID][]*models.Post)
 	for _, reply := range replies {
 		if reply.ParentID != nil {
@@ -132,7 +131,6 @@ func (pm *PostMapper) BuildPostTree(
 		}
 	}
 
-	// Вложенная рекурсивная функция
 	var build func(*models.Post) (*dto.PostWithRepliesTreeResponse, error)
 	build = func(post *models.Post) (*dto.PostWithRepliesTreeResponse, error) {
 		dtoLite, err := pm.BuildPostLite(ctx, post, viewerID)

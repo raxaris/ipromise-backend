@@ -48,7 +48,6 @@ func sendDeadlineReminderIfNeeded(ctx context.Context, promise *models.Promise, 
 	diff := promise.Deadline.Sub(time.Now())
 	days := int(diff.Hours() / 24)
 
-	// check days
 	for _, day := range deadlineDays {
 		if days == day {
 			sendNotification(ctx, promise.UserID, promise.ID, notificationService, day, "day")
@@ -56,7 +55,6 @@ func sendDeadlineReminderIfNeeded(ctx context.Context, promise *models.Promise, 
 		}
 	}
 
-	// check months
 	for _, m := range deadlineMonths {
 		targetDate := promise.Deadline.AddDate(0, -m, 0)
 		if time.Now().Year() == targetDate.Year() && time.Now().YearDay() == targetDate.YearDay() {
@@ -79,22 +77,22 @@ func sendNotification(
 	switch unit {
 	case "day":
 		if amount == 1 {
-			msg = "⏰ Tomorrow is the deadline for one of your promises!"
+			msg = "omorrow is the deadline for one of your promises!"
 		} else {
-			msg = fmt.Sprintf("⏰ %d days left until your promise deadline.", amount)
+			msg = fmt.Sprintf("%d days left until your promise deadline.", amount)
 		}
 	case "month":
 		if amount == 12 {
-			msg = "⏰ 1 year remains until your promise deadline."
+			msg = "1 year remains until your promise deadline."
 		} else {
-			msg = fmt.Sprintf("⏰ %d months left until your promise deadline.", amount)
+			msg = fmt.Sprintf("%d months left until your promise deadline.", amount)
 		}
 	default:
-		msg = "⏰ A reminder about your promise deadline."
+		msg = "A reminder about your promise deadline."
 	}
 
 	notif := &models.Notification{
-		Type:      "deadline",
+		Type:      "deadline_reminder",
 		Message:   msg,
 		RelatedID: &promiseID,
 		CreatedAt: time.Now(),

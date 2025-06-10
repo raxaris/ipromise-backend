@@ -8,10 +8,8 @@ import (
 )
 
 func ParsePaginationParams(c *gin.Context) (limit int, afterCreatedAt *time.Time) {
-	// Значение по умолчанию
 	limit = 10
 
-	// Получаем значение limit из query-параметров
 	limitParam := c.Query("limit")
 	if limitParam != "" {
 		if parsedLimit, err := strconv.Atoi(limitParam); err == nil {
@@ -19,7 +17,6 @@ func ParsePaginationParams(c *gin.Context) (limit int, afterCreatedAt *time.Time
 		}
 	}
 
-	// Получаем значение after из query-параметров
 	afterParam := c.Query("after")
 	if afterParam != "" {
 		if parsedTime, err := time.Parse(time.RFC3339, afterParam); err == nil {
@@ -30,9 +27,7 @@ func ParsePaginationParams(c *gin.Context) (limit int, afterCreatedAt *time.Time
 	return
 }
 
-// Используется в постах, где есть and (created_at, id) пагинация
 func ParseCursorPaginationParams(c *gin.Context) (limit int, afterCreatedAt *time.Time, afterID *uuid.UUID) {
-	// По умолчанию
 	limit = 10
 
 	if l := c.Query("limit"); l != "" {

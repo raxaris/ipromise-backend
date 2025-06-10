@@ -29,16 +29,14 @@ func NewUserService(userRepo user.UserRepository) UserService {
 }
 
 func (s *userService) CreateUser(ctx context.Context, user *models.User) error {
-	// Trim input
+
 	user.Email = strings.TrimSpace(user.Email)
 	user.Username = strings.TrimSpace(user.Username)
 
-	// Валидация
 	if len(user.Username) < 3 {
 		return errors.New("Username must be at least 3 characters long")
 	}
 
-	// Проверка на уникальность
 	emailExists, err := s.userRepo.IsEmailExists(ctx, user.Email)
 	if err != nil {
 		return err
@@ -55,12 +53,10 @@ func (s *userService) CreateUser(ctx context.Context, user *models.User) error {
 		return errors.New("Username already taken")
 	}
 
-	// Хеширование пароля
 	if err := user.HashPassword(); err != nil {
 		return err
 	}
 
-	// Присваиваем ID
 	user.ID = uuid.New()
 
 	return s.userRepo.CreateUser(ctx, user)

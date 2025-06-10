@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,11 +20,15 @@ type BadgeService interface {
 }
 
 type badgeService struct {
-	badgeRepo badge.BadgeRepository
+	badgeRepo           badge.BadgeRepository
+	notificationService NotificationService
 }
 
-func NewBadgeService(badgeRepo badge.BadgeRepository) BadgeService {
-	return &badgeService{badgeRepo: badgeRepo}
+func NewBadgeService(badgeRepo badge.BadgeRepository, notificationService NotificationService) BadgeService {
+	return &badgeService{
+		badgeRepo:           badgeRepo,
+		notificationService: notificationService,
+	}
 }
 
 func (s *badgeService) CreateBadge(ctx context.Context, badge *models.Badge) error {
@@ -46,7 +51,7 @@ func (s *badgeService) AssignBadgeByCode(ctx context.Context, userID uuid.UUID, 
 		return err
 	}
 	if has {
-		return nil // уже есть
+		return nil
 	}
 
 	badge, err := s.badgeRepo.GetBadgeByCode(ctx, badgeCode)
@@ -54,7 +59,18 @@ func (s *badgeService) AssignBadgeByCode(ctx context.Context, userID uuid.UUID, 
 		return err
 	}
 
-	return s.badgeRepo.AssignBadgeToUser(ctx, userID, badge.ID)
+	if err := s.badgeRepo.AssignBadgeToUser(ctx, userID, badge.ID); err != nil {
+		return err
+	}
+
+	notification := &models.Notification{
+		Type:      "badge_assigned",
+		Message:   fmt.Sprintf("🏅 You’ve earned the “%s” badge!", badge.Title),
+		RelatedID: &badge.ID,
+	}
+	_ = s.notificationService.SendNotification(ctx, userID, notification)
+
+	return nil
 }
 
 func (s *badgeService) GetUserBadges(ctx context.Context, userID uuid.UUID) ([]dto.BadgeResponse, error) {

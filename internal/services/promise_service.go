@@ -70,53 +70,6 @@ func (s *promiseService) CreatePromise(ctx context.Context, userID uuid.UUID, re
 	return s.promiseRepo.CreatePromise(ctx, newPromise)
 }
 
-//func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseWithMicrotasksRequest) error {
-//	newPromise := &models.Promise{
-//		ID:          uuid.New(),
-//		UserID:      userID,
-//		Title:       req.Title,
-//		Description: req.Description,
-//		Deadline:    req.Deadline,
-//		Category:    req.Category,
-//		IsPrivate:   req.IsPrivate,
-//		Status:      "in_progress",
-//	}
-//
-//	prediction, err := s.predictionService.CreateOrReplacePrediction(ctx, newPromise)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if prediction.SuccessRate < 25 {
-//		return fmt.Errorf("Success rate too low: %.0f%%. Advice: %s", prediction.SuccessRate, prediction.Advice)
-//	}
-//
-//	if err := s.promiseRepo.CreatePromise(ctx, newPromise); err != nil {
-//		return err
-//	}
-//
-//	if len(req.Microtasks) > 0 {
-//		var microtasks []models.Microtask
-//		for i, m := range req.Microtasks {
-//			fmt.Println("Microtasks: ", m)
-//			microtasks = append(microtasks, models.Microtask{
-//				ID:             uuid.New(),
-//				PromiseID:      newPromise.ID,
-//				Title:          m.Title,
-//				Status:         "in progress",
-//				StepsPlanned:   m.StepsPlanned,
-//				MicrotaskOrder: i,
-//			})
-//		}
-//
-//		if err := s.microtaskRepo.CreateManyMicrotasks(ctx, microtasks); err != nil {
-//			return err
-//		}
-//	}
-//
-//	return nil
-//}
-
 func (s *promiseService) CreatePromiseWithMicrotasks(ctx context.Context, userID uuid.UUID, req *dto.CreatePromiseWithMicrotasksRequest) error {
 	return s.promiseRepo.WithTransaction(ctx, func(tx *gorm.DB) error {
 		newPromise := &models.Promise{
@@ -182,7 +135,7 @@ func (s *promiseService) GetPromiseByID(ctx context.Context, viewerID, promiseID
 	if isFollowing {
 		return existingPromise, nil
 	}
-	return nil, errors.New("обещание недоступно")
+	return nil, errors.New("Cannot get access to promise")
 }
 
 func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Context, viewerID uuid.UUID, username string, limit int, after *time.Time) ([]dto.PromiseWithMicrotasksProgressResponse, error) {
@@ -218,7 +171,7 @@ func (s *promiseService) GetUserPromisesWithMicrotasksProgress(ctx context.Conte
 			return nil, err
 		}
 
-		mtResponses := make([]dto.MicrotaskProgress, 0) // ✅ всегда будет []
+		mtResponses := make([]dto.MicrotaskProgress, 0)
 
 		for _, mt := range microtasks {
 			postCount, err := s.postRepo.CountRootPostsByMicrotaskID(ctx, mt.ID)
@@ -334,22 +287,22 @@ func validatePromiseInput(title, description *string, deadline *time.Time) error
 	if title != nil {
 		trimmed := strings.TrimSpace(*title)
 		if trimmed == "" {
-			return errors.New("название не может быть пустым")
+			return errors.New("title cannot be empty")
 		}
 		if len(trimmed) > 100 {
-			return errors.New("название слишком длинное (макс 100 символов)")
+			return errors.New("title too long(max 100 symbols)")
 		}
 	}
 
 	if description != nil {
 		trimmed := strings.TrimSpace(*description)
 		if len(trimmed) > 2000 {
-			return errors.New("описание слишком длинное (макс 2000 символов)")
+			return errors.New("description too long(max 1000 symbols)")
 		}
 	}
 
 	if deadline != nil && time.Now().After(*deadline) {
-		return errors.New("дедлайн не может быть в прошлом")
+		return errors.New("deadline cannot be in the past")
 	}
 
 	return nil
@@ -357,7 +310,7 @@ func validatePromiseInput(title, description *string, deadline *time.Time) error
 
 func checkOwnership(userID uuid.UUID, promise *models.Promise) error {
 	if promise.UserID != userID {
-		return errors.New("вы не владелец этого обещания")
+		return errors.New("you are not the owner of this promise")
 	}
 	return nil
 }

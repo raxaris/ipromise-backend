@@ -3,11 +3,13 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/raxaris/ipromise-backend/internal/dto"
 	"github.com/raxaris/ipromise-backend/internal/mappers"
 	"github.com/raxaris/ipromise-backend/internal/repositories/follower"
 	"github.com/raxaris/ipromise-backend/internal/repositories/microtask"
 	"github.com/raxaris/ipromise-backend/internal/repositories/promise"
+	"github.com/raxaris/ipromise-backend/internal/repositories/user"
 	"io"
 	"log"
 	"mime/multipart"
@@ -38,12 +40,14 @@ type PostService interface {
 }
 
 type postService struct {
-	postRepo          post.PostRepository
-	promiseRepo       promise.PromiseRepository
-	microtaskRepo     microtask.MicrotaskRepository
-	postMapper        *mappers.PostMapper
-	followerRepo      follower.FollowerRepository
-	attachmentService AttachmentService
+	postRepo            post.PostRepository
+	promiseRepo         promise.PromiseRepository
+	microtaskRepo       microtask.MicrotaskRepository
+	postMapper          *mappers.PostMapper
+	followerRepo        follower.FollowerRepository
+	userRepo            user.UserRepository
+	attachmentService   AttachmentService
+	notificationService NotificationService
 }
 
 func NewPostService(
@@ -53,14 +57,18 @@ func NewPostService(
 	followerRepo follower.FollowerRepository,
 	promiseRepo promise.PromiseRepository,
 	attachmentService AttachmentService,
+	notificationService NotificationService,
+	userRepo user.UserRepository,
 ) PostService {
 	return &postService{
-		postRepo:          postRepo,
-		microtaskRepo:     microtaskRepo,
-		postMapper:        postMapper,
-		followerRepo:      followerRepo,
-		promiseRepo:       promiseRepo,
-		attachmentService: attachmentService,
+		postRepo:            postRepo,
+		microtaskRepo:       microtaskRepo,
+		postMapper:          postMapper,
+		followerRepo:        followerRepo,
+		promiseRepo:         promiseRepo,
+		attachmentService:   attachmentService,
+		notificationService: notificationService,
+		userRepo:            userRepo,
 	}
 }
 
@@ -140,6 +148,30 @@ func (s *postService) CreateReplyWithAttachments(
 	}
 
 	s.uploadPostAttachments(ctx, post.ID, attachments)
+
+	if parent.UserID != userID {
+		user, err := s.userRepo.GetUserByID(ctx, userID)
+		if err == nil {
+			var notificationType, message string
+
+			if parent.ParentID == nil {
+				notificationType = "post_reply"
+				message = fmt.Sprintf("💬 %s replied to your post.", user.Username)
+			} else {
+				notificationType = "comment_reply"
+				message = fmt.Sprintf("💬 %s replied to your comment.", user.Username)
+			}
+
+			notification := &models.Notification{
+				Type:      notificationType,
+				Message:   message,
+				RelatedID: &post.ID,
+			}
+
+			_ = s.notificationService.SendNotification(ctx, parent.UserID, notification)
+		}
+	}
+
 	return nil
 }
 
@@ -198,6 +230,10 @@ func (s *postService) DeletePost(ctx context.Context, userID, postID uuid.UUID) 
 	if existingPost.UserID != userID {
 		return errors.New("not enough permissions to delete")
 	}
+
+	_ = s.notificationService.DeleteByTypeAndRelatedID(ctx, existingPost.UserID, "post_reply", postID)
+	_ = s.notificationService.DeleteByTypeAndRelatedID(ctx, existingPost.UserID, "comment_reply", postID)
+
 	return s.postRepo.DeletePost(ctx, postID)
 }
 

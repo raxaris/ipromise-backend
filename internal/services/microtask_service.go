@@ -37,12 +37,12 @@ func (s *microtaskService) CreateMicrotask(ctx context.Context, userID, promiseI
 		return err
 	}
 	if p.UserID != userID {
-		return errors.New("нет доступа к этому промису")
+		return errors.New("not enough permission to this promise")
 	}
 
 	title = strings.TrimSpace(title)
 	if title == "" {
-		return errors.New("название не может быть пустым")
+		return errors.New("title cannot be empty")
 	}
 
 	maxOrder, err := s.microtaskRepo.GetMaxOrderByPromiseID(ctx, promiseID)
@@ -74,7 +74,7 @@ func (s *microtaskService) UpdateMicrotask(ctx context.Context, userID, microtas
 		return err
 	}
 	if p.UserID != userID {
-		return errors.New("нет доступа к микротаске")
+		return errors.New("not enough permission to this microtask")
 	}
 
 	if title != nil {
@@ -89,7 +89,7 @@ func (s *microtaskService) UpdateMicrotask(ctx context.Context, userID, microtas
 		case "in_progress", "completed":
 			mt.Status = *status
 		default:
-			return errors.New("некорректный статус")
+			return errors.New("invalid status")
 		}
 	}
 
@@ -138,7 +138,7 @@ func (s *microtaskService) ListMicrotasksByPromiseID(ctx context.Context, viewer
 	}
 
 	if p.IsPrivate && p.UserID != viewerID {
-		return nil, errors.New("обещание приватное")
+		return nil, errors.New("promise is private")
 	}
 
 	return s.microtaskRepo.ListMicrotasksByPromiseID(ctx, promiseID)

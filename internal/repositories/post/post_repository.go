@@ -27,7 +27,7 @@ type PostRepository interface {
 	ListUserPostsWithReplies(
 		ctx context.Context,
 		username string,
-		viewerID uuid.UUID, // для проверки приватности
+		viewerID uuid.UUID,
 		limit int,
 		afterCreatedAt *time.Time,
 		afterID *uuid.UUID,

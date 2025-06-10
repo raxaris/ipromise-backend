@@ -74,7 +74,7 @@ func assignBadges(
 
 	for _, badge := range badgeConditions {
 		if !badge.Check {
-			continue // условие не выполнено — пропускаем
+			continue
 		}
 
 		has, err := badgeService.HasUserBadgeByCode(ctx, userID, badge.Code)
