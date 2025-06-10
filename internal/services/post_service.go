@@ -156,10 +156,10 @@ func (s *postService) CreateReplyWithAttachments(
 
 			if parent.ParentID == nil {
 				notificationType = "post_reply"
-				message = fmt.Sprintf("💬 %s replied to your post.", user.Username)
+				message = fmt.Sprintf("%s replied to your post.", user.Username)
 			} else {
 				notificationType = "comment_reply"
-				message = fmt.Sprintf("💬 %s replied to your comment.", user.Username)
+				message = fmt.Sprintf("%s replied to your comment.", user.Username)
 			}
 
 			notification := &models.Notification{
