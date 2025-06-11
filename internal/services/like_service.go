@@ -63,7 +63,7 @@ func (s *likeService) LikePost(ctx context.Context, userID, postID uuid.UUID) er
 			return err
 		}
 
-		message := fmt.Sprintf("%s liked your post", user.Username)
+		message := fmt.Sprintf("❤️ %s liked your post", user.Username)
 		notification := &models.Notification{
 			Type:      "like",
 			Message:   message,

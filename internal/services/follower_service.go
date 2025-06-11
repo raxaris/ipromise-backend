@@ -70,7 +70,7 @@ func (s *followerService) RequestFollow(ctx context.Context, followerID, followi
 	if err == nil {
 		notification := &models.Notification{
 			Type:      "follow_request",
-			Message:   fmt.Sprintf("%s wants to follow you", user.Username),
+			Message:   fmt.Sprintf("👥 %s wants to follow you", user.Username),
 			RelatedID: &followerID,
 		}
 		_ = s.notificationService.SendNotification(ctx, followingID, notification)
@@ -102,7 +102,7 @@ func (s *followerService) AcceptFollowRequest(ctx context.Context, userID, fromU
 	if err == nil {
 		notification := &models.Notification{
 			Type:      "follow_accepted",
-			Message:   fmt.Sprintf("%s accepted your follow request.", user.Username),
+			Message:   fmt.Sprintf("👥 %s accepted your follow request.", user.Username),
 			RelatedID: &userID,
 		}
 		_ = s.notificationService.SendNotification(ctx, fromUserID, notification)

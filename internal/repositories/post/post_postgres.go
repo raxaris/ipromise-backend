@@ -230,7 +230,7 @@ func (r *postRepository) ListPublicPostsWithReplies(
 			FROM posts
 			JOIN microtasks ON posts.microtask_id = microtasks.id
 			JOIN promises ON microtasks.promise_id = promises.id
-			WHERE promises.is_private = FALSE AND posts.parent_id IS NULL
+			WHERE promises.is_private = FALSE AND posts.parent_id IS NULL AND posts.deleted_at IS NULL
 				AND ((posts.created_at < ?) OR (posts.created_at = ? AND posts.id < ?))
 			ORDER BY posts.created_at DESC, posts.id DESC
 			LIMIT ?
@@ -286,7 +286,7 @@ func (r *postRepository) ListFeedPostsWithReplies(
 		JOIN microtasks ON posts.microtask_id = microtasks.id
 		JOIN promises ON microtasks.promise_id = promises.id
 		JOIN followers ON promises.user_id = followers.following_id
-		WHERE followers.follower_id = ? AND promises.is_private = FALSE AND posts.parent_id IS NULL
+		WHERE followers.follower_id = ? AND promises.is_private = FALSE AND posts.parent_id IS NULL AND posts.deleted_at IS NULL
 		ORDER BY posts.created_at DESC, posts.id DESC
 		LIMIT ?
 	`, viewerID, limit)
@@ -298,7 +298,7 @@ func (r *postRepository) ListFeedPostsWithReplies(
 			JOIN microtasks ON posts.microtask_id = microtasks.id
 			JOIN promises ON microtasks.promise_id = promises.id
 			JOIN followers ON promises.user_id = followers.following_id
-			WHERE followers.follower_id = ? AND promises.is_private = FALSE AND posts.parent_id IS NULL
+			WHERE followers.follower_id = ? AND promises.is_private = FALSE AND posts.parent_id IS NULL AND posts.deleted_at IS NULL
 				AND ((posts.created_at < ?) OR (posts.created_at = ? AND posts.id < ?))
 			ORDER BY posts.created_at DESC, posts.id DESC
 			LIMIT ?
@@ -380,7 +380,7 @@ func (r *postRepository) ListUserPostsWithReplies(
 		JOIN users ON posts.user_id = users.id
 		JOIN microtasks ON posts.microtask_id = microtasks.id
 		JOIN promises ON microtasks.promise_id = promises.id
-		WHERE users.username = ? AND posts.parent_id IS NULL
+		WHERE users.username = ? AND posts.parent_id IS NULL AND posts.deleted_at IS NULL
 		AND (promises.is_private = FALSE OR promises.user_id = ?)`
 
 	args := []interface{}{username, viewerID}
